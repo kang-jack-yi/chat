@@ -1,0 +1,41 @@
+{
+  "name": "@chat/server",
+  "version": "1.0.0",
+  "private": true,
+  "egg": {
+    "declarations": true
+  },
+  "scripts": {
+    "dev": "egg-bin dev --ts --port=7001",
+    "build": "tsc -p tsconfig.json --noEmit",
+    "start": "egg-scripts start --title=enterprise-chat-server",
+    "stop": "egg-scripts stop --title=enterprise-chat-server",
+    "test": "egg-bin test --ts",
+    "seed": "cross-env EGG_SERVER_ENV=local ts-node --files scripts/seed.ts"
+  },
+  "dependencies": {
+    "@hocuspocus/extension-database": "4.4.0",
+    "@hocuspocus/server": "4.4.0",
+    "bcryptjs": "^3.0.2",
+    "egg": "^3.34.0",
+    "egg-cors": "^3.0.1",
+    "egg-scripts": "^3.0.2",
+    "egg-socket.io": "^4.1.6",
+    "jsonwebtoken": "^9.0.2",
+    "sanitize-html": "^2.17.6",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7",
+    "yjs": "13.6.27"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.18.6",
+    "@types/sanitize-html": "^2.16.1",
+    "cross-env": "^10.1.0",
+    "egg-bin": "^6.13.0",
+    "egg-mock": "^5.15.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

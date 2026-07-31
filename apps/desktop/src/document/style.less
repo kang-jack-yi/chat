@@ -1,0 +1,318 @@
+html,
+body,
+#root,
+#root > .ant-app {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.documentWindow {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f2f5fa;
+  color: var(--app-text);
+}
+
+.documentBoot {
+  box-sizing: border-box;
+  width: min(900px, calc(100% - 64px));
+  margin: 80px auto;
+  padding: 40px;
+  border: 1px solid var(--app-line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.documentHeader {
+  z-index: 5;
+  display: flex;
+  min-height: 66px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #e1e6ed;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 8px 18px;
+  backdrop-filter: blur(14px);
+}
+
+.documentTypeIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  background: #1677ff;
+  color: #fff;
+}
+
+.documentTypeIcon.isSheet {
+  background: #13a36f;
+}
+
+.documentTitleBlock {
+  min-width: 180px;
+  max-width: 560px;
+  flex: 1;
+}
+
+.documentTitleInput {
+  padding: 0 !important;
+  font-size: 17px !important;
+  font-weight: 650 !important;
+  color: var(--app-text) !important;
+}
+
+.documentMeta,
+.documentSyncStatus {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.documentMeta {
+  margin-top: 3px;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--app-text-secondary);
+}
+
+.documentHeaderActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.documentEditorWorkspace {
+  display: flex;
+  height: 0;
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.documentToolbar {
+  z-index: 4;
+  display: flex;
+  min-height: 45px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid #e1e6ed;
+  background: #fff;
+  padding: 6px 16px;
+  box-shadow: 0 3px 12px rgba(36, 48, 72, 0.04);
+}
+
+.documentToolbar .ant-divider-vertical {
+  height: 22px;
+  margin-inline: 6px;
+}
+
+.documentToolbarHeading {
+  width: 104px;
+}
+
+.documentReadOnly {
+  flex: 0 0 auto;
+  border-bottom: 1px solid #d8e8ff;
+}
+
+.documentCanvas,
+.sheetCanvas {
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 0;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.documentCanvas {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  padding: 30px 24px 80px;
+}
+
+.sheetCanvas {
+  overflow: auto;
+  background: #f7f9fc;
+  padding: 14px;
+}
+
+.documentCanvas .documentEditorPage {
+  box-sizing: border-box;
+  display: flex;
+  width: min(820px, calc(100% - 32px));
+  min-height: 100%;
+  flex: 1 0 auto;
+  flex-direction: column;
+  margin: 0 auto;
+  border: 1px solid #e3e8ef;
+  border-radius: 3px;
+  background: #fff;
+  padding: 72px 84px 100px;
+  box-shadow: 0 12px 38px rgba(36, 48, 72, 0.08);
+}
+
+.documentEditorPage > div {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.documentEditorPage .cloudEditor {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  outline: none;
+}
+
+.sheetCanvas .sheetEditorPage {
+  min-width: max-content;
+  min-height: calc(100vh - 150px);
+}
+
+.sheetEditorPage .cloudEditor {
+  min-width: max-content;
+  flex: 1 1 auto;
+  outline: none;
+  background: #fff;
+}
+
+.cloudEditor {
+  line-height: 1.75;
+  color: #1f2733;
+}
+
+.cloudEditor h1 {
+  margin: 0 0 26px;
+  font-size: 30px;
+  line-height: 1.35;
+}
+
+.cloudEditor h2 {
+  margin: 30px 0 12px;
+  font-size: 22px;
+}
+
+.cloudEditor h3 {
+  margin: 24px 0 10px;
+  font-size: 18px;
+}
+
+.cloudEditor p {
+  margin: 10px 0;
+}
+
+.cloudEditor blockquote {
+  margin: 18px 0;
+  border-left: 3px solid #79afff;
+  background: #f5f9ff;
+  padding: 8px 14px;
+  color: #526170;
+}
+
+.cloudEditor a {
+  color: #1677ff;
+  text-decoration: underline;
+}
+
+.cloudEditor ul,
+.cloudEditor ol {
+  padding-left: 26px;
+}
+
+.cloudEditor table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.cloudEditor th,
+.cloudEditor td {
+  position: relative;
+  min-width: 96px;
+  border: 1px solid #dfe5ec;
+  padding: 8px 10px;
+  vertical-align: top;
+}
+
+.cloudEditor th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
+.cloudEditor .selectedCell::after {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background: rgba(22, 119, 255, 0.13);
+  content: "";
+  pointer-events: none;
+}
+
+.cloudEditor .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -2px;
+  width: 4px;
+  background: #1677ff;
+  pointer-events: none;
+}
+
+.cloudEditor.resize-cursor {
+  cursor: col-resize;
+}
+
+.collaboration-carets__caret {
+  position: relative;
+  margin-right: -1px;
+  margin-left: -1px;
+  border-right: 1px solid;
+  border-left: 1px solid;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.collaboration-carets__label {
+  position: absolute;
+  top: -1.45em;
+  left: -1px;
+  border-radius: 4px 4px 4px 0;
+  padding: 1px 5px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .documentHeaderActions .ant-tag,
+  .documentMeta > span:nth-child(2) {
+    display: none;
+  }
+
+  .documentCanvas .documentEditorPage {
+    width: 100%;
+  }
+
+  .documentCanvas .documentEditorPage {
+    padding: 48px 42px 70px;
+  }
+}

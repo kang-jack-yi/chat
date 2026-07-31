@@ -1,0 +1,85 @@
+import { Building2, ContactRound, FileText, LogOut, MessageCircleMore, Settings } from "lucide-react";
+import type { ReactNode } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button, Tooltip } from "antd";
+import Avatar from "../../components/Avatar";
+import { ROUTES } from "../../constants/routes";
+import { authService } from "../../services/auth";
+import { useAppStore } from "../../stores/app-store";
+import { useSyncStore } from "../../stores/sync-store";
+import { useUserStore } from "../../stores/user-store";
+
+interface NavItemProps {
+  to: string;
+  icon: ReactNode;
+  label: string;
+}
+
+const railItem = "flex h-[50px] w-[50px] flex-col items-center justify-center gap-0.5 rounded-lg text-[var(--chat-text-secondary)] no-underline transition-colors duration-150 hover:bg-[var(--chat-rail-hover)] hover:text-[var(--chat-primary)] max-md:h-[48px] max-md:w-[46px]";
+
+function NavItem({ to, icon, label }: NavItemProps) {
+  return (
+    <Tooltip placement="right" title={label}>
+      <NavLink
+        to={to}
+        className={({ isActive }) => `${railItem} ${isActive ? "bg-[var(--chat-rail-active)] !text-[var(--chat-primary)]" : ""}`}
+      >
+        {icon}<span className="text-[10px]">{label}</span>
+      </NavLink>
+    </Tooltip>
+  );
+}
+
+export default function Sidebar() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const session = useUserStore((state) => state.session);
+  const clearSession = useUserStore((state) => state.clearSession);
+  const resetApp = useAppStore((state) => state.reset);
+  const setServerSettingsOpen = useAppStore((state) => state.setServerSettingsOpen);
+  const isAdmin = ["owner", "admin"].includes(session?.user.role || "");
+
+  async function logout() {
+    await authService.logout().catch(() => undefined);
+    queryClient.clear();
+    clearSession();
+    resetApp();
+    useSyncStore.getState().reset();
+    navigate(ROUTES.login, { replace: true });
+  }
+
+  return (
+    <aside className="flex flex-col items-center border-r border-[#d7e2f2] bg-[var(--chat-rail)] pt-3 pb-2 max-md:pt-2">
+      <div className="mb-4 rounded-lg bg-white/70 p-0.5 max-md:mb-3"><Avatar text={session?.user.avatar || ""} /></div>
+      <nav className="grid w-full justify-items-center gap-1">
+        <NavItem to={ROUTES.chat} icon={<MessageCircleMore size={22} />} label="消息" />
+        <NavItem to={ROUTES.contacts} icon={<ContactRound size={22} />} label="通讯录" />
+        <NavItem to={ROUTES.documents} icon={<FileText size={22} />} label="文档" />
+        {isAdmin && <NavItem to={ROUTES.organization} icon={<Building2 size={22} />} label="组织管理" />}
+      </nav>
+      <div className="mt-auto grid w-full justify-items-center gap-1">
+        <Tooltip placement="right" title="服务器设置">
+          <Button
+            type="text"
+            className={`${railItem} !h-[52px] !gap-0.5 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]`}
+            onClick={() => setServerSettingsOpen(true)}
+            icon={<Settings size={22} />}
+          >
+            <span className="text-[10px]">设置</span>
+          </Button>
+        </Tooltip>
+        <Tooltip placement="right" title="退出">
+          <Button
+            type="text"
+            className={`${railItem} !h-[52px] !gap-0.5 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]`}
+            onClick={logout}
+            icon={<LogOut size={22} />}
+          >
+            <span className="text-[10px]">退出</span>
+          </Button>
+        </Tooltip>
+      </div>
+    </aside>
+  );
+}

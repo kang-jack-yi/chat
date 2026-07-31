@@ -1,0 +1,30 @@
+{
+  "name": "enterprise-chat",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "dev": "concurrently -n server,desktop -c blue,green \"pnpm --filter @chat/server dev\" \"pnpm --filter @chat/desktop dev\"",
+    "dev:desktop": "pnpm dev",
+    "build": "pnpm -r build",
+    "build:desktop": "pnpm --filter @chat/shared build && pnpm --filter @chat/desktop build",
+    "make:win": "pnpm --filter @chat/shared build && pnpm --filter @chat/desktop make",
+    "test:desktop": "pnpm --filter @chat/desktop test",
+    "test": "pnpm -r test",
+    "seed": "pnpm --filter @chat/server seed",
+    "reset:data": "node scripts/reset-dev-data.mjs && pnpm seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "egg-bin",
+      "esbuild",
+      "electron",
+      "better-sqlite3",
+      "sqlite3"
+    ]
+  }
+}
