@@ -22,7 +22,7 @@ export interface GroupAnnouncementModalProps {
   conversation: Conversation;
   currentUser: User;
   onClose: () => void;
-  onPublished: (message: Message) => void;
+  onPublished: (message: Message) => void | Promise<void>;
 }
 
 function imageDimensions(file: File) {
@@ -176,7 +176,7 @@ export default function GroupAnnouncementModal({
         parts,
       });
       await clearDraft();
-      onPublished(message);
+      await onPublished(message);
     } catch (reason) {
       await Promise.all(
         uploadedIds.map((id) => uploadService.remove(id).catch(() => undefined)),

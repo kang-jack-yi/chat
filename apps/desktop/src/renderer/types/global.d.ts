@@ -37,6 +37,13 @@ declare global {
         openChatHistory(input: OpenChatHistoryInput): Promise<void>;
         openForwardRecord(input: OpenForwardRecordInput): Promise<void>;
         openDocument(documentId: number): Promise<void>;
+        downloadDocument(input: {
+          id: number;
+          title: string;
+        }): Promise<boolean>;
+        onDocumentChanged(
+          listener: (input: { documentId: number }) => void,
+        ): () => void;
         onLocateHistoryMessage(
           listener: (input: { conversationId: number; messageId: number }) => void,
         ): () => void;
@@ -177,6 +184,8 @@ declare global {
         onTokenUpdated(listener: (accessToken: string) => void): () => void;
       };
       window: {
+        download(input: { id: number; title: string }): Promise<boolean>;
+        notifyChanged(documentId: number): Promise<boolean>;
         onBeforeClose(listener: () => void): () => void;
         readyToClose(): Promise<boolean>;
       };

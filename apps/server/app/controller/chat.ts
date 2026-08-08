@@ -104,7 +104,11 @@ export default class ChatController extends Controller {
         : null,
       name: conversation.type === "direct" ? other?.name || "单聊" : conversation.name,
       avatar: conversation.type === "direct" ? other?.avatar || "聊" : conversation.name?.slice(0, 1) || "群",
-      lastMessage: historyCleared ? "" : String(latestMessage?.get("summary") || ""),
+      lastMessage: historyCleared
+        ? ""
+        : latestMessage?.get("kind") === "announcement"
+          ? `[群公告] ${String(latestMessage.get("summary") || "")}`
+          : String(latestMessage?.get("summary") || ""),
       lastMessageId,
       lastMessageAt: historyCleared ? null : latestMessage?.get("createdAt") || null,
       unreadCount,
@@ -852,6 +856,7 @@ export default class ChatController extends Controller {
       this.app.io?.of("/")?.to(`conversation:${id}`).emit("message:read", {
         conversationId: id,
         userId: this.ctx.currentUser.id,
+        previousMessageId: currentRead,
         messageId,
       });
       this.app.io?.of("/")?.to(`conversation:${id}`).emit("sync:available", { conversationId: id });

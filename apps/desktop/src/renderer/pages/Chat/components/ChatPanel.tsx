@@ -14,12 +14,14 @@ import {
   X,
 } from "lucide-react";
 import type { Conversation, Message, MessagePart, User } from "@chat/shared";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import Avatar from "../../../components/Avatar";
 import EmptyState from "../../../components/EmptyState";
 import { queryKeys } from "../../../constants/query-keys";
 import { chatService } from "../../../services/chat";
 import { writeClipboardText } from "../../../services/clipboard";
+import { localDatabase } from "../../../services/local-database";
+import type { MessagePage } from "../../../types/api";
 import { useChat } from "../hooks";
 import ComposerQuote from "./ComposerQuote";
 import ForwardTargetModal from "./ForwardTargetModal";
@@ -183,12 +185,67 @@ export default function ChatPanel({
     if (!conversation || !forwardInput) return;
     setForwarding(true);
     try {
-      await chatService.forward(conversation.id, {
+      const result = await chatService.forward(conversation.id, {
         requestId: crypto.randomUUID(),
         messageIds: forwardInput.messageIds,
         targetConversationIds,
         mode: forwardInput.mode,
       });
+      const deliveredMessages = result.deliveries.flatMap((delivery) => delivery.messages);
+      const deliveredConversations = result.deliveries.flatMap((delivery) => {
+        const target = conversations.find((item) => item.id === delivery.conversationId);
+        const lastMessage = delivery.messages.at(-1);
+        return target && lastMessage
+          ? [{
+              ...target,
+              lastMessage: lastMessage.summary,
+              lastMessageId: lastMessage.id,
+              lastMessageAt: lastMessage.createdAt,
+            }]
+          : [];
+      });
+      if (localDatabase.available()) {
+        await Promise.all([
+          ...(deliveredMessages.length
+            ? [localDatabase.upsertMessages(deliveredMessages)]
+            : []),
+          ...(deliveredConversations.length
+            ? [localDatabase.upsertConversations(deliveredConversations)]
+            : []),
+        ]);
+      }
+      const currentDelivery = result.deliveries.find((delivery) =>
+        delivery.conversationId === conversation.id);
+      if (currentDelivery?.messages.length) {
+        queryClient.setQueryData<InfiniteData<MessagePage<Message>>>(
+          queryKeys.messages(conversation.id),
+          (current) => {
+            if (!current) {
+              return {
+                pages: [{ items: currentDelivery.messages, nextCursor: null }],
+                pageParams: [undefined],
+              };
+            }
+            const deliveredIds = new Set(currentDelivery.messages.map((message) => message.id));
+            const deliveredClientIds = new Set(
+              currentDelivery.messages.map((message) => message.clientId),
+            );
+            const pages = [...current.pages];
+            pages[0] = {
+              ...pages[0],
+              items: [
+                ...pages[0].items.filter((message) =>
+                  !deliveredIds.has(message.id) && !deliveredClientIds.has(message.clientId)),
+                ...currentDelivery.messages,
+              ],
+            };
+            return { ...current, pages };
+          },
+        );
+      }
+      queryClient.setQueryData<Conversation[]>(queryKeys.conversations, (current) =>
+        current?.map((item) =>
+          deliveredConversations.find((updated) => updated.id === item.id) || item));
       toast.success(forwardInput.mode === "merged" ? "聊天记录已转发" : "消息已转发");
       setForwardInput(undefined);
       stopSelecting();

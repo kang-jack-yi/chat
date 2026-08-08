@@ -89,6 +89,7 @@ body,
   flex: 0 0 auto;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 .documentEditorWorkspace {
@@ -183,12 +184,21 @@ body,
 }
 
 .sheetCanvas .sheetEditorPage {
-  min-width: max-content;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 100%;
   min-height: calc(100vh - 150px);
+  background: #fff;
+}
+
+.sheetEditorPage > div,
+.sheetEditorPage .cloudEditor {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 100%;
 }
 
 .sheetEditorPage .cloudEditor {
-  min-width: max-content;
   flex: 1 1 auto;
   outline: none;
   background: #fff;
@@ -239,17 +249,33 @@ body,
 
 .cloudEditor table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
+.cloudEditor .tableWrapper {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .cloudEditor th,
 .cloudEditor td {
+  box-sizing: border-box;
   position: relative;
   min-width: 96px;
+  height: 42px;
   border: 1px solid #dfe5ec;
   padding: 8px 10px;
   vertical-align: top;
+}
+
+.cloudEditorSheet th,
+.cloudEditorSheet td {
+  min-width: 120px;
 }
 
 .cloudEditor th {
@@ -268,10 +294,11 @@ body,
 
 .cloudEditor .column-resize-handle {
   position: absolute;
+  z-index: 3;
   top: 0;
-  right: -2px;
-  bottom: -2px;
-  width: 4px;
+  right: 0;
+  bottom: 0;
+  width: 3px;
   background: #1677ff;
   pointer-events: none;
 }

@@ -25,6 +25,7 @@ import type {
   MessageHistoryHit,
 } from "@chat/shared";
 import MessageContent from "../../renderer/pages/Chat/components/MessageContent";
+import MessageBubble from "../../renderer/pages/Chat/components/MessageBubble";
 import SystemMessage from "../../renderer/pages/Chat/components/SystemMessage";
 
 export interface ChatHistoryWindowProps {
@@ -136,6 +137,10 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
     [metadata?.conversation.members],
   );
 
+  useEffect(() => {
+    document.title = metadata?.conversation.name || "聊天记录";
+  }, [metadata?.conversation.name]);
+
   const resolveAttachmentUrl = useCallback(
     (attachment: Attachment) => bridge!.attachments.resolve({
       taskId: task.taskId,
@@ -155,17 +160,11 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
   return (
     <main
       data-chat-root
-      className="fixed inset-0 grid min-h-0 grid-rows-[52px_minmax(0,1fr)] bg-white text-[var(--app-text)]"
+      className="fixed inset-0 grid min-h-0 grid-rows-[minmax(0,1fr)] bg-[var(--app-canvas)] text-[var(--app-text)]"
     >
-      <header className="flex items-center justify-center border-b border-[var(--app-line)] bg-[var(--app-surface-soft)] px-5">
-        <strong className="max-w-[70%] truncate text-sm font-semibold">
-          {metadata?.conversation.name || "聊天记录"}
-        </strong>
-      </header>
-
-      <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_250px]">
-        <section className="grid min-h-0 grid-rows-[56px_44px_minmax(0,1fr)] border-r border-[var(--app-line)]">
-          <div className="flex items-center px-4">
+      <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_240px]">
+        <section className="grid min-h-0 grid-rows-[56px_44px_minmax(0,1fr)] border-r border-[var(--app-line)] bg-white">
+          <div className="flex items-center px-5">
             <Input
               allowClear
               value={keyword}
@@ -178,7 +177,7 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
           <Tabs
             activeKey={category}
             onChange={(key) => setCategory(key as MessageHistoryCategory)}
-            className="!m-0 !px-4"
+            className="!m-0 !px-5"
             items={[
               { key: "all", label: "聊天记录" },
               { key: "file", label: "文件" },
@@ -186,7 +185,7 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
             ]}
           />
 
-          <div className="min-h-0 overflow-y-auto px-3 py-2">
+          <div className="min-h-0 overflow-y-auto px-5 pb-4">
             {loading && (
               <div className="grid h-full place-items-center"><Spin /></div>
             )}
@@ -212,8 +211,8 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
                 return (
                   <div key={message.clientId}>
                     {day !== previousDay && (
-                      <div className="my-3 text-center text-[10px] text-[var(--app-text-tertiary)]">
-                        {day}
+                      <div className="my-4 flex items-center gap-3 text-[10px] text-[var(--app-text-tertiary)] before:h-px before:flex-1 before:bg-[var(--app-line)] after:h-px after:flex-1 after:bg-[var(--app-line)]">
+                        <span className="shrink-0">{day}</span>
                       </div>
                     )}
                     <div className="py-2 text-center">
@@ -225,12 +224,12 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
               return (
                 <div key={message.clientId}>
                   {day !== previousDay && (
-                    <div className="my-3 text-center text-[10px] text-[var(--app-text-tertiary)]">
-                      {day}
+                      <div className="my-4 flex items-center gap-3 text-[10px] text-[var(--app-text-tertiary)] before:h-px before:flex-1 before:bg-[var(--app-line)] after:h-px after:flex-1 after:bg-[var(--app-line)]">
+                        <span className="shrink-0">{day}</span>
                     </div>
                   )}
                   <article
-                    className="group flex cursor-pointer gap-3 rounded-xl px-2 py-3 hover:bg-[var(--app-surface-soft)]"
+                    className="group flex cursor-pointer gap-3 border-b border-[var(--app-line)] py-4 transition-colors hover:bg-[var(--app-surface-soft)]"
                     onClick={() => void bridge?.history.locate({
                       taskId: task.taskId,
                       messageId: message.id,
@@ -244,8 +243,8 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
                       {message.senderAvatar || message.senderName.slice(0, 1)}
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <div className="mb-1.5 flex items-center justify-between gap-3">
-                        <strong className="truncate text-xs font-medium">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <strong className="truncate text-sm font-medium">
                           {message.senderName}
                         </strong>
                         <time className="shrink-0 text-[10px] text-[var(--app-text-tertiary)]">
@@ -256,20 +255,36 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
                           })}
                         </time>
                       </div>
-                      <div className="w-fit max-w-full text-sm leading-6">
-                        <MessageContent
-                          message={message}
-                          variant="history"
-                          resolveAttachmentUrl={resolveAttachmentUrl}
-                          onPreviewImage={(targetMessage, part) => {
-                            void bridge?.images.openViewer({
-                              taskId: task.taskId,
-                              conversationId: task.conversationId,
-                              messageId: targetMessage.id,
-                              attachmentId: part.attachment.id,
-                            });
-                          }}
-                        />
+                      <div className="w-fit max-w-full text-sm leading-6 text-[var(--app-text)]">
+                        {message.kind === "announcement" ? (
+                          <MessageBubble
+                            message={message}
+                            contextMenuEnabled={false}
+                            resolveAttachmentUrl={resolveAttachmentUrl}
+                            onPreviewImage={(targetMessage, part) => {
+                              void bridge?.images.openViewer({
+                                taskId: task.taskId,
+                                conversationId: task.conversationId,
+                                messageId: targetMessage.id,
+                                attachmentId: part.attachment.id,
+                              });
+                            }}
+                          />
+                        ) : (
+                          <MessageContent
+                            message={message}
+                            variant="history"
+                            resolveAttachmentUrl={resolveAttachmentUrl}
+                            onPreviewImage={(targetMessage, part) => {
+                              void bridge?.images.openViewer({
+                                taskId: task.taskId,
+                                conversationId: task.conversationId,
+                                messageId: targetMessage.id,
+                                attachmentId: part.attachment.id,
+                              });
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
                   </article>
@@ -286,8 +301,8 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
         </section>
 
         <aside className="min-h-0 overflow-y-auto bg-[var(--app-surface-soft)] px-4 py-5">
-          <div className="mb-6 flex items-center justify-between">
-            <strong className="text-sm font-semibold">筛选</strong>
+          <div className="mb-5 flex items-center justify-between border-b border-[var(--app-line)] pb-3">
+            <strong className="text-sm font-semibold">筛选条件</strong>
             <Button
               type="text"
               size="small"

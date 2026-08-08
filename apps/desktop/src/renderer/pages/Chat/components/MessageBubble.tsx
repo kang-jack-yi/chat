@@ -1,6 +1,6 @@
 import { Dropdown } from "antd";
 import { Megaphone } from "lucide-react";
-import type { LocalMessage, Message } from "@chat/shared";
+import type { Attachment, ImagePart, LocalMessage, Message } from "@chat/shared";
 import { writeClipboardText } from "../../../services/clipboard";
 import MessageContent, {
   attachmentTarget,
@@ -27,6 +27,8 @@ export interface MessageBubbleProps {
   contextMenuEnabled?: boolean;
   quotedMessage?: Message;
   onLocateMessage?: (messageId: number) => void;
+  resolveAttachmentUrl?: (attachment: Attachment) => Promise<string>;
+  onPreviewImage?: (message: Message, part: ImagePart) => void;
 }
 
 export function canRecallMessage(
@@ -56,6 +58,8 @@ export default function MessageBubble({
   contextMenuEnabled = true,
   quotedMessage,
   onLocateMessage,
+  resolveAttachmentUrl,
+  onPreviewImage,
 }: MessageBubbleProps) {
   const status = messageStatus(message);
   const filePart = message.parts.find((part) => part.type === "file");
@@ -226,6 +230,8 @@ export default function MessageBubble({
               onRecall={onRecall}
               canRecall={canRecall}
               onOpenForwardRecord={onOpenForwardRecord}
+              resolveAttachmentUrl={resolveAttachmentUrl}
+              onPreviewImage={onPreviewImage}
             />
           </div>
         </div>

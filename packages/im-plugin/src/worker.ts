@@ -116,6 +116,24 @@ function messageFileNames(message: any) {
 
 function upsertMessage(message: any, status = "sent", version = 1) {
   const connection = db();
+  const existingRow = connection.prepare(
+    "SELECT payload FROM messages WHERE client_id=?",
+  ).get(message.clientId) as { payload?: string } | undefined;
+  let existingMessage: any;
+  try {
+    existingMessage = existingRow?.payload ? JSON.parse(existingRow.payload) : undefined;
+  } catch {
+    existingMessage = undefined;
+  }
+  const storedMessage = {
+    ...message,
+    ...(message.readCount == null && existingMessage?.readCount != null
+      ? { readCount: existingMessage.readCount }
+      : {}),
+    ...(message.recipientCount == null && existingMessage?.recipientCount != null
+      ? { recipientCount: existingMessage.recipientCount }
+      : {}),
+  };
   const serverId = Number(message.id) > 0 ? Number(message.id) : null;
   const localId = serverId ? `server:${serverId}` : `local:${message.clientId}`;
   const now = new Date().toISOString();
@@ -160,7 +178,7 @@ function upsertMessage(message: any, status = "sent", version = 1) {
     createdAt: message.createdAt || now,
     updatedAt: now,
     deletedAt: message.deletedAt || null,
-    payload: JSON.stringify({ ...message, id: serverId ?? message.id, status }),
+    payload: JSON.stringify({ ...storedMessage, id: serverId ?? message.id, status }),
   });
   const row = connection.prepare("SELECT row_id FROM messages WHERE client_id = ?").get(message.clientId) as any;
   connection.prepare("DELETE FROM message_fts WHERE rowid = ?").run(row.row_id);
@@ -169,7 +187,7 @@ function upsertMessage(message: any, status = "sent", version = 1) {
       "INSERT INTO message_fts(rowid, content, sender_name, file_name) VALUES(?, ?, ?, ?)",
     ).run(row.row_id, searchText, message.senderName || "", fileName);
   }
-  for (const part of flattenedMessageParts(message)) {
+  for (const part of flattenedMessageParts(storedMessage)) {
     if (!part.attachment?.id) continue;
     connection.prepare(`
       INSERT INTO attachments(id, message_server_id, payload, last_accessed_at)
@@ -354,7 +372,14 @@ function applyEvents(events: any[]) {
 
 function upsertMessages(messages: any[]) {
   const transaction = db().transaction(() => {
-    for (const message of messages || []) upsertMessage(message);
+    for (const message of messages || []) {
+      const version = Number(message.version);
+      upsertMessage(
+        message,
+        message.status || "sent",
+        Number.isSafeInteger(version) && version > 0 ? version : 1,
+      );
+    }
   });
   transaction();
   return true;
@@ -1148,6 +1173,7 @@ export const databaseWorkerTestApi = {
   close,
   applyBootstrap,
   applyEvents,
+  upsertMessages,
   listConversations,
   getMessages,
   getRecentUserMessages,

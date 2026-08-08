@@ -34,6 +34,10 @@ export default function ForwardRecordWindow({ task }: ForwardRecordWindowProps) 
 
   const record = message?.parts.find((part) => part.type === "chat_record");
 
+  useEffect(() => {
+    document.title = record?.type === "chat_record" ? record.title : "聊天记录";
+  }, [record]);
+
   async function resolveAttachment(attachment: Attachment) {
     const result = await window.auxiliary!.attachments.resolve({
       taskId: task.taskId,
@@ -67,16 +71,8 @@ export default function ForwardRecordWindow({ task }: ForwardRecordWindowProps) 
   }
 
   return (
-    <div data-chat-root className="grid h-screen grid-rows-[58px_minmax(0,1fr)] bg-[var(--chat-canvas)]">
-      <header className="border-b border-[var(--chat-line)] bg-white px-5 py-3">
-        <h1 className="m-0 truncate text-base font-semibold text-[var(--chat-text)]">
-          {record.title}
-        </h1>
-        <p className="m-0 mt-1 text-xs text-[var(--chat-text-tertiary)]">
-          共 {record.items.length} 条聊天记录
-        </p>
-      </header>
-      <main className="overflow-y-auto px-5 py-4">
+    <div data-chat-root className="h-screen bg-[var(--chat-canvas)]">
+      <main className="h-full overflow-y-auto px-5 py-4">
         {record.items.map((snapshot, index) => {
           const item: Message = {
             schemaVersion: 1,

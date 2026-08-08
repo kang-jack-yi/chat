@@ -455,6 +455,7 @@ export class AuxiliaryWindowPool {
         backgroundThrottling: true,
       },
     });
+    window.removeMenu?.();
     const slot: WindowSlot = {
       window,
       baseline,
@@ -542,11 +543,11 @@ export class AuxiliaryWindowPool {
     this.restoreParent(slot, false);
     slot.window.setParentWindow(null);
     slot.window.setTitle("聊天记录");
-    slot.window.setMinimumSize(680, 480);
+    slot.window.setMinimumSize(760, 520);
     if (this.historyBounds) {
       slot.window.setBounds(this.visibleImageBounds(this.historyBounds));
     } else {
-      slot.window.setSize(860, 640);
+      slot.window.setSize(920, 680);
       slot.window.center();
     }
   }

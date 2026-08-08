@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import {
   Alert,
   Button,
@@ -17,9 +17,11 @@ import {
   Pin,
   Trash2,
 } from "lucide-react";
-import type { Conversation, User } from "@chat/shared";
+import type { Conversation, Message, User } from "@chat/shared";
 import { queryKeys } from "../../../constants/query-keys";
 import { chatService } from "../../../services/chat";
+import { localDatabase } from "../../../services/local-database";
+import type { MessagePage } from "../../../types/api";
 import GroupAnnouncementModal from "./GroupAnnouncementModal";
 
 export interface ConversationSettingsModalProps {
@@ -361,11 +363,47 @@ export default function ConversationSettingsModal({
             conversation={conversation}
             currentUser={currentUser}
             onClose={() => setAnnouncementOpen(false)}
-            onPublished={async () => {
+            onPublished={async (message) => {
+              const updatedConversation: Conversation = {
+                ...conversation,
+                announcement: message.summary,
+                announcementMessageId: message.id,
+                announcementMessage: message,
+                lastMessage: `[群公告] ${message.summary}`,
+                lastMessageId: message.id,
+                lastMessageAt: message.createdAt,
+              };
+              if (localDatabase.available()) {
+                await Promise.all([
+                  localDatabase.upsertMessages([message]),
+                  localDatabase.upsertConversations([updatedConversation]),
+                ]);
+              }
+              queryClient.setQueryData<InfiniteData<MessagePage<Message>>>(
+                queryKeys.messages(conversation.id),
+                (current) => {
+                  if (!current) {
+                    return {
+                      pages: [{ items: [message], nextCursor: null }],
+                      pageParams: [undefined],
+                    };
+                  }
+                  const pages = [...current.pages];
+                  pages[0] = {
+                    ...pages[0],
+                    items: [
+                      ...pages[0].items.filter((item) => item.clientId !== message.clientId),
+                      message,
+                    ],
+                  };
+                  return { ...current, pages };
+                },
+              );
+              queryClient.setQueryData<Conversation[]>(queryKeys.conversations, (current) =>
+                current?.map((item) => item.id === conversation.id
+                  ? { ...item, ...updatedConversation }
+                  : item));
               await refreshConversation();
-              await queryClient.invalidateQueries({
-                queryKey: queryKeys.messages(conversation.id),
-              });
               setAnnouncementOpen(false);
             }}
           />

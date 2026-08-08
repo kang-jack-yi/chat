@@ -144,6 +144,48 @@ describe("Electron 本地 SQLite", () => {
     expect(localDb.getMessages({ conversationId: 9, limit: 20 }).items).toHaveLength(1);
   });
 
+  it("preserves optimistic attachment message status when directly persisted", () => {
+    const filePath = createDatabasePath("optimistic-attachment");
+    localDb.open({
+      filePath,
+      meta: { serverId: "server-a", companyId: 1, userId: 2 },
+    });
+    localDb.upsertMessages([
+      message("[图片]", {
+        id: -1,
+        localId: "local:image-1",
+        serverId: null,
+        clientId: "image-1",
+        status: "uploading",
+      }),
+    ]);
+
+    const saved = localDb.getMessages({ conversationId: 9 }).items[0];
+    expect(saved.clientId).toBe("image-1");
+    expect(saved.status).toBe("uploading");
+  });
+
+  it("preserves read counters when a later sync payload omits them", () => {
+    const filePath = createDatabasePath("read-counters");
+    localDb.open({
+      filePath,
+      meta: { serverId: "server-a", companyId: 1, userId: 2 },
+    });
+    const confirmed = message("已发送", {
+      id: 301,
+      clientId: "read-counter-1",
+      readCount: 0,
+      recipientCount: 2,
+    });
+    localDb.upsertMessages([confirmed]);
+    const { readCount: _readCount, recipientCount: _recipientCount, ...syncPayload } = confirmed;
+    localDb.upsertMessages([syncPayload]);
+
+    const saved = localDb.getMessages({ conversationId: 9 }).items[0];
+    expect(saved.readCount).toBe(0);
+    expect(saved.recipientCount).toBe(2);
+  });
+
   it("取消排队消息时同时移除 outbox 和本地 optimistic message", () => {
     const filePath = createDatabasePath("cancel");
     localDb.open({

@@ -41,10 +41,15 @@ const views: Array<{ key: CloudDocumentListView; label: string; icon: React.Reac
 function formatUpdatedAt(value: string) {
   const date = new Date(value);
   const today = new Date();
+  const time = date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
   if (date.toDateString() === today.toDateString()) {
-    return `今天 ${date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
+    return `今天 ${time}`;
   }
-  return date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+  return `${date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" })} ${time}`;
 }
 
 export default function DocumentsPage() {
@@ -83,6 +88,15 @@ export default function DocumentsPage() {
             .then(() => message.success("文档链接已复制"))
             .catch((error: Error) => message.error(error.message || "复制链接失败"));
         },
+      },
+      {
+        key: "download",
+        label: "下载",
+        onClick: () => window.desktop?.windows.downloadDocument({
+          id: document.id,
+          title: document.title,
+        })
+          .catch((error: Error) => message.error(error.message || "下载文档失败")),
       },
       {
         type: "divider",

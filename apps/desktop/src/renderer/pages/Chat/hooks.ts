@@ -121,6 +121,7 @@ export function useChat(
   const messageListRef = useRef<HTMLElement>(null);
   const typingTimer = useRef<number | null>(null);
   const lastReportedRead = useRef(0);
+  const appliedReadReceipts = useRef(new Set<string>());
   const initialScrollConversation = useRef<number | undefined>(undefined);
   const fileRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
@@ -199,14 +200,15 @@ export function useChat(
 
   useEffect(() => {
     lastReportedRead.current = 0;
+    appliedReadReceipts.current.clear();
     initialScrollConversation.current = conversationId;
   }, [conversationId]);
 
   useEffect(() => {
     if (!socket || !conversationId) return;
-    const onMessage = (message: Message) => {
+    const onMessage = async (message: Message) => {
       if (message.conversationId !== conversationId) return;
-      if (localDatabase.available()) void localDatabase.upsertMessages([message]);
+      if (localDatabase.available()) await localDatabase.upsertMessages([message]);
       updateMessages((items) => [...items.filter((item) => item.clientId !== message.clientId), message]);
       void queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
       if (message.senderId !== currentUser.id) void chatService.read(conversationId, message.id);
@@ -220,9 +222,37 @@ export function useChat(
     const onTyping = (payload: { conversationId: number; name: string; typing: boolean }) => {
       if (payload.conversationId === conversationId) setTypingName(payload.typing ? payload.name : "");
     };
-    const onRead = (payload: { conversationId: number }) => {
+    const onRead = (payload: {
+      conversationId: number;
+      userId: number;
+      previousMessageId?: number;
+      messageId: number;
+    }) => {
       if (payload.conversationId === conversationId) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.messages(conversationId) });
+        const receiptKey = `${payload.userId}:${payload.messageId}`;
+        if (appliedReadReceipts.current.has(receiptKey)) return;
+        appliedReadReceipts.current.add(receiptKey);
+        let changed: Message[] = [];
+        updateMessages((items) => items.map((item) => {
+          if (
+            item.senderId !== currentUser.id
+            || payload.userId === currentUser.id
+            || item.id <= Number(payload.previousMessageId || 0)
+            || item.id > payload.messageId
+            || !item.recipientCount
+          ) {
+            return item;
+          }
+          const updated = {
+            ...item,
+            readCount: Math.min(item.recipientCount, Number(item.readCount || 0) + 1),
+          };
+          changed.push(updated);
+          return updated;
+        }));
+        if (changed.length && localDatabase.available()) {
+          void localDatabase.upsertMessages(changed);
+        }
       }
     };
     const onRecall = (event: MessageRecalledEvent) => {
@@ -410,6 +440,7 @@ export function useChat(
       summary || `[图片] ${images.length} 张`,
       initialStatus,
     );
+    await localDatabase.upsertMessages([pending]);
     if (retryClientId) {
       patchMessage(clientId, {
         ...pending,
@@ -486,14 +517,18 @@ export function useChat(
           uploadService.remove(id).catch(() => undefined)));
         activeUploads.current.delete(clientId);
         const message = error instanceof Error ? error.message : "图片上传失败";
-        patchMessage(clientId, {
+        const failed: LocalMessage = {
+          ...pending,
           status: "failed",
           error: { code: "UPLOAD_FAILED", message, retryable: true },
-        });
+        };
+        await localDatabase.upsertMessages([failed]);
+        patchMessage(clientId, failed);
         return false;
       }
     }
     const ready = { ...pending, parts: hydrated, progress: 100, status: "queued" as const };
+    await localDatabase.upsertMessages([ready]);
     patchMessage(clientId, ready);
     activeUploads.current.delete(clientId);
     await deliver(ready, {
@@ -533,6 +568,7 @@ export function useChat(
         },
       },
     ], `[文件] ${item.meta.name}`, "uploading");
+    await localDatabase.upsertMessages([pending]);
     if (retryClientId) {
       patchMessage(clientId, { ...pending, progress: 0, error: undefined });
     } else {
@@ -570,6 +606,7 @@ export function useChat(
         status: "queued",
         progress: 100,
       };
+      await localDatabase.upsertMessages([ready]);
       patchMessage(clientId, ready);
       activeUploads.current.delete(clientId);
       await deliver(ready, {
@@ -590,10 +627,13 @@ export function useChat(
         uploadService.remove(id).catch(() => undefined)));
       activeUploads.current.delete(clientId);
       const message = error instanceof Error ? error.message : "文件上传失败";
-      patchMessage(clientId, {
+      const failed: LocalMessage = {
+        ...pending,
         status: "failed",
         error: { code: "UPLOAD_FAILED", message, retryable: true },
-      });
+      };
+      await localDatabase.upsertMessages([failed]);
+      patchMessage(clientId, failed);
       return false;
     }
   }
@@ -718,6 +758,7 @@ export function useChat(
       const saved = await chatService.send(item.payload);
       await localDatabase.markMessage({ clientId, message: saved, status: "sent" });
       updateMessages((items) => [...items.filter((message) => message.clientId !== clientId), saved]);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
     } catch (error) {
       patchMessage(clientId, {
         status: "failed",

@@ -92,7 +92,9 @@ export default class SyncController extends Controller {
         : null,
       name: conversation.type === "direct" ? other?.name || "单聊" : conversation.name,
       avatar: conversation.type === "direct" ? other?.avatar || "聊" : conversation.name?.slice(0, 1) || "群",
-      lastMessage: String(latestMessage?.get("summary") || ""),
+      lastMessage: latestMessage?.get("kind") === "announcement"
+        ? `[群公告] ${String(latestMessage.get("summary") || "")}`
+        : String(latestMessage?.get("summary") || ""),
       lastMessageId,
       lastMessageAt: latestMessage?.get("createdAt") || null,
       unreadCount,

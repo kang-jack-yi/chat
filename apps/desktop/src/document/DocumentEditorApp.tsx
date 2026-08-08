@@ -13,6 +13,7 @@ import {
 import {
   Cloud,
   CloudOff,
+  Download,
   FileSpreadsheet,
   FileText,
   Lock,
@@ -66,7 +67,11 @@ function CollaborativeEditor({
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       TableKit.configure({
-        table: { resizable: true, allowTableNodeSelection: true },
+        table: {
+          resizable: true,
+          allowTableNodeSelection: true,
+          cellMinWidth: 120,
+        },
       }),
       Collaboration.configure({ document: bundle.ydoc }),
       CollaborationCaret.configure({
@@ -155,8 +160,15 @@ export default function DocumentEditorApp() {
   const [synced, setSynced] = useState(false);
   const [presence, setPresence] = useState<Array<{ id?: number; name: string; color: string }>>([]);
   const [shareOpen, setShareOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const titleTimer = useRef<ReturnType<typeof setTimeout>>();
+  const changeTimer = useRef<ReturnType<typeof setTimeout>>();
+  const documentRef = useRef<CloudDocument | null>(null);
+
+  useEffect(() => {
+    documentRef.current = document;
+  }, [document]);
 
   useEffect(() => {
     let disposed = false;
@@ -184,6 +196,7 @@ export default function DocumentEditorApp() {
         }
         provider?.disconnect();
         await new Promise((resolve) => setTimeout(resolve, 120));
+        if (documentRef.current?.id) await bridge.window.notifyChanged(documentRef.current.id);
         await bridge.window.readyToClose();
       })();
     });
@@ -196,6 +209,13 @@ export default function DocumentEditorApp() {
       setDocument(config.document);
       window.document.title = config.document.title;
       ydoc = new Y.Doc();
+      const notifyAfterStored = () => {
+        clearTimeout(changeTimer.current);
+        changeTimer.current = setTimeout(() => {
+          void bridge.window.notifyChanged(hostContext.documentId);
+        }, 1_800);
+      };
+      ydoc.on("update", notifyAfterStored);
       provider = new HocuspocusProvider({
         url: config.collaborationUrl,
         name: `document:${hostContext.documentId}`,
@@ -244,6 +264,7 @@ export default function DocumentEditorApp() {
       removeToken();
       removeBeforeClose();
       clearTimeout(titleTimer.current);
+      clearTimeout(changeTimer.current);
       provider?.destroy();
       ydoc?.destroy();
     };
@@ -264,9 +285,28 @@ export default function DocumentEditorApp() {
     titleTimer.current = setTimeout(() => {
       if (!title.trim()) return;
       void documentApi.update(document.id, { title: title.trim() })
-        .then(setDocument)
+        .then((updatedDocument) => {
+          setDocument(updatedDocument);
+          return window.documentDesktop?.window.notifyChanged(updatedDocument.id);
+        })
         .catch((reason: Error) => message.error(reason.message));
     }, 600);
+  }
+
+  async function downloadDocument() {
+    if (!document || downloading) return;
+    setDownloading(true);
+    try {
+      const saved = await window.documentDesktop?.window.download({
+        id: document.id,
+        title: document.title,
+      });
+      if (saved) message.success("文档已下载");
+    } catch (reason) {
+      message.error(reason instanceof Error ? reason.message : "文档下载失败");
+    } finally {
+      setDownloading(false);
+    }
   }
 
   if (error) {
@@ -321,6 +361,9 @@ export default function DocumentEditorApp() {
           <Tag bordered={false} color={document.type === "sheet" ? "green" : "blue"}>
             {document.type === "sheet" ? "在线表格" : "在线文档"}
           </Tag>
+          <Button icon={<Download size={16} />} loading={downloading} onClick={downloadDocument}>
+            下载
+          </Button>
           {document.permission === "owner" && (
             <Button type="primary" icon={<Share2 size={16} />} onClick={() => setShareOpen(true)}>
               分享

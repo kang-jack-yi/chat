@@ -300,7 +300,7 @@ function MessageImage({
   const content = (
     <div
       className={`relative cursor-zoom-in overflow-hidden rounded-xl bg-[#eef2f6] ${
-        variant === "history" ? "max-h-[132px]" : ""
+        variant === "history" ? "inline-flex w-fit max-w-full max-h-[156px]" : ""
       }`}
       onClick={(event) => {
         event.stopPropagation();
@@ -315,14 +315,14 @@ function MessageImage({
           src={url}
           alt={part.attachment.originalName}
           className={`block max-w-full object-contain ${
-            variant === "history" ? "max-h-[132px]" : "max-h-[360px]"
+            variant === "history" ? "max-h-[156px] w-auto" : "max-h-[360px]"
           }`}
           fallback=""
           preview={false}
         />
       ) : (
         <div className={`grid place-items-center text-xs text-[var(--chat-text-tertiary)] ${
-          variant === "history" ? "h-20 w-full" : "h-24 w-36"
+          variant === "history" ? "h-20 w-32" : "h-24 w-36"
         }`}>
           图片加载失败
         </div>
@@ -364,7 +364,7 @@ function MessageFile({
   const status = messageStatus(message);
   const progress = (message as Partial<LocalMessage>).progress || 0;
   return (
-    <div className={`max-w-full overflow-hidden text-left ${variant === "history" ? "w-full" : "w-[262px]"}`}>
+    <div className={`max-w-full overflow-hidden text-left ${variant === "history" ? "w-[260px]" : "w-[262px]"}`}>
       <div className="flex items-center gap-3">
         <span className={`grid shrink-0 place-items-center rounded-xl bg-[var(--chat-primary-soft)] text-[var(--chat-primary)] ${
           variant === "history" ? "h-9 w-9" : "h-[42px] w-[40px]"
@@ -480,9 +480,15 @@ export default function MessageContent({
         <strong className="truncate text-sm font-medium text-[var(--chat-text)]">
           {chatRecord.title}
         </strong>
-        <span className="line-clamp-3 text-xs leading-5 text-[var(--chat-text-secondary)]">
-          {chatRecord.items.slice(0, 4).map((item) =>
-            `${item.senderName}: ${item.summary}`).join("\n")}
+        <span className="grid gap-0.5 text-xs leading-5 text-[var(--chat-text-secondary)]">
+          {chatRecord.items.slice(0, 4).map((item, index) => (
+            <span
+              key={`${item.originalMessageId}:${index}`}
+              className="block truncate"
+            >
+              {item.senderName}: {item.summary}
+            </span>
+          ))}
         </span>
         <span className="border-t border-[var(--chat-line)] pt-2 text-[10px] text-[var(--chat-text-tertiary)]">
           共 {chatRecord.items.length} 条聊天记录
@@ -492,11 +498,6 @@ export default function MessageContent({
   }
   return (
     <div className="grid min-w-0 max-w-full gap-2 overflow-hidden">
-      {forwarded?.type === "forwarded_message" && (
-        <div className="truncate text-[10px] text-[var(--chat-text-tertiary)]">
-          转发自 {forwarded.snapshot.senderName}
-        </div>
-      )}
       {quote?.type === "quote" && (
         <ReplyPreview
           quote={quote}

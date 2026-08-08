@@ -29,6 +29,13 @@ const desktop = {
       ipcRenderer.invoke("windows:open-forward-record", input),
     openDocument: (documentId: number) =>
       ipcRenderer.invoke("windows:open-document", documentId),
+    downloadDocument: (input: { id: number; title: string }) =>
+      ipcRenderer.invoke("windows:download-document", input),
+    onDocumentChanged: (listener: (input: { documentId: number }) => void) => {
+      const handler = (_event: unknown, input: { documentId: number }) => listener(input);
+      ipcRenderer.on("documents:changed", handler);
+      return () => ipcRenderer.off("documents:changed", handler);
+    },
     onLocateHistoryMessage: (
       listener: (input: { conversationId: number; messageId: number }) => void,
     ) => {

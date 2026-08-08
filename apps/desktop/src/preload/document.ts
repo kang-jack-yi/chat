@@ -11,6 +11,10 @@ contextBridge.exposeInMainWorld("documentDesktop", {
     },
   },
   window: {
+    download: (input: { id: number; title: string }) =>
+      ipcRenderer.invoke("windows:download-document", input),
+    notifyChanged: (documentId: number) =>
+      ipcRenderer.invoke("document:changed", documentId),
     onBeforeClose: (listener: () => void) => {
       const handler = () => listener();
       ipcRenderer.on("document:before-close", handler);

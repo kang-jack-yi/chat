@@ -32,6 +32,7 @@ export default (app: Application) => {
 
   router.get("/api/documents", auth, controller.documents.list);
   router.post("/api/documents", auth, controller.documents.create);
+  router.get("/api/documents/:id/download", auth, controller.documents.download);
   router.get("/api/documents/:id", auth, controller.documents.detail);
   router.patch("/api/documents/:id", auth, controller.documents.update);
   router.put("/api/documents/:id/members", auth, controller.documents.share);

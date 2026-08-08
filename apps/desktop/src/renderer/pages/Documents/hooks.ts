@@ -1,4 +1,4 @@
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { message } from "antd";
 import type {
@@ -19,6 +19,10 @@ export function useDocuments() {
     queryFn: () => documentsService.list(view, deferredQuery),
   });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["documents"] });
+
+  useEffect(() => window.desktop?.windows.onDocumentChanged(() => {
+    void queryClient.invalidateQueries({ queryKey: ["documents"] });
+  }), [queryClient]);
 
   const createDocument = useMutation({
     mutationFn: (type: CloudDocumentType) => documentsService.create(type),

@@ -2,6 +2,7 @@ import { Controller } from "egg";
 import { Op } from "sequelize";
 import { fail, ok } from "../lib/auth";
 import { toPlain } from "../lib/database";
+import { exportCloudDocument } from "../lib/document-export";
 
 type CloudDocumentType = "doc" | "sheet";
 type CloudDocumentPermission = "owner" | "editor" | "viewer";
@@ -157,6 +158,22 @@ export default class DocumentsController extends Controller {
     await access.member.update({ lastOpenedAt: new Date() });
     const [document] = await this.serializeDocuments([access.document], [access.member]);
     ok(this.ctx, { document, collaborationUrl: collaborationUrl(this.ctx) });
+  }
+
+  async download() {
+    const access = await this.membership(Number(this.ctx.params.id));
+    if (!access) return fail(this.ctx, 404, "DOCUMENT_NOT_FOUND", "文档不存在或你没有访问权限");
+    const type = String(access.document.get("type")) as CloudDocumentType;
+    const exported = exportCloudDocument(type, access.document.get("yjsState") as Buffer | null);
+    const title = String(access.document.get("title") || "未命名文档");
+    const encodedName = encodeURIComponent(`${title}.${exported.extension}`);
+    this.ctx.set("Content-Type", exported.mimeType);
+    this.ctx.set("Content-Length", String(exported.data.length));
+    this.ctx.set(
+      "Content-Disposition",
+      `attachment; filename="document-${access.document.get("id")}.${exported.extension}"; filename*=UTF-8''${encodedName}`,
+    );
+    this.ctx.body = exported.data;
   }
 
   async update() {

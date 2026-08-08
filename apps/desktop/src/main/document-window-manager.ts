@@ -47,6 +47,7 @@ export class DocumentWindowManager {
       minWidth: 900,
       minHeight: 640,
       show: false,
+      autoHideMenuBar: true,
       title: "云文档",
       backgroundColor: "#f3f6fa",
       webPreferences: {
@@ -56,6 +57,7 @@ export class DocumentWindowManager {
         sandbox: true,
       },
     });
+    window.removeMenu?.();
     const webContentsId = window.webContents.id;
     this.windows.set(documentId, window);
     this.documentByWebContents.set(webContentsId, documentId);

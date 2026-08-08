@@ -14,8 +14,11 @@ import {
   utilityProcess,
   type UtilityProcess,
 } from "electron";
+import { createWriteStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { pathToFileURL } from "node:url";
 import crypto from "node:crypto";
 import type {
@@ -88,6 +91,26 @@ const imPluginMethods = new Set([
   "getSyncState",
   "setAttachmentCachePath",
 ]);
+
+function collectMessageAttachments(message: Message) {
+  const attachments: Array<{ id: number; mimeType: string }> = [];
+  const collect = (parts: Message["parts"]) => {
+    for (const part of parts) {
+      if (part.type === "image" || part.type === "file") {
+        attachments.push({
+          id: Number(part.attachment.id),
+          mimeType: part.attachment.mimeType,
+        });
+      } else if (part.type === "forwarded_message") {
+        collect(part.snapshot.parts);
+      } else if (part.type === "chat_record") {
+        for (const item of part.items) collect(item.parts);
+      }
+    }
+  };
+  collect(message.parts);
+  return attachments;
+}
 
 let mainWindow: BrowserWindow | null = null;
 let auxiliaryWindowPool: AuxiliaryWindowPool | null = null;
@@ -498,6 +521,76 @@ async function downloadAttachmentToCache(attachmentId: number) {
   return data;
 }
 
+type CloudDocumentDownloadInput = number | {
+  id: number;
+  title?: string;
+};
+
+async function downloadCloudDocument(
+  input: CloudDocumentDownloadInput,
+  ownerWindow: BrowserWindow | null = mainWindow,
+) {
+  const documentId = Number(typeof input === "number" ? input : input?.id);
+  if (!Number.isSafeInteger(documentId) || documentId <= 0) throw new Error("文档编号无效");
+  const server = (await readSettings()).server;
+  if (!server) throw new Error("服务器尚未配置");
+  let token = hostAccessToken || await refreshHostAccessToken();
+  const request = () => net.fetch(`${server.url}/api/documents/${documentId}/download`, {
+    credentials: "include",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  let response = await request();
+  if (response.status === 401) {
+    token = await refreshHostAccessToken();
+    response = await request();
+  }
+  if (!response.ok) {
+    let detail = "";
+    try {
+      const payload = await response.json() as { error?: { message?: string } };
+      detail = payload.error?.message || "";
+    } catch {
+      // Binary download errors do not always contain JSON.
+    }
+    throw new Error(detail || `文档下载失败（${response.status}）`);
+  }
+  const contentType = response.headers.get("content-type") || "";
+  const extension = contentType.includes("spreadsheetml") ? "xlsx" : "docx";
+  const requestedTitle = typeof input === "number" ? "" : input?.title;
+  const safeTitle = String(requestedTitle || `云文档-${documentId}`)
+    .replace(/[\\/:*?\"<>|]/g, "_")
+    .slice(0, 100);
+  const options = {
+    title: "下载文档",
+    defaultPath: `${safeTitle}.${extension}`,
+    filters: [{
+      name: extension === "xlsx" ? "Excel 工作簿" : "Word 文档",
+      extensions: [extension],
+    }],
+  };
+  const result = ownerWindow && !ownerWindow.isDestroyed()
+    ? await dialog.showSaveDialog(ownerWindow, options)
+    : await dialog.showSaveDialog(options);
+  if (result.canceled || !result.filePath) {
+    await response.body?.cancel();
+    return false;
+  }
+  if (!response.body) throw new Error("文档下载响应为空");
+  const temporaryPath = `${result.filePath}.${crypto.randomUUID()}.download`;
+  try {
+    await pipeline(
+      Readable.fromWeb(response.body as any),
+      createWriteStream(temporaryPath),
+    );
+    await fs.rm(result.filePath, { force: true });
+    await fs.rename(temporaryPath, result.filePath);
+  } catch (error) {
+    await fs.rm(temporaryPath, { force: true });
+    throw error;
+  }
+  return true;
+}
+
 async function registerProtocol() {
   const rendererRoot = path.join(__dirname, "..", "dist", "renderer");
   protocol.handle("chat", async (request) => {
@@ -593,6 +686,7 @@ async function createWindow() {
     minWidth: MAIN_WINDOW_MIN_WIDTH,
     minHeight: MAIN_WINDOW_MIN_HEIGHT,
     show: false,
+    autoHideMenuBar: true,
     backgroundColor: "#edf0f5",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
@@ -601,6 +695,7 @@ async function createWindow() {
       sandbox: true,
     },
   });
+  mainWindow.removeMenu?.();
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   mainWindow.webContents.on("will-navigate", (event, url) => {
     const allowed = developmentUrl ? url.startsWith(developmentUrl) : url.startsWith("chat://app");
@@ -670,6 +765,16 @@ function registerIpc() {
     if (!documentWindowManager) throw new Error("文档窗口服务尚未启动");
     return documentWindowManager.open(Number(documentId));
   });
+  ipcMain.handle("windows:download-document", async (event, input: CloudDocumentDownloadInput) => {
+    if (mainWindow && event.sender.id === mainWindow.webContents.id) {
+      return downloadCloudDocument(input, mainWindow);
+    }
+    if (!documentWindowManager) throw new Error("不允许的窗口调用");
+    const context = await documentWindowManager.contextFor(event.sender);
+    const documentId = Number(typeof input === "number" ? input : input?.id);
+    if (context.documentId !== documentId) throw new Error("文档编号不匹配");
+    return downloadCloudDocument(input, BrowserWindow.fromWebContents(event.sender));
+  });
   ipcMain.handle("document:get-context", (event) => {
     if (!documentWindowManager) throw new Error("文档窗口服务尚未启动");
     return documentWindowManager.contextFor(event.sender);
@@ -682,6 +787,15 @@ function registerIpc() {
   ipcMain.handle("document:ready-to-close", (event) => {
     if (!documentWindowManager) return false;
     return documentWindowManager.readyToClose(event.sender);
+  });
+  ipcMain.handle("document:changed", async (event, documentId: number) => {
+    if (!documentWindowManager) return false;
+    const context = await documentWindowManager.contextFor(event.sender);
+    if (context.documentId !== Number(documentId)) throw new Error("文档编号不匹配");
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("documents:changed", { documentId: context.documentId });
+    }
+    return true;
   });
   ipcMain.handle("windows:open-invite-history", (event, input: OpenInviteHistoryInput) => {
     if (!mainWindow || event.sender.id !== mainWindow.webContents.id) {
@@ -757,13 +871,7 @@ function registerIpc() {
       conversationId: task.conversationId,
       limit: Math.min(Math.max(Number(input.limit) || 30, 1), 30),
     });
-    const attachments = messages.flatMap((message) => message.parts.flatMap((part) =>
-      part.type === "image" || part.type === "file"
-        ? [{
-            id: Number(part.attachment.id),
-            mimeType: part.attachment.mimeType,
-          }]
-        : []));
+    const attachments = messages.flatMap(collectMessageAttachments);
     auxiliaryWindowPool?.allowAttachments(
       event.sender,
       task.taskId,
@@ -780,6 +888,7 @@ function registerIpc() {
     const conversations = await imPlugin.call<Conversation[]>("listConversations");
     const conversation = conversations.find((item) => item.id === task.conversationId);
     if (!conversation) throw new Error("会话不存在或已隐藏");
+    BrowserWindow.fromWebContents(event.sender)?.setTitle(conversation.name || "聊天记录");
     return {
       conversation,
       historyComplete: syncStatus.historyComplete,
@@ -799,13 +908,7 @@ function registerIpc() {
       limit: Math.min(Math.max(Number(input.query.limit) || 50, 1), 100),
     });
     const attachments = page.items.flatMap(({ message }) =>
-      message.parts.flatMap((part) =>
-        part.type === "image" || part.type === "file"
-          ? [{
-              id: Number(part.attachment.id),
-              mimeType: part.attachment.mimeType,
-            }]
-          : []));
+      collectMessageAttachments(message));
     auxiliaryWindowPool?.allowAttachments(
       event.sender,
       task.taskId,
@@ -849,6 +952,7 @@ function registerIpc() {
     if (!message || record?.type !== "chat_record") {
       throw new Error("合并聊天记录不存在");
     }
+    BrowserWindow.fromWebContents(event.sender)?.setTitle(record.title);
     const attachments = record.items.flatMap((item) => item.parts.flatMap((part) =>
       part.type === "image" || part.type === "file"
         ? [{ id: Number(part.attachment.id), mimeType: part.attachment.mimeType }]
@@ -1167,6 +1271,7 @@ if (!app.requestSingleInstanceLock()) {
     mainWindow?.focus();
   });
   app.whenReady().then(async () => {
+    Menu.setApplicationMenu(null);
     app.setAppUserModelId("com.enterprise.chat");
     await registerProtocol();
     registerIpc();
