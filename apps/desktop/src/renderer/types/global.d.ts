@@ -97,6 +97,27 @@ declare global {
           data: Uint8Array;
         }): Promise<boolean>;
       };
+      screenshot: {
+        capture(input: { hideMainWindow: boolean }): Promise<
+          | { canceled: true }
+          | {
+              canceled: false;
+              name: string;
+              mimeType: "image/png";
+              data: Uint8Array;
+            }
+        >;
+        getPreferences(): Promise<{
+          hideMainWindow: boolean;
+          shortcutAvailable: boolean;
+        }>;
+        setPreferences(input: { hideMainWindow: boolean }): Promise<boolean>;
+        setActiveConversation(conversationId?: number): Promise<boolean>;
+        onShortcut(
+          listener: (input: { conversationId: number }) => void,
+        ): () => void;
+        onUnavailable(listener: () => void): () => void;
+      };
       sync: {
         getStatus(): Promise<SyncStatus>;
         retry(): Promise<void>;

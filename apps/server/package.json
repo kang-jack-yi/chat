@@ -22,9 +22,12 @@
     "egg-scripts": "^3.0.2",
     "egg-socket.io": "^4.1.6",
     "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.12.0",
     "sanitize-html": "^2.17.6",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7",
+    "word-extractor": "^1.0.4",
+    "xlsx": "^0.18.5",
     "yjs": "13.6.27"
   },
   "devDependencies": {

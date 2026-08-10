@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Avatar,
   Button,
@@ -55,6 +55,7 @@ function formatUpdatedAt(value: string) {
 export default function DocumentsPage() {
   const documents = useDocuments();
   const [sharing, setSharing] = useState<CloudDocument | null>(null);
+  const importInput = useRef<HTMLInputElement>(null);
   const data = documents.documents.data ?? [];
 
   const createItems: MenuProps["items"] = [
@@ -149,14 +150,34 @@ export default function DocumentsPage() {
   return (
     <div className="grid h-full grid-cols-[224px_minmax(0,1fr)] bg-[var(--app-canvas)]">
       <aside className="flex min-h-0 flex-col border-r border-[var(--app-line)] bg-[#f7f9fc] p-4">
-        <Dropdown menu={{ items: createItems }} trigger={["click"]}>
-          <Button type="primary" icon={<Plus size={17} />} block loading={documents.createDocument.isPending}>
-            新建
-          </Button>
-        </Dropdown>
-        <Tooltip title="本地 Word/Excel 导入将在后续版本开放">
-          <Button className="mt-2" icon={<Upload size={16} />} block disabled>上传</Button>
-        </Tooltip>
+        <div className="grid gap-2">
+          <Dropdown menu={{ items: createItems }} trigger={["click"]}>
+            <Button type="primary" icon={<Plus size={17} />} block loading={documents.createDocument.isPending}>
+              新建
+            </Button>
+          </Dropdown>
+          <input
+            ref={importInput}
+            type="file"
+            hidden
+            accept=".doc,.docx,.docm,.dotx,.txt,.md,.rtf,.xls,.xlsx,.xlsm,.xlsb,.ods,.csv,.tsv"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) documents.importDocument.mutate(file);
+            }}
+          />
+          <Tooltip title="导入本地 Word、Excel 或文本文件">
+            <Button
+              icon={<Upload size={16} />}
+              block
+              loading={documents.importDocument.isPending}
+              onClick={() => importInput.current?.click()}
+            >
+              上传
+            </Button>
+          </Tooltip>
+        </div>
         <nav className="mt-6 grid gap-1">
           {views.map((item) => (
             <button

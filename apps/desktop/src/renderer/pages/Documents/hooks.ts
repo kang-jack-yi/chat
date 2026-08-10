@@ -32,6 +32,15 @@ export function useDocuments() {
     },
     onError: (error: Error) => message.error(error.message),
   });
+  const importDocument = useMutation({
+    mutationFn: (file: File) => documentsService.importFile(file),
+    onSuccess: async (document) => {
+      message.success("文件已导入");
+      await refresh();
+      await window.desktop?.windows.openDocument(document.id);
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
   const updateDocument = useMutation({
     mutationFn: ({ id, payload }: {
       id: number;
@@ -53,6 +62,7 @@ export function useDocuments() {
     setQuery,
     documents,
     createDocument,
+    importDocument,
     updateDocument,
     deleteDocument,
     refresh,

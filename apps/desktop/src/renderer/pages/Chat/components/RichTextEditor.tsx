@@ -6,11 +6,13 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { Button, Dropdown, Image, Popover, Tooltip } from "antd";
+import { Button, Checkbox, Dropdown, Image, Popover, Tooltip, message } from "antd";
 import {
+  ChevronDown,
   FolderOpen,
   Image as ImageIcon,
   Paperclip,
+  Scissors,
   Smile,
 } from "lucide-react";
 import EmojiPicker, { EmojiStyle } from "emoji-picker-react";
@@ -29,7 +31,7 @@ import {
 } from "../../../utils/rich-text";
 import type { DraftAttachmentItem } from "../hooks";
 
-export type DraftFileSource = "clipboard" | "drop" | "picker";
+export type DraftFileSource = "clipboard" | "drop" | "picker" | "screenshot";
 
 const mentionPanelWidth = 224;
 const mentionPanelHeight = 236;
@@ -202,6 +204,8 @@ export default function RichTextEditor({
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionIndex, setMentionIndex] = useState(0);
   const [mentionPosition, setMentionPosition] = useState({ left: 8, top: 8 });
+  const [hideMainWindow, setHideMainWindow] = useState(true);
+  const [screenshotBusy, setScreenshotBusy] = useState(false);
   const previewAttachment = previewAttachmentId
     ? attachmentMap.get(previewAttachmentId)
     : undefined;
@@ -225,6 +229,43 @@ export default function RichTextEditor({
       savedRange.current = range.cloneRange();
     }
   }
+
+  async function captureScreenshot() {
+    if (disabled || screenshotBusy || !window.desktop?.screenshot) return;
+    saveSelection();
+    setScreenshotBusy(true);
+    try {
+      const result = await window.desktop.screenshot.capture({ hideMainWindow });
+      if (result.canceled) return;
+      const file = new File(
+        [new Uint8Array(result.data)],
+        result.name,
+        { type: result.mimeType },
+      );
+      onPasteFiles([file], "screenshot");
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "截图失败");
+    } finally {
+      setScreenshotBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!showFilePicker) return;
+    void window.desktop?.screenshot.getPreferences().then((preferences) => {
+      setHideMainWindow(preferences.hideMainWindow);
+      if (!preferences.shortcutAvailable) {
+        message.warning("截图快捷键 Ctrl/Cmd + Shift + G 已被其他应用占用");
+      }
+    }).catch(() => undefined);
+  }, [showFilePicker]);
+
+  useEffect(() => {
+    if (!showFilePicker) return;
+    return window.desktop?.screenshot.onShortcut(() => {
+      void captureScreenshot();
+    });
+  }, [disabled, hideMainWindow, screenshotBusy, showFilePicker]);
 
   function restoreSelection() {
     const editor = editorRef.current;
@@ -597,22 +638,86 @@ export default function RichTextEditor({
           />
         </Tooltip>
         {showFilePicker && (
-          <Tooltip title="选择文件">
-            <Button
-              type="text"
-              size="small"
-              disabled={disabled}
-              icon={<Paperclip size={19} />}
-              onClick={() => {
-                saveSelection();
-                onPickFile?.();
-              }}
-            />
-          </Tooltip>
+          <>
+            <Tooltip title="选择文件">
+              <Button
+                type="text"
+                size="small"
+                disabled={disabled}
+                icon={<Paperclip size={19} />}
+                onClick={() => {
+                  saveSelection();
+                  onPickFile?.();
+                }}
+              />
+            </Tooltip>
+            <div className="flex items-center">
+              <Tooltip title="截图 (Ctrl/Cmd + Shift + G)">
+                <Button
+                  type="text"
+                  size="small"
+                  disabled={disabled || screenshotBusy}
+                  icon={<Scissors size={18} />}
+                  onClick={() => void captureScreenshot()}
+                />
+              </Tooltip>
+              <Dropdown
+                trigger={["click"]}
+                getPopupContainer={popupContainer}
+                menu={{
+                  items: [
+                    {
+                      key: "capture",
+                      label: (
+                        <span className="flex min-w-48 items-center justify-between gap-5">
+                          <span>截图</span>
+                          <span className="text-xs text-[var(--chat-muted)]">
+                            {navigator.platform.includes("Mac") ? "⌘⇧G" : "Ctrl+Shift+G"}
+                          </span>
+                        </span>
+                      ),
+                      onClick: () => void captureScreenshot(),
+                    },
+                    {
+                      key: "hide-main-window",
+                      label: (
+                        <Checkbox
+                          checked={hideMainWindow}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => {
+                            const checked = event.target.checked;
+                            setHideMainWindow(checked);
+                            void window.desktop?.screenshot.setPreferences({
+                              hideMainWindow: checked,
+                            }).catch((error: unknown) => {
+                              message.error(error instanceof Error
+                                ? error.message
+                                : "无法保存截图设置");
+                            });
+                          }}
+                        >
+                          隐藏聊天窗口
+                        </Checkbox>
+                      ),
+                    },
+                  ],
+                }}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  disabled={disabled}
+                  aria-label="截图设置"
+                  className="!-ml-2 !w-5 !min-w-5 !px-0"
+                  icon={<ChevronDown size={12} />}
+                />
+              </Dropdown>
+            </div>
+          </>
         )}
       </div>
 
-      <div className="relative max-h-[286px] overflow-y-auto pt-2">
+      <div className="relative max-h-[calc(var(--composer-height,346px)-60px)] overflow-y-auto pt-2">
         {quoteContent && <div className="mb-1 px-1">{quoteContent}</div>}
         <Dropdown
           trigger={["contextMenu"]}

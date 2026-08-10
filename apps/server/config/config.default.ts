@@ -35,7 +35,7 @@ export default (appInfo: EggAppInfo) => {
   config.multipart = {
     mode: "stream",
     fileSize: "50mb",
-    whitelist: [".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".zip"],
+    whitelist: [".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".doc", ".docx", ".docm", ".dotx", ".xls", ".xlsx", ".xlsm", ".xlsb", ".ods", ".ppt", ".pptx", ".txt", ".md", ".rtf", ".csv", ".tsv", ".zip"],
   };
   config.static = {
     prefix: "/public/",

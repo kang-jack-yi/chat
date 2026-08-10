@@ -3,6 +3,7 @@ import {
   BrowserWindow,
   clipboard,
   dialog,
+  globalShortcut,
   ipcMain,
   Menu,
   net,
@@ -43,6 +44,10 @@ import {
   type AuxiliaryAccountContext,
 } from "./auxiliary-window-pool";
 import { DocumentWindowManager } from "./document-window-manager";
+import {
+  ScreenshotManager,
+  type ScreenshotCaptureInput,
+} from "./screenshot-manager";
 
 declare const __DESKTOP_DEFAULT_SERVER_URL__: string;
 
@@ -115,6 +120,9 @@ function collectMessageAttachments(message: Message) {
 let mainWindow: BrowserWindow | null = null;
 let auxiliaryWindowPool: AuxiliaryWindowPool | null = null;
 let documentWindowManager: DocumentWindowManager | null = null;
+let screenshotManager: ScreenshotManager | null = null;
+let activeScreenshotConversationId: number | null = null;
+let screenshotShortcutRegistered = false;
 let tray: Tray | null = null;
 let quitting = false;
 let activeAccount: AuxiliaryAccountContext | null = null;
@@ -130,6 +138,7 @@ let syncStatus: SyncStatus = {
 type StoredSettings = {
   server?: ServerConfig;
   window?: { width: number; height: number; x?: number; y?: number; maximized?: boolean };
+  screenshot?: { hideMainWindow: boolean };
 };
 
 function settingsPath() {
@@ -732,6 +741,7 @@ async function createWindow() {
       account: activeAccount,
     }),
   });
+  screenshotManager = new ScreenshotManager(() => mainWindow);
 }
 
 function createTray() {
@@ -752,6 +762,40 @@ function createTray() {
 }
 
 function registerIpc() {
+  ipcMain.handle("screenshot:capture", (event, input: ScreenshotCaptureInput) => {
+    if (!mainWindow || event.sender.id !== mainWindow.webContents.id) {
+      throw new Error("不允许的窗口调用");
+    }
+    if (!screenshotManager) throw new Error("截图服务尚未启动");
+    return screenshotManager.capture({ hideMainWindow: Boolean(input?.hideMainWindow) });
+  });
+  ipcMain.handle("screenshot:get-preferences", async () => {
+    const stored = await readSettings();
+    return {
+      hideMainWindow: stored.screenshot?.hideMainWindow ?? true,
+      shortcutAvailable: screenshotShortcutRegistered,
+    };
+  });
+  ipcMain.handle("screenshot:set-preferences", async (_event, input: {
+    hideMainWindow: boolean;
+  }) => {
+    const stored = await readSettings();
+    await writeSettings({
+      ...stored,
+      screenshot: { hideMainWindow: Boolean(input?.hideMainWindow) },
+    });
+    return true;
+  });
+  ipcMain.handle("screenshot:set-active-conversation", (event, conversationId?: number) => {
+    if (!mainWindow || event.sender.id !== mainWindow.webContents.id) {
+      throw new Error("不允许的窗口调用");
+    }
+    const normalized = Number(conversationId);
+    activeScreenshotConversationId = Number.isSafeInteger(normalized) && normalized > 0
+      ? normalized
+      : null;
+    return true;
+  });
   ipcMain.handle("auth:update-access-token", (_event, accessToken: string | null) => {
     hostAccessToken = accessToken ? String(accessToken) : null;
     if (hostAccessToken) documentWindowManager?.sendAccessToken(hostAccessToken);
@@ -1279,12 +1323,28 @@ if (!app.requestSingleInstanceLock()) {
       callback(permission === "notifications");
     });
     await createWindow();
+    screenshotShortcutRegistered = globalShortcut.register(
+      "CommandOrControl+Shift+G",
+      () => {
+        if (!activeScreenshotConversationId) {
+          mainWindow?.show();
+          mainWindow?.focus();
+          mainWindow?.webContents.send("screenshot:unavailable");
+          return;
+        }
+        mainWindow?.webContents.send("screenshot:shortcut", {
+          conversationId: activeScreenshotConversationId,
+        });
+      },
+    );
     createTray();
   });
 }
 
 app.on("before-quit", async () => {
   quitting = true;
+  globalShortcut.unregisterAll();
+  screenshotShortcutRegistered = false;
   if (mainWindow) {
     const bounds = mainWindow.getNormalBounds();
     const stored = await readSettings();
@@ -1294,6 +1354,8 @@ app.on("before-quit", async () => {
     });
   }
   await auxiliaryWindowPool?.dispose();
+  await screenshotManager?.dispose();
+  screenshotManager = null;
   documentWindowManager?.closeAll();
   await imPlugin.close();
 });

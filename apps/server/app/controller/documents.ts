@@ -1,8 +1,10 @@
 import { Controller } from "egg";
+import path from "node:path";
 import { Op } from "sequelize";
 import { fail, ok } from "../lib/auth";
 import { toPlain } from "../lib/database";
 import { exportCloudDocument } from "../lib/document-export";
+import { importCloudDocument } from "../lib/document-import";
 
 type CloudDocumentType = "doc" | "sheet";
 type CloudDocumentPermission = "owner" | "editor" | "viewer";
@@ -18,6 +20,39 @@ function collaborationUrl(ctx: any) {
 }
 
 export default class DocumentsController extends Controller {
+  private async createOwnedDocument(
+    type: CloudDocumentType,
+    title: string,
+    yjsState?: Buffer,
+  ) {
+    const { app, ctx } = this;
+    const transaction = await app.chatDb.sequelize.transaction();
+    try {
+      const document = await app.chatDb.CloudDocument.create({
+        companyId: ctx.currentUser.companyId,
+        ownerId: ctx.currentUser.id,
+        lastEditorId: ctx.currentUser.id,
+        title,
+        type,
+        icon: type,
+        color: type === "sheet" ? "#13a36f" : "#1677ff",
+        ...(yjsState ? { yjsState } : {}),
+      }, { transaction });
+      const member = await app.chatDb.CloudDocumentMember.create({
+        documentId: document.get("id"),
+        userId: ctx.currentUser.id,
+        permission: "owner",
+        lastOpenedAt: new Date(),
+      }, { transaction });
+      await transaction.commit();
+      const [payload] = await this.serializeDocuments([document], [member]);
+      return payload;
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
   private async membership(documentId: number) {
     const member = await this.app.chatDb.CloudDocumentMember.findOne({
       where: { documentId, userId: this.ctx.currentUser.id },
@@ -121,34 +156,43 @@ export default class DocumentsController extends Controller {
   }
 
   async create() {
-    const { ctx, app } = this;
+    const { ctx } = this;
     const type = String(ctx.request.body?.type || "doc") as CloudDocumentType;
     if (!documentTypes.has(type)) return fail(ctx, 400, "INVALID_DOCUMENT_TYPE", "文档类型不正确");
     const fallbackTitle = type === "sheet" ? "未命名表格" : "未命名文档";
     const title = String(ctx.request.body?.title || fallbackTitle).trim().slice(0, 120);
-    const transaction = await app.chatDb.sequelize.transaction();
     try {
-      const document = await app.chatDb.CloudDocument.create({
-        companyId: ctx.currentUser.companyId,
-        ownerId: ctx.currentUser.id,
-        lastEditorId: ctx.currentUser.id,
-        title,
-        type,
-        icon: type,
-        color: type === "sheet" ? "#13a36f" : "#1677ff",
-      }, { transaction });
-      const member = await app.chatDb.CloudDocumentMember.create({
-        documentId: document.get("id"),
-        userId: ctx.currentUser.id,
-        permission: "owner",
-        lastOpenedAt: new Date(),
-      }, { transaction });
-      await transaction.commit();
-      const [payload] = await this.serializeDocuments([document], [member]);
-      ok(ctx, payload);
+      ok(ctx, await this.createOwnedDocument(type, title));
     } catch (error) {
-      await transaction.rollback();
       throw error;
+    }
+  }
+
+  async importFile() {
+    const { ctx } = this;
+    const stream: any = await ctx.getFileStream();
+    const filename = path.basename(String(stream.filename || ""));
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of stream) {
+      const value = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      size += value.length;
+      if (size > 20 * 1024 * 1024) {
+        stream.destroy();
+        return fail(ctx, 413, "DOCUMENT_IMPORT_TOO_LARGE", "导入文件不能超过 20 MB");
+      }
+      chunks.push(value);
+    }
+    try {
+      const imported = await importCloudDocument(filename, Buffer.concat(chunks));
+      ok(ctx, await this.createOwnedDocument(imported.type, imported.title, imported.state));
+    } catch (error) {
+      return fail(
+        ctx,
+        400,
+        "DOCUMENT_IMPORT_FAILED",
+        error instanceof Error ? error.message : "文档导入失败",
+      );
     }
   }
 

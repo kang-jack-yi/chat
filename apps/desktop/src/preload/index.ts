@@ -90,6 +90,25 @@ const desktop = {
     writeCache: (input: { attachmentId: number; data: Uint8Array }) =>
       ipcRenderer.invoke("cache:write-attachment", input),
   },
+  screenshot: {
+    capture: (input: { hideMainWindow: boolean }) =>
+      ipcRenderer.invoke("screenshot:capture", input),
+    getPreferences: () => ipcRenderer.invoke("screenshot:get-preferences"),
+    setPreferences: (input: { hideMainWindow: boolean }) =>
+      ipcRenderer.invoke("screenshot:set-preferences", input),
+    setActiveConversation: (conversationId?: number) =>
+      ipcRenderer.invoke("screenshot:set-active-conversation", conversationId),
+    onShortcut: (listener: (input: { conversationId: number }) => void) => {
+      const handler = (_event: unknown, input: { conversationId: number }) => listener(input);
+      ipcRenderer.on("screenshot:shortcut", handler);
+      return () => ipcRenderer.off("screenshot:shortcut", handler);
+    },
+    onUnavailable: (listener: () => void) => {
+      const handler = () => listener();
+      ipcRenderer.on("screenshot:unavailable", handler);
+      return () => ipcRenderer.off("screenshot:unavailable", handler);
+    },
+  },
   sync: {
     getStatus: () => ipcRenderer.invoke("sync:get-status"),
     retry: () => ipcRenderer.invoke("sync:retry"),

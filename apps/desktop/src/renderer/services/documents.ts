@@ -14,6 +14,11 @@ export const documentsService = {
     }),
   create: (type: CloudDocumentType) =>
     post<CloudDocument>("/api/documents", { type }),
+  importFile: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return post<CloudDocument>("/api/documents/import", form, { timeout: 60_000 });
+  },
   detail: (id: number) =>
     get<CloudDocumentEditorConfig>(`/api/documents/${id}`),
   update: (

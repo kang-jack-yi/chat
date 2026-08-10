@@ -29,7 +29,7 @@ import {
 
 export type { DraftAttachmentItem } from "../../stores/chat-draft-store";
 
-type DraftFileSource = "clipboard" | "drop" | "picker";
+type DraftFileSource = "clipboard" | "drop" | "picker" | "screenshot";
 
 type ImageMessageContent =
   | { type: "text"; text: string }

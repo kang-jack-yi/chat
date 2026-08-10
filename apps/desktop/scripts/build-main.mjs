@@ -11,7 +11,7 @@ await Promise.all([
   build({
     ...shared,
     entryPoints: ["src/main/main.ts"],
-    external: ["electron", "better-sqlite3"],
+    external: ["electron", "better-sqlite3", "electron-screenshots", "node-screenshots"],
     outfile: ".electron/main.cjs",
     define: {
       __DESKTOP_DEFAULT_SERVER_URL__: JSON.stringify(defaultServerUrl),

@@ -69,6 +69,17 @@ export default function ChatPage() {
   }, [selectedConversation?.id, selectedConversation?.type]);
 
   useEffect(() => {
+    void window.desktop?.screenshot.setActiveConversation(selectedConversation?.id);
+    return () => {
+      void window.desktop?.screenshot.setActiveConversation();
+    };
+  }, [selectedConversation?.id]);
+
+  useEffect(() => window.desktop?.screenshot.onUnavailable(() => {
+    message.warning("请先打开一个会话");
+  }), []);
+
+  useEffect(() => {
     if (!pendingSearchTarget || pendingSearchTarget.conversationId !== selectedId) return;
     setFocusedMessageId(pendingSearchTarget.messageId);
     setPendingSearchTarget(undefined);
