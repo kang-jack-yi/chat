@@ -281,6 +281,21 @@ describe("企业聊天核心接口", () => {
       assert.equal(latestReceipt.readCount, 1);
       assert.equal(latestReceipt.recipientCount, 1);
 
+      const receiptDetails = await app.httpRequest()
+        .get(`/api/conversations/${direct.id}/messages/${latest.id}/receipts`)
+        .set("Authorization", ownerAuth)
+        .expect(200);
+      assert.equal(receiptDetails.body.data.messageId, latest.id);
+      assert.equal(receiptDetails.body.data.read.length, 1);
+      assert.equal(receiptDetails.body.data.read[0].id, memberLogin.body.data.user.id);
+      assert.equal(receiptDetails.body.data.unread.length, 0);
+
+      const forbiddenReceipt = await app.httpRequest()
+        .get(`/api/conversations/${direct.id}/messages/${latest.id}/receipts`)
+        .set("Authorization", memberAuth)
+        .expect(403);
+      assert.equal(forbiddenReceipt.body.error.code, "RECEIPTS_FORBIDDEN");
+
       const settings = await app.httpRequest()
         .patch(`/api/conversations/${direct.id}/settings`)
         .set("Authorization", ownerAuth)

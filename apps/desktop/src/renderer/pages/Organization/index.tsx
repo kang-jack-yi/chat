@@ -33,11 +33,11 @@ export default function OrganizationPage() {
           onModeChange={organization.setMode}
         />
       </section>
-      <main className="h-full overflow-y-auto bg-[radial-gradient(circle_at_85%_2%,#e8f2ff_0%,#f8fafc_28%,#f2f5fa_64%)] px-[clamp(20px,3vw,40px)] py-6 max-md:px-4 max-md:py-5">
+      <main className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(20px,3vw,40px)] py-6 max-md:px-4 max-md:py-5">
         <div className="mx-auto w-full max-w-[1180px]">
           <header className="mb-4 flex items-center justify-between gap-6">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)] ring-1 ring-[#1677ff]/10">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-[var(--app-primary)] shadow-sm ring-1 ring-[var(--app-line)]">
                 <Building2 size={20} />
               </span>
               <div className="min-w-0">
@@ -52,9 +52,9 @@ export default function OrganizationPage() {
             </Button>
           </header>
 
-          {organization.mode === "members" && <div className="mb-4 grid grid-cols-4 overflow-hidden rounded-[14px] border border-white/80 bg-white/90 shadow-[0_8px_24px_rgba(39,48,67,.045)] max-sm:grid-cols-2">
+          {organization.mode === "members" && <div className="mb-4 grid grid-cols-4 overflow-hidden rounded-[14px] border border-[var(--app-line)] bg-white shadow-[var(--app-shadow-panel)] max-sm:grid-cols-2">
             {[
-              { label: "在职成员", value: activeUsers, icon: <UsersRound size={18} />, tone: "bg-[#e8f2ff] text-[#1677ff]" },
+              { label: "在职成员", value: activeUsers, icon: <UsersRound size={18} />, tone: "bg-[var(--app-primary-soft)] text-[var(--app-primary)]" },
               { label: "管理角色", value: managerUsers, icon: <ShieldCheck size={18} />, tone: "bg-[#eef0ff] text-[#6658d3]" },
               { label: "停用账号", value: disabledUsers, icon: <CircleOff size={18} />, tone: "bg-[#fff0f1] text-[#df586b]" },
               { label: "未分配部门", value: unassignedUsers, icon: <Building2 size={18} />, tone: "bg-[#fff6e7] text-[#d68a16]" },
@@ -71,7 +71,7 @@ export default function OrganizationPage() {
             ))}
           </div>}
 
-          <Card className="overflow-hidden !rounded-[14px] !border-white/80 !bg-white/95 shadow-[0_10px_30px_rgba(39,48,67,.06)]" styles={{ body: { padding: 0 } }}>
+          <Card className="overflow-hidden !rounded-[14px] !border-[var(--app-line)] !bg-white" styles={{ body: { padding: 0 } }}>
             <div className="flex min-h-12 items-center justify-between border-b border-[var(--app-line)] px-4">
               <div className="flex items-center gap-2">
                 <strong className="text-sm text-[var(--app-text)]">

@@ -6,7 +6,7 @@ import type {
   InviteHistoryTask,
   Message,
 } from "@chat/shared";
-import MessageContent from "../../renderer/pages/Chat/components/MessageContent";
+import MessageView from "../../renderer/pages/Chat/components/MessageView";
 import { initialInviteHistorySelection } from "../invite-history-selection";
 
 export interface InviteHistoryWindowProps {
@@ -124,7 +124,6 @@ export default function InviteHistoryWindow({ task }: InviteHistoryWindowProps) 
 
         {!loading && !error && messages.map((message, index) => {
           const checked = selected.has(message.id);
-          const containsMedia = message.parts.some((part) => part.type === "image");
           return (
             <div
               key={message.clientId}
@@ -141,16 +140,10 @@ export default function InviteHistoryWindow({ task }: InviteHistoryWindowProps) 
                 />
                 <span className="grid min-w-0 flex-1 gap-1">
                   <span className="text-[11px] text-[var(--app-text-secondary)]">{message.senderName}</span>
-                  <span
-                    className={`w-fit max-w-[460px] min-w-0 text-xs leading-5 text-[var(--app-text)] ${
-                      containsMedia
-                        ? ""
-                        : "rounded-lg bg-[var(--app-surface-muted)] px-3 py-2"
-                    }`}
-                  >
-                    <MessageContent
+                  <span className="w-fit max-w-[460px] min-w-0 text-xs leading-5 text-[var(--app-text)]">
+                    <MessageView
                       message={message}
-                      variant="history"
+                      contextMenuEnabled={false}
                       resolveAttachmentUrl={resolveAttachmentUrl}
                       onPreviewImage={(targetMessage, part) => {
                         void bridge?.images.openViewer({

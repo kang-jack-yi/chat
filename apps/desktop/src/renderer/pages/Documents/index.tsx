@@ -61,7 +61,7 @@ export default function DocumentsPage() {
   const createItems: MenuProps["items"] = [
     {
       key: "doc",
-      icon: <FileText size={17} className="text-[#1677ff]" />,
+      icon: <FileText size={17} className="text-[var(--app-primary)]" />,
       label: "新建在线文档",
       onClick: () => documents.createDocument.mutate("doc"),
     },
@@ -149,7 +149,7 @@ export default function DocumentsPage() {
 
   return (
     <div className="grid h-full grid-cols-[224px_minmax(0,1fr)] bg-[var(--app-canvas)]">
-      <aside className="flex min-h-0 flex-col border-r border-[var(--app-line)] bg-[#f7f9fc] p-4">
+      <aside className="flex min-h-0 flex-col border-r border-[var(--app-line)] bg-[var(--app-surface-soft)] p-4">
         <div className="grid gap-2">
           <Dropdown menu={{ items: createItems }} trigger={["click"]}>
             <Button type="primary" icon={<Plus size={17} />} block loading={documents.createDocument.isPending}>
@@ -186,17 +186,17 @@ export default function DocumentsPage() {
               onClick={() => documents.setView(item.key)}
               className={`flex h-10 items-center gap-3 rounded-lg px-3 text-left text-sm transition-colors ${
                 documents.view === item.key
-                  ? "bg-[#e8f2ff] font-medium text-[#1677ff]"
-                  : "text-[var(--app-text-secondary)] hover:bg-[#eef3f9] hover:text-[var(--app-text)]"
+                  ? "bg-[var(--app-primary-soft)] font-medium text-[var(--app-primary)]"
+                  : "text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
               }`}
             >
               {item.icon}{item.label}
             </button>
           ))}
         </nav>
-        <div className="mt-auto rounded-xl border border-[#e1e8f1] bg-white p-3">
+        <div className="mt-auto rounded-xl border border-[var(--app-line)] bg-white p-3 shadow-sm">
           <div className="flex items-center gap-2 text-sm font-medium text-[var(--app-text)]">
-            <Share2 size={16} className="text-[#1677ff]" />多人实时协作
+            <Share2 size={16} className="text-[var(--app-primary)]" />多人实时协作
           </div>
           <p className="mb-0 mt-1 text-xs leading-5 text-[var(--app-text-secondary)]">
             文档内容自动保存，多人编辑状态实时同步。
@@ -226,25 +226,25 @@ export default function DocumentsPage() {
             <button
               type="button"
               onClick={() => documents.createDocument.mutate("doc")}
-              className="group flex items-center gap-4 rounded-2xl border border-[#e2e8f0] bg-white p-5 text-left shadow-[0_8px_26px_rgba(36,48,72,.05)] transition hover:-translate-y-0.5 hover:border-[#bfd9ff]"
+              className="group flex items-center gap-4 rounded-[14px] border border-[var(--app-line)] bg-white p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[#b9ceff] hover:bg-[var(--app-surface-soft)]"
             >
-              <span className="grid size-12 place-items-center rounded-xl bg-[#e8f2ff] text-[#1677ff]"><FilePlus2 size={23} /></span>
+              <span className="grid size-12 place-items-center rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]"><FilePlus2 size={23} /></span>
               <span><strong className="block text-sm text-[var(--app-text)]">创建在线文档</strong><small className="mt-1 block text-[var(--app-text-secondary)]">撰写方案、会议纪要与知识内容</small></span>
             </button>
             <button
               type="button"
               onClick={() => documents.createDocument.mutate("sheet")}
-              className="group flex items-center gap-4 rounded-2xl border border-[#e2e8f0] bg-white p-5 text-left shadow-[0_8px_26px_rgba(36,48,72,.05)] transition hover:-translate-y-0.5 hover:border-[#b8e6d6]"
+              className="group flex items-center gap-4 rounded-[14px] border border-[var(--app-line)] bg-white p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[#b9ceff] hover:bg-[var(--app-surface-soft)]"
             >
               <span className="grid size-12 place-items-center rounded-xl bg-[#e8f8f2] text-[#13a36f]"><FileSpreadsheet size={23} /></span>
               <span><strong className="block text-sm text-[var(--app-text)]">创建在线表格</strong><small className="mt-1 block text-[var(--app-text-secondary)]">协作维护数据、计划和项目清单</small></span>
             </button>
           </section>
 
-          <section className="mt-7 overflow-hidden rounded-2xl border border-[#e1e7ef] bg-white shadow-[0_10px_30px_rgba(36,48,72,.05)]">
+          <section className="mt-7 overflow-hidden rounded-[14px] border border-[var(--app-line)] bg-white shadow-[var(--app-shadow-panel)]">
             <div className="flex items-center justify-between border-b border-[var(--app-line)] px-5 py-4">
               <div className="flex items-center gap-2">
-                <FolderClock size={18} className="text-[#1677ff]" />
+                <FolderClock size={18} className="text-[var(--app-primary)]" />
                 <strong className="text-sm text-[var(--app-text)]">
                   {views.find((item) => item.key === documents.view)?.label}
                 </strong>

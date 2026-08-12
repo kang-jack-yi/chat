@@ -36,6 +36,8 @@ export const localDatabase = {
   upsertMessages: (messages: Message[]) => call<boolean>("upsertMessages", messages),
   conversations: () => call<Conversation[]>("listConversations"),
   upsertConversations: (conversations: Conversation[]) => call<boolean>("upsertConversations", conversations),
+  markConversationRead: (conversationId: number) =>
+    call<boolean>("markConversationRead", conversationId),
   replaceConversations: (conversations: Conversation[]) => call<boolean>("replaceConversations", conversations),
   messages: (conversationId: number, before?: number) =>
     call<MessagePage<Message>>("getMessages", { conversationId, before, limit: 30 }),

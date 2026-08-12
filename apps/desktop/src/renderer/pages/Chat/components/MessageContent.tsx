@@ -19,8 +19,6 @@ import type {
 } from "@chat/shared";
 import { formatFileSize } from "../../../utils/format";
 
-export type MessageContentVariant = "chat" | "history";
-
 export type MessageContentGroup =
   | { type: "text"; parts: Array<TextPart | MentionPart | MentionAllPart> }
   | { type: "images"; parts: ImagePart[] };
@@ -38,13 +36,21 @@ export interface MessageActions {
 
 export interface MessageContentProps extends MessageActions {
   message: Message;
-  variant?: MessageContentVariant;
+  contextMenuEnabled?: boolean;
   quotedMessage?: Message;
   onLocateMessage?: (messageId: number) => void;
   resolveAttachmentUrl?: (attachment: Attachment) => Promise<string>;
   onPreviewImage?: (message: Message, part: ImagePart) => void;
   onOpenForwardRecord?: (message: Message) => void;
 }
+
+export const messageContentClassNames = {
+  file: "w-[262px] max-w-full overflow-hidden text-left",
+  fileIcon: "grid h-[42px] w-[40px] shrink-0 place-items-center rounded-xl bg-[var(--chat-attachment-icon)] text-[var(--chat-primary)]",
+  image: "relative cursor-zoom-in overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--chat-attachment)]",
+  imageElement: "block max-h-[360px] max-w-full object-contain",
+  text: "min-w-0 break-words whitespace-pre-wrap [overflow-wrap:anywhere]",
+} as const;
 
 export const popupContainer = (trigger: HTMLElement) =>
   trigger.closest("[data-chat-root]") as HTMLElement || document.body;
@@ -208,7 +214,7 @@ function WithContextMenu({
 function MessageImage({
   part,
   message,
-  variant,
+  contextMenuEnabled,
   onRetry,
   onCancel,
   onRemoveFailed,
@@ -222,7 +228,7 @@ function MessageImage({
 }: {
   part: ImagePart;
   message: Message;
-  variant: MessageContentVariant;
+  contextMenuEnabled: boolean;
   resolveAttachmentUrl?: (attachment: Attachment) => Promise<string>;
   onPreviewImage?: (message: Message, part: ImagePart) => void;
 } & MessageActions) {
@@ -299,35 +305,29 @@ function MessageImage({
   };
   const content = (
     <div
-      className={`relative cursor-zoom-in overflow-hidden rounded-xl bg-[#eef2f6] ${
-        variant === "history" ? "inline-flex w-fit max-w-full max-h-[156px]" : ""
-      }`}
+      className={messageContentClassNames.image}
       onClick={(event) => {
         event.stopPropagation();
         if (url) previewImage();
       }}
       onContextMenu={(event) => {
-        if (variant === "chat") event.stopPropagation();
+        if (contextMenuEnabled) event.stopPropagation();
       }}
     >
       {url ? (
         <Image
           src={url}
           alt={part.attachment.originalName}
-          className={`block max-w-full object-contain ${
-            variant === "history" ? "max-h-[156px] w-auto" : "max-h-[360px]"
-          }`}
+          className={messageContentClassNames.imageElement}
           fallback=""
           preview={false}
         />
       ) : (
-        <div className={`grid place-items-center text-xs text-[var(--chat-text-tertiary)] ${
-          variant === "history" ? "h-20 w-32" : "h-24 w-36"
-        }`}>
+        <div className="grid h-24 w-36 place-items-center text-xs text-[var(--chat-text-tertiary)]">
           图片加载失败
         </div>
       )}
-      {variant === "chat" && status === "uploading" && (
+      {status === "uploading" && (
         <div className="absolute inset-0 grid place-items-center bg-black/45 text-white">
           <Progress
             type="circle"
@@ -338,7 +338,7 @@ function MessageImage({
           />
         </div>
       )}
-      {variant === "chat" && status === "queued" && (
+      {status === "queued" && (
         <span className="absolute right-2 bottom-2 rounded-full bg-black/55 px-2 py-1 text-[10px] text-white">
           等待发送
         </span>
@@ -346,7 +346,7 @@ function MessageImage({
     </div>
   );
   return (
-    <WithContextMenu enabled={variant === "chat"} menu={menu}>
+    <WithContextMenu enabled={contextMenuEnabled} menu={menu}>
       {content}
     </WithContextMenu>
   );
@@ -355,21 +355,17 @@ function MessageImage({
 function MessageFile({
   part,
   message,
-  variant,
 }: {
   part: Extract<MessagePart, { type: "file" }>;
   message: Message;
-  variant: MessageContentVariant;
 }) {
   const status = messageStatus(message);
   const progress = (message as Partial<LocalMessage>).progress || 0;
   return (
-    <div className={`max-w-full overflow-hidden text-left ${variant === "history" ? "w-[260px]" : "w-[262px]"}`}>
+    <div className={messageContentClassNames.file}>
       <div className="flex items-center gap-3">
-        <span className={`grid shrink-0 place-items-center rounded-xl bg-[var(--chat-primary-soft)] text-[var(--chat-primary)] ${
-          variant === "history" ? "h-9 w-9" : "h-[42px] w-[40px]"
-        }`}>
-          <FileText size={variant === "history" ? 17 : 24} />
+        <span className={messageContentClassNames.fileIcon}>
+          <FileText size={24} />
         </span>
         <span className="grid min-w-0 flex-1 gap-1">
           <strong className="overflow-hidden text-[12px] text-ellipsis whitespace-nowrap">
@@ -379,14 +375,14 @@ function MessageFile({
             {formatFileSize(part.attachment.size)}
           </small>
         </span>
-        {variant === "chat" && (
+        {(
           status === "sending" ? <Spin size="small" /> : <Download size={18} />
         )}
       </div>
-      {variant === "chat" && status === "uploading" && (
+      {status === "uploading" && (
         <Progress className="!mb-0 !mt-2" percent={progress} size="small" />
       )}
-      {variant === "chat" && status === "queued" && (
+      {status === "queued" && (
         <div className="mt-1 text-[11px] text-[var(--chat-text-secondary)]">等待上传</div>
       )}
     </div>
@@ -396,13 +392,11 @@ function MessageFile({
 function ReplyPreview({
   quote,
   source,
-  variant,
   onLocateMessage,
   resolveAttachmentUrl,
 }: {
   quote: QuotePart;
   source?: Message;
-  variant: MessageContentVariant;
   onLocateMessage?: (messageId: number) => void;
   resolveAttachmentUrl?: (attachment: Attachment) => Promise<string>;
 }) {
@@ -430,8 +424,8 @@ function ReplyPreview({
     </>
   );
   const className =
-    "mb-2 flex w-full items-center gap-2 border-l-2 border-[var(--chat-primary)] bg-black/[.035] px-2 py-1.5 text-left text-xs text-[var(--chat-text-secondary)]";
-  return variant === "chat" ? (
+    "mb-2 flex w-full items-center gap-2 rounded-r-lg border-l-2 border-[var(--chat-primary)] bg-[var(--chat-attachment)] px-2 py-1.5 text-left text-xs text-[var(--chat-text-secondary)]";
+  return onLocateMessage ? (
     <button
       type="button"
       className={`${className} hover:bg-black/[.055]`}
@@ -446,7 +440,7 @@ function ReplyPreview({
 
 export default function MessageContent({
   message,
-  variant = "chat",
+  contextMenuEnabled = true,
   quotedMessage,
   onLocateMessage,
   onRetry,
@@ -474,7 +468,7 @@ export default function MessageContent({
     return (
       <button
         type="button"
-        className="grid w-[290px] min-w-0 max-w-full gap-2 overflow-hidden rounded-lg bg-white/70 p-3 text-left hover:bg-white"
+        className="grid w-[290px] min-w-0 max-w-full gap-2 overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--chat-attachment)] p-3 text-left transition-colors hover:bg-white"
         onClick={() => onOpenForwardRecord?.(message)}
       >
         <strong className="truncate text-sm font-medium text-[var(--chat-text)]">
@@ -502,7 +496,6 @@ export default function MessageContent({
         <ReplyPreview
           quote={quote}
           source={quotedMessage}
-          variant={variant}
           onLocateMessage={onLocateMessage}
           resolveAttachmentUrl={resolveAttachmentUrl}
         />
@@ -514,15 +507,13 @@ export default function MessageContent({
         </div>
       )}
       {filePart?.type === "file" ? (
-        <MessageFile part={filePart} message={message} variant={variant} />
+        <MessageFile part={filePart} message={message} />
       ) : (
         <div className="grid min-w-0 max-w-full gap-2 overflow-hidden">
             {groups.map((group, groupIndex) => group.type === "text" ? (
               <div
                 key={`text-${groupIndex}`}
-                className={variant === "history"
-                  ? "line-clamp-3 min-w-0 break-words whitespace-pre-wrap text-[11px] leading-5 [overflow-wrap:anywhere]"
-                  : "min-w-0 break-words whitespace-pre-wrap [overflow-wrap:anywhere]"}
+                className={messageContentClassNames.text}
               >
                 {group.parts.map((part, partIndex) => part.type === "text" ? (
                   <span key={partIndex}>{displayMessageText(part.text)}</span>
@@ -542,7 +533,7 @@ export default function MessageContent({
                     key={`${part.attachment.id}-${part.attachment.originalName}`}
                     part={part}
                     message={message}
-                    variant={variant}
+                    contextMenuEnabled={contextMenuEnabled}
                     onRetry={onRetry}
                     onCancel={onCancel}
                     onRemoveFailed={onRemoveFailed}

@@ -141,7 +141,11 @@ export default function MessageBubble({
         getPopupContainer={popupContainer}
       >
         <div
-          className="w-[290px] max-w-full cursor-default overflow-hidden rounded-[16px] bg-white p-3.5 text-left shadow-[0_7px_20px_rgba(39,48,67,.08)] ring-1 ring-black/[.03]"
+          className={`w-[290px] max-w-full cursor-default overflow-hidden rounded-[14px] border p-3.5 text-left shadow-[0_4px_14px_rgba(24,34,48,.045)] ${
+            own
+              ? "border-[var(--chat-file-own-border)] bg-[var(--chat-file-own)]"
+              : "border-[var(--chat-file-other-border)] bg-[var(--chat-file-other)]"
+          }`}
           onContextMenu={(event) => event.stopPropagation()}
           onDoubleClick={() => {
             if (fileUrl) void openAttachment(filePart.attachment);
@@ -149,6 +153,7 @@ export default function MessageBubble({
         >
           <MessageContent
             message={message}
+            contextMenuEnabled={contextMenuEnabled}
             quotedMessage={quotedMessage}
             onLocateMessage={onLocateMessage}
             onForward={onForward}
@@ -156,6 +161,8 @@ export default function MessageBubble({
             onRecall={onRecall}
             canRecall={canRecall}
             onOpenForwardRecord={onOpenForwardRecord}
+            resolveAttachmentUrl={resolveAttachmentUrl}
+            onPreviewImage={onPreviewImage}
           />
           {status === "failed" && (
             <button
@@ -212,7 +219,7 @@ export default function MessageBubble({
         menu={bubbleMenu}
         getPopupContainer={popupContainer}
       >
-        <div className="w-[min(420px,54vw)] min-w-0 max-w-full overflow-hidden rounded-xl border border-[var(--chat-line)] bg-white text-left shadow-[0_7px_20px_rgba(39,48,67,.07)]">
+        <div className="w-[min(420px,54vw)] min-w-0 max-w-full overflow-hidden rounded-[14px] border border-[var(--chat-attachment-border)] bg-white text-left shadow-[0_8px_24px_rgba(24,34,48,.06)]">
           <div className="flex items-center gap-2 border-b border-[var(--chat-line)] bg-[var(--chat-primary-soft)] px-3.5 py-2.5 text-xs font-medium text-[var(--chat-primary)]">
             <span className="grid h-6 w-6 place-items-center rounded-md bg-white/75 text-[var(--chat-primary)]">
               <Megaphone size={14} />
@@ -222,6 +229,7 @@ export default function MessageBubble({
           <div className="px-3.5 py-3 text-sm leading-[1.65] text-[var(--chat-text)]">
             <MessageContent
               message={message}
+              contextMenuEnabled={contextMenuEnabled}
               quotedMessage={quotedMessage}
               onLocateMessage={onLocateMessage}
               onQuote={onQuote}
@@ -246,14 +254,15 @@ export default function MessageBubble({
       getPopupContainer={popupContainer}
     >
       <div
-        className={`min-w-0 max-w-[min(520px,58vw)] overflow-hidden break-words px-3.5 py-2.5 text-left text-sm leading-[1.6] [overflow-wrap:anywhere] shadow-[0_5px_16px_rgba(39,48,67,.06)] ring-1 ring-black/[.025] max-md:max-w-[70vw] ${
+        className={`min-w-0 max-w-[min(520px,58vw)] overflow-hidden break-words border px-3.5 py-2.5 text-left text-sm leading-[1.6] [overflow-wrap:anywhere] shadow-[0_5px_16px_rgba(24,34,48,.045)] max-md:max-w-[70vw] ${
           own
-            ? "rounded-[16px_5px_16px_16px] bg-[var(--chat-own-bubble)] text-[var(--chat-text)]"
-            : "rounded-[5px_16px_16px_16px] bg-[var(--chat-other-bubble)] text-[var(--chat-text)]"
+            ? "rounded-[15px_5px_15px_15px] border-[#cfe0ff] bg-[var(--chat-own-bubble)] text-[var(--chat-text)]"
+            : "rounded-[5px_15px_15px_15px] border-[var(--chat-attachment-border)] bg-[var(--chat-other-bubble)] text-[var(--chat-text)]"
         }`}
       >
         <MessageContent
           message={message}
+          contextMenuEnabled={contextMenuEnabled}
           quotedMessage={quotedMessage}
           onLocateMessage={onLocateMessage}
           onRetry={onRetry}
@@ -265,6 +274,8 @@ export default function MessageBubble({
           onRecall={onRecall}
           canRecall={canRecall}
           onOpenForwardRecord={onOpenForwardRecord}
+          resolveAttachmentUrl={resolveAttachmentUrl}
+          onPreviewImage={onPreviewImage}
         />
         {status === "sending" && (
           <div className="mt-1 text-right text-[10px] text-[#7b84a0]">正在确认…</div>

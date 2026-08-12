@@ -5,6 +5,7 @@ import type {
   ForwardMessagesResult,
   GlobalMessageSearchPage,
   Message,
+  MessageReceiptDetails,
   PublishAnnouncementPayload,
   RecallMessageResult,
   SendMessagePayload,
@@ -56,6 +57,10 @@ export const chatService = {
     if (keyword) params.set("q", keyword);
     return get<MessagePage<Message>>(`/api/conversations/${id}/messages?${params}`);
   },
+  messageReceipts: (conversationId: number, messageId: number) =>
+    get<MessageReceiptDetails>(
+      `/api/conversations/${conversationId}/messages/${messageId}/receipts`,
+    ),
   createDirect: (userId: number) =>
     post<Conversation>("/api/conversations", { type: "direct", userId }).then(cacheConversation),
   createGroup: (name: string, memberIds: number[]) =>
@@ -88,7 +93,13 @@ export const chatService = {
       return result;
     }),
   read: (conversationId: number, messageId: number) =>
-    post<{ messageId: number }>(`/api/conversations/${conversationId}/read`, { messageId }),
+    post<{ messageId: number }>(`/api/conversations/${conversationId}/read`, { messageId })
+      .then(async (result) => {
+        if (localDatabase.available()) {
+          await localDatabase.markConversationRead(conversationId);
+        }
+        return result;
+      }),
   settings: (
     conversationId: number,
     payload: { pinned?: boolean; muted?: boolean; hidden?: boolean; clearHistory?: boolean },

@@ -488,6 +488,25 @@ function upsertConversations(conversations: any[]) {
   return true;
 }
 
+function markConversationRead(conversationId: number) {
+  const connection = db();
+  const row = connection.prepare(
+    "SELECT payload FROM conversations WHERE id=?",
+  ).get(Number(conversationId)) as { payload: string } | undefined;
+  if (!row) return false;
+  const conversation = JSON.parse(row.payload);
+  connection.prepare(
+    "UPDATE conversations SET payload=?, updated_at=? WHERE id=?",
+  ).run(JSON.stringify({
+    ...conversation,
+    unreadCount: 0,
+    mentioned: false,
+    mentionMessageId: null,
+    mentionType: null,
+  }), new Date().toISOString(), Number(conversationId));
+  return true;
+}
+
 function replaceConversations(conversations: any[]) {
   const connection = db();
   const transaction = connection.transaction(() => {
@@ -1147,6 +1166,7 @@ const methods: Record<string, (args: any) => unknown> = {
   upsertMessages,
   listConversations,
   upsertConversations,
+  markConversationRead,
   replaceConversations,
   getMessages,
   getRecentUserMessages,
@@ -1175,6 +1195,7 @@ export const databaseWorkerTestApi = {
   applyEvents,
   upsertMessages,
   listConversations,
+  markConversationRead,
   getMessages,
   getRecentUserMessages,
   searchMessages,

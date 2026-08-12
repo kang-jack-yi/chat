@@ -673,6 +673,54 @@ export default class ChatController extends Controller {
     ok(this.ctx, { items, nextCursor: rows.length === limit ? rows[0]?.get("id") : null });
   }
 
+  async messageReceipts() {
+    const conversationId = Number(this.ctx.params.id);
+    const messageId = Number(this.ctx.params.messageId);
+    if (!Number.isSafeInteger(messageId) || messageId <= 0) {
+      return fail(this.ctx, 400, "INVALID_MESSAGE", "消息参数不正确");
+    }
+    const membership = await this.membership(conversationId);
+    if (!membership) return fail(this.ctx, 403, "NOT_A_MEMBER", "你不在该会话中");
+    const message = await this.app.chatDb.Message.findOne({
+      where: { id: messageId, conversationId, deletedAt: null },
+    });
+    if (!message) return fail(this.ctx, 404, "MESSAGE_NOT_FOUND", "消息不存在");
+    if (Number(message.get("senderId")) !== Number(this.ctx.currentUser.id)) {
+      return fail(this.ctx, 403, "RECEIPTS_FORBIDDEN", "只能查看自己发送消息的接收状态");
+    }
+
+    const memberships = await this.app.chatDb.ConversationMember.findAll({
+      where: {
+        conversationId,
+        leftAt: null,
+        userId: { [Op.ne]: this.ctx.currentUser.id },
+      },
+    });
+    const userIds = memberships.map((item: any) => Number(item.get("userId")));
+    const users = userIds.length
+      ? await this.app.chatDb.User.findAll({
+          where: { id: userIds, companyId: this.ctx.currentUser.companyId },
+        })
+      : [];
+    const userMap = new Map(users.map((user: any) => {
+      const item = publicUser(toPlain(user));
+      return [Number(item.id), item];
+    }));
+    const receipts = memberships
+      .map((item: any) => ({
+        user: userMap.get(Number(item.get("userId"))),
+        read: Number(item.get("lastReadMessageId") || 0) >= messageId,
+      }))
+      .filter((item: any) => Boolean(item.user))
+      .sort((left: any, right: any) => String(left.user.name).localeCompare(String(right.user.name), "zh-CN"));
+
+    ok(this.ctx, {
+      messageId,
+      read: receipts.filter((item: any) => item.read).map((item: any) => item.user),
+      unread: receipts.filter((item: any) => !item.read).map((item: any) => item.user),
+    });
+  }
+
   async forward() {
     const sourceConversationId = Number(this.ctx.params.id);
     try {

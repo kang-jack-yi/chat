@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { message as toast } from "antd";
 import type {
   Attachment,
+  Conversation,
   LocalMessage,
   Message,
   MessageRecalledEvent,
@@ -26,6 +27,7 @@ import {
   type ConversationDraft,
   type DraftAttachmentItem,
 } from "../../stores/chat-draft-store";
+import { clearConversationUnread } from "./conversation-read";
 
 export type { DraftAttachmentItem } from "../../stores/chat-draft-store";
 
@@ -117,12 +119,17 @@ export function useChat(
   const updateDraft = useChatDraftStore((state) => state.updateDraft);
   const [typingName, setTypingName] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const messageListRef = useRef<HTMLElement>(null);
   const typingTimer = useRef<number | null>(null);
   const lastReportedRead = useRef(0);
   const appliedReadReceipts = useRef(new Set<string>());
-  const initialScrollConversation = useRef<number | undefined>(undefined);
+  const initialScrollPendingConversation = useRef<number | undefined>(undefined);
+  const initialScrollStartedConversation = useRef<number | undefined>(undefined);
+  const initialScrollFrame = useRef<number | undefined>(undefined);
+  const initialScrollObserver = useRef<ResizeObserver | undefined>(undefined);
+  const initialScrollTimeout = useRef<number | undefined>(undefined);
+  const sendScrollFrame = useRef<number | undefined>(undefined);
+  const messageContentRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
   const activeUploads = useRef(new Map<string, {
@@ -175,6 +182,35 @@ export function useChat(
     );
   }
 
+  function scrollToLatestAfterSend() {
+    if (sendScrollFrame.current !== undefined) {
+      window.cancelAnimationFrame(sendScrollFrame.current);
+    }
+    sendScrollFrame.current = window.requestAnimationFrame(() => {
+      const container = messageListRef.current;
+      if (container) container.scrollTop = container.scrollHeight;
+      sendScrollFrame.current = window.requestAnimationFrame(() => {
+        const latestContainer = messageListRef.current;
+        if (latestContainer) latestContainer.scrollTop = latestContainer.scrollHeight;
+        sendScrollFrame.current = undefined;
+      });
+    });
+  }
+
+  function cancelInitialScroll() {
+    if (initialScrollFrame.current !== undefined) {
+      window.cancelAnimationFrame(initialScrollFrame.current);
+      initialScrollFrame.current = undefined;
+    }
+    initialScrollObserver.current?.disconnect();
+    initialScrollObserver.current = undefined;
+    if (initialScrollTimeout.current !== undefined) {
+      window.clearTimeout(initialScrollTimeout.current);
+      initialScrollTimeout.current = undefined;
+    }
+    initialScrollPendingConversation.current = undefined;
+  }
+
   function patchMessage(clientId: string, patch: Partial<LocalMessage>) {
     updateMessages((items) => items.map((item) =>
       item.clientId === clientId ? { ...item, ...patch } as Message : item));
@@ -201,8 +237,68 @@ export function useChat(
   useEffect(() => {
     lastReportedRead.current = 0;
     appliedReadReceipts.current.clear();
-    initialScrollConversation.current = conversationId;
   }, [conversationId]);
+
+  useLayoutEffect(() => {
+    cancelInitialScroll();
+    if (!conversationId || focusedMessageId) return;
+    initialScrollPendingConversation.current = conversationId;
+    initialScrollStartedConversation.current = undefined;
+  }, [conversationId, focusedMessageId]);
+
+  useLayoutEffect(() => {
+    if (
+      !conversationId
+      || focusedMessageId
+      || !messageItems.length
+      || initialScrollPendingConversation.current !== conversationId
+      || initialScrollStartedConversation.current === conversationId
+    ) return;
+    // Wait for the selected conversation's first message batch to render. Keep
+    // the viewport pinned while its initial images finish decoding, but only
+    // until the user starts browsing the history.
+    initialScrollStartedConversation.current = conversationId;
+    const pinToLatest = () => {
+      const container = messageListRef.current;
+      if (container) container.scrollTop = container.scrollHeight;
+    };
+    initialScrollFrame.current = window.requestAnimationFrame(() => {
+      pinToLatest();
+      initialScrollFrame.current = window.requestAnimationFrame(() => {
+        pinToLatest();
+        initialScrollFrame.current = undefined;
+      });
+    });
+    const content = messageContentRef.current;
+    if (content) {
+      initialScrollObserver.current = new ResizeObserver(pinToLatest);
+      initialScrollObserver.current.observe(content);
+    }
+    initialScrollTimeout.current = window.setTimeout(() => {
+      initialScrollObserver.current?.disconnect();
+      initialScrollObserver.current = undefined;
+      initialScrollTimeout.current = undefined;
+      initialScrollPendingConversation.current = undefined;
+    }, 4000);
+  }, [conversationId, focusedMessageId, messageItems.length]);
+
+  useEffect(() => {
+    if (!conversationId) return;
+    let openedConversation: Conversation | undefined;
+    queryClient.setQueryData<Conversation[]>(queryKeys.conversations, (current) => {
+      openedConversation = current?.find((item) => item.id === conversationId);
+      return clearConversationUnread(current, conversationId);
+    });
+    if (openedConversation && localDatabase.available()) {
+      void localDatabase.upsertConversations([{
+        ...openedConversation,
+        unreadCount: 0,
+        mentioned: false,
+        mentionMessageId: null,
+        mentionType: null,
+      }]);
+    }
+  }, [conversationId, queryClient]);
 
   useEffect(() => {
     if (!socket || !conversationId) return;
@@ -229,6 +325,9 @@ export function useChat(
       messageId: number;
     }) => {
       if (payload.conversationId === conversationId) {
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.messageReceiptsForConversation(conversationId),
+        });
         const receiptKey = `${payload.userId}:${payload.messageId}`;
         if (appliedReadReceipts.current.has(receiptKey)) return;
         appliedReadReceipts.current.add(receiptKey);
@@ -285,43 +384,13 @@ export function useChat(
   }, [conversationId, currentUser.id, queryClient, socket]);
 
   useEffect(() => {
-    if (focusedMessageId || !conversationId || !messageItems.length) return;
-    const initial = initialScrollConversation.current === conversationId;
-    if (!initial) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-      return;
-    }
-    const scrollToLatest = () => {
-      const container = messageListRef.current;
-      if (container) container.scrollTop = container.scrollHeight;
-    };
-    const frame = window.requestAnimationFrame(scrollToLatest);
-    const timers = [80, 250, 600, 1200].map((delay) =>
-      window.setTimeout(() => {
-        scrollToLatest();
-        if (delay === 1200 && initialScrollConversation.current === conversationId) {
-          initialScrollConversation.current = undefined;
-        }
-      }, delay));
-    return () => {
-      window.cancelAnimationFrame(frame);
-      timers.forEach((timer) => window.clearTimeout(timer));
-    };
-  }, [
-    conversationId,
-    focusedMessageId,
-    messageItems.length,
-    messageItems.at(-1)?.id,
-    (messageItems.at(-1) as Partial<LocalMessage> | undefined)?.status,
-  ]);
-
-  useEffect(() => {
     if (focusedMessageId) return;
-    const lastMessage = messageItems.at(-1);
-    if (conversationId && lastMessage && lastMessage.senderId !== currentUser.id
-      && lastMessage.id > lastReportedRead.current) {
+    const lastMessage = messageItems.slice().reverse().find((message) => message.id > 0);
+    if (conversationId && lastMessage && lastMessage.id > lastReportedRead.current) {
       lastReportedRead.current = lastMessage.id;
-      void chatService.read(conversationId, lastMessage.id);
+      void chatService.read(conversationId, lastMessage.id).catch(() => {
+        lastReportedRead.current = 0;
+      });
     }
   }, [conversationId, currentUser.id, focusedMessageId, messageItems]);
 
@@ -449,6 +518,7 @@ export function useChat(
       });
     } else {
       updateMessages((items) => [...items, pending]);
+      scrollToLatestAfterSend();
     }
     uploadRetries.current.set(
       clientId,
@@ -573,6 +643,7 @@ export function useChat(
       patchMessage(clientId, { ...pending, progress: 0, error: undefined });
     } else {
       updateMessages((items) => [...items, pending]);
+      scrollToLatestAfterSend();
     }
     uploadRetries.current.set(
       clientId,
@@ -813,22 +884,26 @@ export function useChat(
     const previousHeight = container?.scrollHeight ?? 0;
     await messages.fetchNextPage();
     window.requestAnimationFrame(() => {
-      if (container) container.scrollTop += container.scrollHeight - previousHeight;
+      if (container) {
+        const addedHeight = container.scrollHeight - previousHeight;
+        container.scrollTop += addedHeight;
+      }
     });
   }
 
   return {
     addFiles,
     attachments: draftState.attachments,
-    bottomRef,
     canSend: Boolean(richTextToPlainText(draftState.text).trim() || draftState.attachments.length),
     cancel,
+    cancelInitialScroll,
     changeDraft,
     draft: draftState.text,
     fileRef,
     imageRef,
     loadEarlier,
     messageItems,
+    messageContentRef,
     messageListRef,
     messageQuery: focusedMessageId ? messageContext : messages,
     messages,

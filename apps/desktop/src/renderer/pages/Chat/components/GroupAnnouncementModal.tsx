@@ -248,7 +248,7 @@ export default function GroupAnnouncementModal({
             </div>
             <MessageContent
               message={conversation.announcementMessage}
-              variant="history"
+              contextMenuEnabled={false}
             />
           </div>
         )}

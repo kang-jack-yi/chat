@@ -50,6 +50,7 @@ export default (app: Application) => {
   router.post("/api/conversations/:id/members", auth, controller.chat.addMembers);
   router.delete("/api/conversations/:id/members/:userId", auth, controller.chat.removeMember);
   router.get("/api/conversations/:id/messages", auth, controller.chat.messages);
+  router.get("/api/conversations/:id/messages/:messageId/receipts", auth, controller.chat.messageReceipts);
   router.post("/api/conversations/:id/messages", auth, controller.chat.send);
   router.post("/api/conversations/:id/messages/forward", auth, controller.chat.forward);
   router.post("/api/conversations/:id/messages/delete-for-me", auth, controller.chat.deleteForMe);

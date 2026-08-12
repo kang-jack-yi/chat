@@ -271,6 +271,12 @@ export interface ImMessage {
 
 export type Message = ImMessage;
 
+export interface MessageReceiptDetails {
+  messageId: number;
+  read: User[];
+  unread: User[];
+}
+
 export type MessageHistoryCategory = "all" | "file" | "media";
 
 export interface MessageHistoryQuery {
@@ -516,6 +522,7 @@ export interface OpenForwardRecordInput {
 export interface ChatHistoryMetadata {
   conversation: Conversation;
   historyComplete: boolean;
+  currentUserId: number;
 }
 
 export interface ImageGalleryItem {

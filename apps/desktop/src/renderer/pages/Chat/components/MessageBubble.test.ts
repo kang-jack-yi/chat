@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Attachment, Message, MessagePart } from "@chat/shared";
-import { displayMessageText, groupMessageContent } from "./MessageContent";
+import {
+  displayMessageText,
+  groupMessageContent,
+  messageContentClassNames,
+} from "./MessageContent";
 import { systemMessageText } from "./SystemMessage";
 import { canRecallMessage } from "./MessageBubble";
+import MessageView from "./MessageView";
 
 const attachment: Attachment = {
   id: 1,
@@ -13,6 +18,22 @@ const attachment: Attachment = {
 };
 
 describe("groupMessageContent", () => {
+  it("defines one visual contract for every message surface", () => {
+    expect(Object.keys(messageContentClassNames)).toEqual([
+      "file",
+      "fileIcon",
+      "image",
+      "imageElement",
+      "text",
+    ]);
+    expect(messageContentClassNames.file).not.toContain("history");
+    expect(messageContentClassNames.imageElement).toContain("max-h-[360px]");
+  });
+
+  it("exposes one renderer for persisted messages", () => {
+    expect(MessageView).toBeTypeOf("function");
+  });
+
   it("keeps tag-like source code as visible text", () => {
     const source = '<template #portRoute="{ row }">content</template>';
     expect(displayMessageText(source)).toBe(source);

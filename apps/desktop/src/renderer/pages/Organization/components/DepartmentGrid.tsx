@@ -98,7 +98,7 @@ export default function DepartmentGrid({
           <>
             <div className="flex items-start justify-between gap-4 border-b border-[var(--app-line)] pb-4">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#e8f2ff] text-[#1677ff]">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]">
                   <Building2 size={21} />
                 </span>
                 <div className="min-w-0">

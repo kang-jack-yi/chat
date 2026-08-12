@@ -64,7 +64,7 @@ export default function GroupMembersPanel({
           title="聊天记录"
           aria-label="打开聊天记录"
           onClick={onOpenHistory}
-          className="!h-8 !w-8 !min-w-8 !rounded-md !p-0 !text-[var(--chat-text-secondary)] hover:!bg-[#edf3fa] hover:!text-[var(--chat-primary)]"
+          className="!h-8 !w-8 !min-w-8 !rounded-md !p-0 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]"
         />
         <Button
           type="text"
@@ -72,7 +72,7 @@ export default function GroupMembersPanel({
           icon={<UserPlus size={17} />}
           title="邀请群成员"
           onClick={onInvite}
-          className="!h-8 !w-8 !min-w-8 !rounded-md !p-0 !text-[var(--chat-text-secondary)] hover:!bg-[#edf3fa] hover:!text-[var(--chat-primary)]"
+          className="!h-8 !w-8 !min-w-8 !rounded-md !p-0 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]"
         />
         <Button
           type="text"
@@ -81,7 +81,7 @@ export default function GroupMembersPanel({
           title="聊天设置"
           aria-label="打开聊天设置"
           onClick={onOpenSettings}
-          className="!h-8 !w-8 !min-w-8 !rounded-md !p-0 !text-[var(--chat-text-secondary)] hover:!bg-[#edf3fa] hover:!text-[var(--chat-primary)]"
+          className="!h-8 !w-8 !min-w-8 !rounded-md !p-0 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]"
         />
       </header>
       <div className="w-full min-w-0 max-w-full overflow-hidden border-l border-[var(--chat-line)]">
@@ -98,7 +98,7 @@ export default function GroupMembersPanel({
         {announcementSummary && (
           <button
             type="button"
-            className="flex min-h-[160px] w-full min-w-0 max-w-full gap-2 overflow-hidden border-y border-[var(--chat-line)] bg-[var(--chat-list)] px-2.5 py-3 text-left transition-colors hover:bg-[#f1f3f5]"
+            className="flex min-h-[160px] w-full min-w-0 max-w-full gap-2 overflow-hidden border-y border-[var(--chat-line)] bg-[var(--chat-list)] px-2.5 py-3 text-left transition-colors hover:bg-[var(--app-surface-muted)]"
             onClick={onOpenSettings}
           >
             <Megaphone
@@ -123,7 +123,7 @@ export default function GroupMembersPanel({
             placement="left"
             title={member.title || member.departmentName || "暂无职位"}
           >
-            <div className="flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1.5 hover:bg-[#eef2f6]">
+            <div className="flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1.5 hover:bg-[var(--app-surface-muted)]">
               <MemberProfilePopover
                 user={member}
                 currentUser={currentUser}
@@ -136,7 +136,7 @@ export default function GroupMembersPanel({
                   <Avatar
                     shape="square"
                     size={28}
-                    className="!rounded-lg !bg-[#4b8fea] !text-[12px]"
+                    className="!rounded-lg !bg-[var(--chat-primary)] !text-[12px]"
                   >
                     {member.avatar || member.name.slice(0, 1)}
                   </Avatar>

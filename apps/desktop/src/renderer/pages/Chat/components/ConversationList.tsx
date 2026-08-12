@@ -141,21 +141,21 @@ export default function ConversationList({
 
   return (
     <>
-      <header className="flex h-[60px] shrink-0 items-center gap-2 border-b border-[var(--chat-line)] px-3">
+      <header className="flex h-[60px] shrink-0 items-center gap-2 border-b border-[var(--chat-line)] bg-white/45 px-3">
         <Input
           allowClear
           value={query}
           prefix={<Search size={15} className="text-[var(--chat-text-secondary)]" />}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="搜索"
-          className="!rounded-md !border !border-transparent !bg-[#eef1f5] !shadow-none focus-within:!border-[var(--chat-primary)]"
+          className="!rounded-[10px] !border !border-transparent !bg-[var(--app-surface-muted)] !shadow-none focus-within:!border-[var(--chat-primary)] focus-within:!bg-white"
         />
         <Button
           type="text"
           icon={<Plus size={19} />}
           onClick={onNewGroup}
           title="新建群聊"
-          className="!w-8 !shrink-0 !rounded-md !bg-[#eef1f5] !px-0 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]"
+          className="!w-8 !shrink-0 !rounded-[10px] !bg-[var(--app-surface-muted)] !px-0 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]"
         />
       </header>
       <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-1.5 py-1.5">
@@ -283,12 +283,12 @@ export default function ConversationList({
           return (
             <Dropdown key={item.id} trigger={["contextMenu"]} menu={menu}>
               <button
-                className={`group flex w-full max-w-full items-center gap-2.5 overflow-hidden rounded-md border px-2.5 py-2.5 text-left transition-colors duration-150 ${
+                className={`group flex w-full max-w-full items-center gap-2.5 overflow-hidden rounded-[10px] border px-2.5 py-2.5 text-left transition-colors duration-150 ${
                   selected
-                    ? "border-[#cfe2fa] bg-[var(--chat-primary-soft)]"
+                    ? "border-transparent bg-[var(--chat-primary-soft)]"
                     : item.pinned
                       ? "border-transparent bg-[var(--chat-pinned)] hover:bg-[var(--chat-pinned-hover)]"
-                      : "border-transparent bg-transparent hover:bg-[#eef2f6]"
+                      : "border-transparent bg-transparent hover:bg-[var(--app-surface-muted)]"
                 }`}
                 onClick={() => onSelect(item.id)}
               >

@@ -23,7 +23,7 @@ export default function AdminMenu({
   return (
     <>
       <PanelTitle title="组织管理" />
-      <div className="mx-4 overflow-hidden rounded-[14px] bg-[linear-gradient(145deg,#0958b8_0%,#1677ff_58%,#69a8ff_100%)] p-4 text-white shadow-[0_10px_24px_rgba(22,119,255,.16)]">
+      <div className="mx-4 overflow-hidden rounded-[14px] bg-[linear-gradient(145deg,#294fad_0%,#3d70eb_64%,#7899eb_100%)] p-4 text-white shadow-[0_10px_24px_rgba(47,107,255,.13)]">
         <div className="flex items-center gap-3">
           <div className="grid size-10 place-items-center rounded-[12px] bg-white/18 text-lg font-bold shadow-inner ring-1 ring-white/22">{company.name.slice(0, 1)}</div>
           <div className="min-w-0">

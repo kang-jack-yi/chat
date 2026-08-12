@@ -4,6 +4,7 @@ import {
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  type UIEvent,
 } from "react";
 import { Button, Checkbox, Modal, message as toast } from "antd";
 import {
@@ -32,7 +33,6 @@ import { useChat } from "../hooks";
 import ComposerQuote from "./ComposerQuote";
 import ForwardTargetModal from "./ForwardTargetModal";
 import MemberProfilePopover from "./MemberProfilePopover";
-import MessageBubble from "./MessageBubble";
 import {
   getSelectableRange,
   isSelectableMessage,
@@ -43,7 +43,8 @@ import {
   saveAttachment,
 } from "./MessageContent";
 import RichTextEditor from "./RichTextEditor";
-import SystemMessage from "./SystemMessage";
+import MessageView from "./MessageView";
+import MessageReadReceiptPopover from "./MessageReadReceiptPopover";
 import {
   COMPOSER_DEFAULT_HEIGHT,
   COMPOSER_MAX_HEIGHT,
@@ -372,6 +373,17 @@ export default function ChatPanel({
     );
   }
 
+  function loadEarlierOnReachTop(event: UIEvent<HTMLElement>) {
+    const viewport = event.currentTarget;
+    if (
+      focusedMessageId
+      || viewport.scrollTop > 32
+      || !chat.messages.hasNextPage
+      || chat.messages.isFetchingNextPage
+    ) return;
+    void chat.loadEarlier();
+  }
+
   useEffect(() => {
     if (!focusedMessageId || !chat.messageItems.some((item) => item.id === focusedMessageId)) return;
     const frame = window.requestAnimationFrame(() => locateMessage(focusedMessageId));
@@ -488,6 +500,10 @@ export default function ChatPanel({
 
       <section
         ref={chat.messageListRef}
+        onScroll={loadEarlierOnReachTop}
+        onWheel={chat.cancelInitialScroll}
+        onPointerDown={chat.cancelInitialScroll}
+        onTouchStart={chat.cancelInitialScroll}
         className="min-w-0 max-w-full overflow-x-hidden overflow-y-auto bg-[var(--chat-canvas)] px-5 py-5 max-md:px-3.5 max-md:py-[18px]"
         style={selectionMode ? { paddingTop: 48 } : undefined}
       >
@@ -501,24 +517,7 @@ export default function ChatPanel({
         {chat.messageQuery.isLoading && (
           <div className="my-4 text-center text-[10px] text-[var(--chat-text-tertiary)]">正在加载消息...</div>
         )}
-        {!focusedMessageId && !chat.messageQuery.isLoading && (
-          <div className="mb-3 text-center">
-            {chat.messages.hasNextPage ? (
-              <Button
-                type="link"
-                size="small"
-                loading={chat.messages.isFetchingNextPage}
-                onClick={chat.loadEarlier}
-              >
-                加载更早消息
-              </Button>
-            ) : (
-              <span className="px-2.5 py-1 text-[10px] text-[var(--chat-text-tertiary)]">
-                没有更早的消息了
-              </span>
-            )}
-          </div>
-        )}
+        <div ref={chat.messageContentRef}>
         {chat.messageItems.map((message, index, items) => {
           const own = message.senderId === currentUser.id;
           const quotePart = message.parts.find((part) => part.type === "quote");
@@ -544,7 +543,7 @@ export default function ChatPanel({
                   </div>
                 )}
                 <div className="my-3 text-center">
-                  <SystemMessage message={message} currentUserId={currentUser.id} />
+                  <MessageView message={message} currentUserId={currentUser.id} />
                 </div>
               </div>
             );
@@ -586,13 +585,13 @@ export default function ChatPanel({
                 ) : (
                   <Avatar text={message.senderAvatar} />
                 )}
-                <div className={`min-w-0 max-w-full overflow-hidden ${own ? "text-right" : ""}`}>
+                <div className={`min-w-0 max-w-full overflow-hidden ${own ? "flex flex-col items-end text-right" : ""}`}>
                   {!own && conversation.type === "group" && (
                     <span className="mb-1 block text-[10px] text-[var(--chat-text-secondary)]">
                       {message.senderName}
                     </span>
                   )}
-                  <MessageBubble
+                  <MessageView
                     message={message}
                     own={own}
                     onRetry={chat.retry}
@@ -613,15 +612,10 @@ export default function ChatPanel({
                     onLocateMessage={locateMessage}
                   />
                   {own && message.id > 0 && Boolean(message.recipientCount) && (
-                    <span
-                      className={`mt-1 block text-[10px] ${
-                        message.readCount ? "text-[var(--chat-primary)]" : "text-[var(--chat-text-tertiary)]"
-                      }`}
-                    >
-                      {conversation.type === "direct"
-                        ? message.readCount ? "已读" : "未读"
-                        : `${message.readCount ?? 0}/${message.recipientCount} 已读`}
-                    </span>
+                    <MessageReadReceiptPopover
+                      message={message}
+                      conversationType={conversation.type}
+                    />
                   )}
                 </div>
                 </article>
@@ -629,7 +623,7 @@ export default function ChatPanel({
             </div>
           );
         })}
-        <div ref={chat.bottomRef} />
+        </div>
       </section>
 
       {selectionMode ? (

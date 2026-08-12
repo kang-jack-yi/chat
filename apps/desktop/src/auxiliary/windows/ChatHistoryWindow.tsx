@@ -24,9 +24,7 @@ import type {
   MessageHistoryCategory,
   MessageHistoryHit,
 } from "@chat/shared";
-import MessageContent from "../../renderer/pages/Chat/components/MessageContent";
-import MessageBubble from "../../renderer/pages/Chat/components/MessageBubble";
-import SystemMessage from "../../renderer/pages/Chat/components/SystemMessage";
+import MessageView from "../../renderer/pages/Chat/components/MessageView";
 
 export interface ChatHistoryWindowProps {
   task: ChatHistoryTask;
@@ -216,7 +214,11 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
                       </div>
                     )}
                     <div className="py-2 text-center">
-                      <SystemMessage message={message} compact />
+                      <MessageView
+                        message={message}
+                        currentUserId={metadata?.currentUserId}
+                        compactSystem
+                      />
                     </div>
                   </div>
                 );
@@ -256,35 +258,21 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
                         </time>
                       </div>
                       <div className="w-fit max-w-full text-sm leading-6 text-[var(--app-text)]">
-                        {message.kind === "announcement" ? (
-                          <MessageBubble
-                            message={message}
-                            contextMenuEnabled={false}
-                            resolveAttachmentUrl={resolveAttachmentUrl}
-                            onPreviewImage={(targetMessage, part) => {
-                              void bridge?.images.openViewer({
-                                taskId: task.taskId,
-                                conversationId: task.conversationId,
-                                messageId: targetMessage.id,
-                                attachmentId: part.attachment.id,
-                              });
-                            }}
-                          />
-                        ) : (
-                          <MessageContent
-                            message={message}
-                            variant="history"
-                            resolveAttachmentUrl={resolveAttachmentUrl}
-                            onPreviewImage={(targetMessage, part) => {
-                              void bridge?.images.openViewer({
-                                taskId: task.taskId,
-                                conversationId: task.conversationId,
-                                messageId: targetMessage.id,
-                                attachmentId: part.attachment.id,
-                              });
-                            }}
-                          />
-                        )}
+                        <MessageView
+                          message={message}
+                          currentUserId={metadata?.currentUserId}
+                          own={message.senderId === metadata?.currentUserId}
+                          contextMenuEnabled={false}
+                          resolveAttachmentUrl={resolveAttachmentUrl}
+                          onPreviewImage={(targetMessage, part) => {
+                            void bridge?.images.openViewer({
+                              taskId: task.taskId,
+                              conversationId: task.conversationId,
+                              messageId: targetMessage.id,
+                              attachmentId: part.attachment.id,
+                            });
+                          }}
+                        />
                       </div>
                     </div>
                   </article>

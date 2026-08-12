@@ -6,7 +6,7 @@ import type {
   ImagePart,
   Message,
 } from "@chat/shared";
-import MessageContent from "../../renderer/pages/Chat/components/MessageContent";
+import MessageView from "../../renderer/pages/Chat/components/MessageView";
 
 export interface ForwardRecordWindowProps {
   task: ForwardRecordTask;
@@ -101,9 +101,9 @@ export default function ForwardRecordWindow({ task }: ForwardRecordWindowProps) 
                 </time>
               </div>
               <div className="text-sm text-[var(--chat-text)]">
-                <MessageContent
+                <MessageView
                   message={item}
-                  variant="history"
+                  contextMenuEnabled={false}
                   resolveAttachmentUrl={resolveAttachment}
                   onPreviewImage={previewImage}
                 />

@@ -18,24 +18,22 @@ export default function ContactDetail({ user, currentUser, starting, onStartChat
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[radial-gradient(circle_at_72%_12%,#e8f2ff_0%,#f8fafc_30%,#f2f5fa_68%)] px-[clamp(20px,5vw,72px)] py-[clamp(28px,7vh,72px)] max-md:px-4 max-md:pt-[70px]">
+    <div className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(20px,5vw,72px)] py-[clamp(28px,7vh,72px)] max-md:px-4 max-md:pt-[70px]">
       <div className="mx-auto w-full max-w-[820px]">
         <div className="mb-5">
           <h1 className="m-0 text-2xl font-semibold tracking-[-0.5px] text-[var(--app-text)]">成员资料</h1>
         </div>
         <Card
-          className="overflow-hidden !rounded-[22px] !border-white/80 shadow-[0_22px_60px_rgba(39,48,67,.11)]"
+          className="overflow-hidden !rounded-[14px] !border-[var(--app-line)]"
           styles={{ body: { padding: 0 } }}
         >
-          <div className="relative h-[132px] overflow-hidden bg-[linear-gradient(125deg,#0958b8_0%,#1677ff_52%,#69a8ff_100%)]">
-            <div className="absolute -top-20 right-10 size-48 rounded-full border border-white/18" />
-            <div className="absolute top-7 right-28 size-28 rounded-full bg-white/8 blur-[1px]" />
-            <div className="absolute -right-10 -bottom-20 size-56 rounded-full border border-white/14" />
+          <div className="relative h-[112px] overflow-hidden bg-[linear-gradient(125deg,#294fad_0%,#3d70eb_62%,#7899eb_100%)]">
+            <div className="absolute -top-24 right-8 size-52 rounded-full border border-white/12" />
           </div>
           <div className="px-8 pb-8 max-md:px-5">
             <div className="-mt-10 flex items-end justify-between gap-4 max-sm:items-start">
               <div className="flex items-end gap-5 max-sm:items-start">
-                <div className="rounded-[25px] border-4 border-white bg-white shadow-[0_12px_28px_rgba(39,48,67,.18)]">
+                <div className="rounded-[20px] border-4 border-white bg-white shadow-[0_8px_20px_rgba(24,34,48,.14)]">
                   <Avatar text={user.avatar} large online={user.online} />
                 </div>
                 <div className="pb-1">
@@ -52,7 +50,7 @@ export default function ContactDetail({ user, currentUser, starting, onStartChat
                   icon={<MessageCircleMore size={18} />}
                   loading={starting}
                   onClick={() => onStartChat(user.id)}
-                  className="!shadow-[0_9px_22px_rgba(22,119,255,.22)] max-sm:!hidden"
+                  className="max-sm:!hidden"
                 >
                   发消息
                 </Button>

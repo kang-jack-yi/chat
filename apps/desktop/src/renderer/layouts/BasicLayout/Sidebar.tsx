@@ -16,7 +16,7 @@ interface NavItemProps {
   label: string;
 }
 
-const railItem = "flex h-[50px] w-[50px] flex-col items-center justify-center gap-0.5 rounded-lg text-[var(--chat-text-secondary)] no-underline transition-colors duration-150 hover:bg-[var(--chat-rail-hover)] hover:text-[var(--chat-primary)] max-md:h-[48px] max-md:w-[46px]";
+const railItem = "flex h-[50px] w-[46px] flex-col items-center justify-center gap-0.5 rounded-xl text-[var(--chat-text-secondary)] no-underline transition-colors duration-150 hover:bg-[var(--chat-rail-hover)] hover:text-[var(--chat-primary)] max-md:h-[48px] max-md:w-[44px]";
 
 function NavItem({ to, icon, label }: NavItemProps) {
   return (
@@ -25,7 +25,7 @@ function NavItem({ to, icon, label }: NavItemProps) {
         to={to}
         className={({ isActive }) => `${railItem} ${isActive ? "bg-[var(--chat-rail-active)] !text-[var(--chat-primary)]" : ""}`}
       >
-        {icon}<span className="text-[10px]">{label}</span>
+        {icon}<span className="text-[11px]">{label}</span>
       </NavLink>
     </Tooltip>
   );
@@ -50,8 +50,8 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex flex-col items-center border-r border-[#d7e2f2] bg-[var(--chat-rail)] pt-3 pb-2 max-md:pt-2">
-      <div className="mb-4 rounded-lg bg-white/70 p-0.5 max-md:mb-3"><Avatar text={session?.user.avatar || ""} /></div>
+    <aside className="flex flex-col items-center border-r border-[var(--chat-line)] bg-[var(--chat-rail)] pt-3 pb-2 max-md:pt-2">
+      <div className="mb-4 rounded-xl bg-white/70 p-0.5 ring-1 ring-[var(--chat-line)] max-md:mb-3"><Avatar text={session?.user.avatar || ""} /></div>
       <nav className="grid w-full justify-items-center gap-1">
         <NavItem to={ROUTES.chat} icon={<MessageCircleMore size={22} />} label="消息" />
         <NavItem to={ROUTES.contacts} icon={<ContactRound size={22} />} label="通讯录" />
@@ -66,7 +66,7 @@ export default function Sidebar() {
             onClick={() => setServerSettingsOpen(true)}
             icon={<Settings size={22} />}
           >
-            <span className="text-[10px]">设置</span>
+            <span className="text-[11px]">设置</span>
           </Button>
         </Tooltip>
         <Tooltip placement="right" title="退出">
@@ -76,7 +76,7 @@ export default function Sidebar() {
             onClick={logout}
             icon={<LogOut size={22} />}
           >
-            <span className="text-[10px]">退出</span>
+            <span className="text-[11px]">退出</span>
           </Button>
         </Tooltip>
       </div>

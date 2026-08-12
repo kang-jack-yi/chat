@@ -936,6 +936,7 @@ function registerIpc() {
     return {
       conversation,
       historyComplete: syncStatus.historyComplete,
+      currentUserId: task.account.userId,
     } satisfies ChatHistoryMetadata;
   });
   ipcMain.handle("auxiliary:history:query", async (event, input: {
