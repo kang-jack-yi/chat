@@ -146,8 +146,17 @@ body,
   font-size: var(--chat-message-font-size);
 }
 
+[data-chat-root] [data-message-content] {
+  font-size: var(--chat-message-font-size) !important;
+}
+
 [data-chat-root] [data-message-row] {
   margin-block: var(--chat-message-gap);
+}
+
+[data-chat-root] .chat-message-row {
+  margin-top: var(--chat-message-gap) !important;
+  margin-bottom: var(--chat-message-gap) !important;
 }
 
 body {

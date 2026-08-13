@@ -34,7 +34,7 @@ export default function MemberToolbar({
           placeholder="搜索姓名、手机号或职位"
           value={filters.keyword}
           onChange={(event) => onChange({ ...filters, keyword: event.target.value })}
-          className="!w-[220px]"
+          className="!w-56"
         />
         <Select
           allowClear
@@ -42,7 +42,7 @@ export default function MemberToolbar({
           value={filters.departmentId}
           options={departments.map((department) => ({ label: department.name, value: department.id }))}
           onChange={(departmentId) => onChange({ ...filters, departmentId })}
-          className="!w-[120px]"
+          className="!w-30"
         />
         <Select
           allowClear
@@ -54,7 +54,7 @@ export default function MemberToolbar({
             { label: "成员", value: "member" },
           ]}
           onChange={(role: User["role"] | undefined) => onChange({ ...filters, role })}
-          className="!w-[110px]"
+          className="!w-28"
         />
         <Select
           allowClear
@@ -65,7 +65,7 @@ export default function MemberToolbar({
             { label: "已停用", value: "disabled" },
           ]}
           onChange={(status: User["status"] | undefined) => onChange({ ...filters, status })}
-          className="!w-[104px]"
+          className="!w-26"
         />
         {filtered && <Button type="link" onClick={() => onChange({ keyword: "" })}>清除筛选</Button>}
         <span className="ml-auto shrink-0 text-xs text-[var(--app-text-tertiary)]">

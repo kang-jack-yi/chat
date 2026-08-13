@@ -128,19 +128,21 @@ export default function ConversationSettingsModal({
           </div>
         )}
 
-        <button type="button" className={`${rowClass} group mb-3 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface-soft)]`} onClick={() => setBotsOpen(true)}>
-          <span className="flex min-w-0 items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--app-primary-soft)] text-[var(--app-primary)]"><Bot size={18} /></span>
-            <span className="min-w-0"><strong className="block text-sm text-[var(--app-text)]">{isGroup ? "群机器人" : "会话机器人"}</strong><small className="mt-0.5 block truncate text-xs text-[var(--app-text-tertiary)]">通过 Webhook 向当前{isGroup ? "群聊" : "会话"}推送消息</small></span>
-          </span>
-          <ChevronRight size={17} className="text-[var(--app-text-tertiary)]" />
-        </button>
+        <div className="mb-4">
+          <button type="button" className={`${rowClass} group rounded-xl border border-[var(--app-line)] bg-[var(--app-surface-soft)]`} onClick={() => setBotsOpen(true)}>
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--app-primary-soft)] text-[var(--app-primary)]"><Bot size={18} /></span>
+              <span className="min-w-0"><strong className="block text-sm text-[var(--app-text)]">{isGroup ? "群机器人" : "会话机器人"}</strong><small className="mt-0.5 block truncate text-xs text-[var(--app-text-tertiary)]">通过 Webhook 向当前{isGroup ? "群聊" : "会话"}推送消息</small></span>
+            </span>
+            <ChevronRight size={17} className="text-[var(--app-text-tertiary)]" />
+          </button>
+        </div>
 
         <div className={cardClass}>
           <div className={`${rowClass} border-b border-[var(--app-line)]`}><span className="flex items-center gap-3 text-sm text-[var(--app-text)]"><Pin size={17} />置顶聊天</span><Switch checked={Boolean(conversation.pinned)} loading={settingMutation.isPending} onChange={(pinned) => settingMutation.mutate({ pinned })} /></div>
           <div className={`${rowClass} border-b border-[var(--app-line)]`}><span className="flex items-center gap-3 text-sm text-[var(--app-text)]"><BellOff size={17} />消息免打扰</span><Switch checked={Boolean(conversation.muted)} loading={settingMutation.isPending} onChange={(muted) => settingMutation.mutate({ muted })} /></div>
           <div className={rowClass}>
-            <span><strong className="flex items-center gap-3 text-sm font-normal text-[var(--app-text)]"><Trash2 size={17} className="text-[var(--app-danger)]" />清空聊天记录</strong><small className="mt-1 ml-[29px] block text-xs text-[var(--app-text-tertiary)]">只清除当前账号的本地可见记录</small></span>
+            <span><strong className="flex items-center gap-3 text-sm font-normal text-[var(--app-text)]"><Trash2 size={17} className="text-[var(--app-danger)]" />清空聊天记录</strong><small className="mt-1 ml-7 block text-xs text-[var(--app-text-tertiary)]">只清除当前账号的本地可见记录</small></span>
             <Popconfirm title="确定清空本人的聊天记录？" description="该操作无法撤销" okText="确定清空" cancelText="取消" onConfirm={() => settingMutation.mutate({ clearHistory: true })}><Button danger type="text">清空</Button></Popconfirm>
           </div>
         </div>
@@ -148,7 +150,7 @@ export default function ConversationSettingsModal({
         {isGroup && (
           <div className={`${cardClass} mt-3`}>
             {isOwner ? <>
-              <button type="button" className={`${rowClass} border-b border-[var(--app-line)]`} onClick={() => setTransferOpen(true)}><span className="flex items-center gap-3 text-sm text-[var(--app-text)]"><Crown size={17} className="text-[#e3a22b]" />转移群主</span><ChevronRight size={17} /></button>
+              <button type="button" className={`${rowClass} border-b border-[var(--app-line)]`} onClick={() => setTransferOpen(true)}><span className="flex items-center gap-3 text-sm text-[var(--app-text)]"><Crown size={17} className="text-amber-600" />转移群主</span><ChevronRight size={17} /></button>
               <Popconfirm title="确定解散该群聊？" description="所有成员都将退出，且该操作无法撤销" okText="解散群聊" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => groupActionMutation.mutate({ type: "dissolve" })}><Button danger type="text" block className="!justify-start !px-4" icon={<Trash2 size={17} />}>解散群聊</Button></Popconfirm>
             </> :
               <Popconfirm title="确定退出该群聊？" description="退出后将不再接收群消息" okText="退出群聊" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => groupActionMutation.mutate({ type: "leave" })}><Button danger type="text" block className="!justify-start !px-4" icon={<LogOut size={17} />}>退出群聊</Button></Popconfirm>}

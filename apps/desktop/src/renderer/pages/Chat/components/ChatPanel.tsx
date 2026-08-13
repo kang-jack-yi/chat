@@ -469,9 +469,9 @@ export default function ChatPanel({
   return (
     <div
       data-chat-root
-      className="relative grid h-full w-full min-h-0 min-w-0 max-w-full overflow-hidden grid-rows-[60px_minmax(0,1fr)_auto]"
+      className="relative flex h-full w-full min-h-0 min-w-0 max-w-full flex-col overflow-hidden"
     >
-      <header className="flex w-full min-w-0 max-w-full items-center justify-between gap-2 overflow-hidden border-b border-[var(--chat-line)] bg-[var(--chat-header)] px-4 max-md:pl-12">
+      <header className="flex h-12 w-full min-w-0 max-w-full shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-[var(--chat-line)] bg-[var(--chat-header)] px-4 max-md:pl-12">
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
           {conversation.type === "direct" ? (
             <MemberProfilePopover
@@ -486,12 +486,12 @@ export default function ChatPanel({
               onSendMessage={onStartDirectChat}
               onViewProfile={onViewMember}
             >
-              <h2 className="m-0 min-w-0 truncate text-[15px] leading-4 font-semibold text-[var(--chat-text)] hover:text-[var(--chat-primary)]">
+              <h2 className="m-0 min-w-0 truncate text-sm leading-4 font-semibold text-[var(--chat-text)] hover:text-[var(--chat-primary)]">
                 {conversation.name}
               </h2>
             </MemberProfilePopover>
           ) : (
-            <h2 className="m-0 min-w-0 truncate text-[15px] leading-4 font-semibold text-[var(--chat-text)]">
+            <h2 className="m-0 min-w-0 truncate text-sm leading-4 font-semibold text-[var(--chat-text)]">
               {conversation.name}
             </h2>
           )}
@@ -508,7 +508,7 @@ export default function ChatPanel({
           {conversation.type === "direct" && chat.typingName && (
             <>
               <span className="h-3 w-px shrink-0 bg-[var(--chat-line)]" />
-              <span className="truncate text-[11px] text-[var(--chat-text-secondary)]">
+              <span className="truncate text-xs text-[var(--chat-text-secondary)]">
                 {chat.typingName} 正在输入...
               </span>
             </>
@@ -537,7 +537,7 @@ export default function ChatPanel({
       </header>
 
       {selectionMode && (
-        <div className="absolute inset-x-0 top-[60px] z-30 h-10 bg-[var(--chat-canvas)]/95 px-5 backdrop-blur-sm max-md:px-3.5">
+        <div className="absolute inset-x-0 top-12 z-30 h-10 bg-[var(--chat-canvas)]/95 px-5 backdrop-blur-sm max-md:px-3.5">
           <div className="relative flex h-full items-center gap-2">
             <span className="absolute inset-x-0 top-1/2 h-px bg-[var(--chat-primary)]" />
             <button
@@ -576,7 +576,7 @@ export default function ChatPanel({
         onWheel={chat.cancelInitialScroll}
         onPointerDown={chat.cancelInitialScroll}
         onTouchStart={chat.cancelInitialScroll}
-        className="min-w-0 max-w-full overflow-x-hidden overflow-y-auto bg-[var(--chat-canvas)] px-5 py-5 max-md:px-3.5 max-md:py-[18px]"
+        className="min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto bg-[var(--chat-canvas)] px-5 py-5 max-md:px-3.5 max-md:py-4"
         style={selectionMode ? { paddingTop: 48 } : undefined}
       >
         {focusedMessageId && (
@@ -587,7 +587,7 @@ export default function ChatPanel({
           </div>
         )}
         {chat.messageQuery.isLoading && (
-          <div className="my-4 text-center text-[10px] text-[var(--chat-text-tertiary)]">
+          <div className="my-4 text-center text-xs text-[var(--chat-text-tertiary)]">
             正在加载消息...
           </div>
         )}
@@ -614,7 +614,7 @@ export default function ChatPanel({
                   className="rounded-xl"
                 >
                   {showTime && (
-                    <div className="my-4 text-center text-[10px] text-[var(--chat-text-tertiary)]">
+                    <div className="my-4 text-center text-xs text-[var(--chat-text-tertiary)]">
                       {new Date(message.createdAt).toLocaleString("zh-CN", {
                         month: "numeric",
                         day: "numeric",
@@ -624,7 +624,7 @@ export default function ChatPanel({
                       })}
                     </div>
                   )}
-                  <div className="my-3 text-center">
+                  <div data-message-row className="chat-message-row text-center">
                     <MessageView
                       message={message}
                       currentUserId={currentUser.id}
@@ -640,7 +640,7 @@ export default function ChatPanel({
                 className="min-w-0 max-w-full rounded-xl"
               >
                 {showTime && (
-                  <div className="my-4 text-center text-[10px] text-[var(--chat-text-tertiary)]">
+                  <div className="my-4 text-center text-xs text-[var(--chat-text-tertiary)]">
                     {new Date(message.createdAt).toLocaleString("zh-CN", {
                       month: "numeric",
                       day: "numeric",
@@ -650,7 +650,7 @@ export default function ChatPanel({
                     })}
                   </div>
                 )}
-                <div className="my-3 flex min-w-0 max-w-full items-start gap-2 overflow-hidden">
+                <div data-message-row className="chat-message-row flex min-w-0 max-w-full items-start gap-2 overflow-hidden">
                   {selectionMode && (
                     <Checkbox
                       className="!mt-3 shrink-0"
@@ -685,10 +685,10 @@ export default function ChatPanel({
                       {!own &&
                         (conversation.type === "group" ||
                           message.senderType === "bot") && (
-                          <span className="mb-1 flex items-center gap-1 text-[10px] text-[var(--chat-text-secondary)]">
+                          <span className="mb-1 flex items-center gap-1 text-xs text-[var(--chat-text-secondary)]">
                             {message.senderName}
                             {message.senderType === "bot" && (
-                              <em className="rounded bg-[var(--chat-primary-soft)] px-1 not-italic text-[9px] text-[var(--chat-primary)]">
+                              <em className="rounded bg-[var(--chat-primary-soft)] px-1 not-italic text-xs text-[var(--chat-primary)]">
                                 机器人
                               </em>
                             )}
@@ -732,7 +732,7 @@ export default function ChatPanel({
       </section>
 
       {selectionMode ? (
-        <footer className="grid min-h-[88px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-t border-[var(--chat-line)] bg-[var(--app-surface)] px-5 py-2">
+        <footer className="grid min-h-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-t border-[var(--chat-line)] bg-[var(--app-surface)] px-5 py-2">
           <span className="whitespace-nowrap text-sm text-[var(--chat-text-secondary)]">
             已选择{" "}
             <strong className="font-semibold text-[var(--chat-primary)]">
@@ -743,7 +743,7 @@ export default function ChatPanel({
           <div className="flex min-w-0 items-center justify-center gap-2 overflow-x-auto">
             <Button
               type="text"
-              className="!flex !h-16 !min-w-[72px] !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
+              className="!flex !h-16 !min-w-18 !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
               disabled={!selectedIds.size}
               onClick={() =>
                 setForwardInput({
@@ -757,7 +757,7 @@ export default function ChatPanel({
             </Button>
             <Button
               type="text"
-              className="!flex !h-16 !min-w-[72px] !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
+              className="!flex !h-16 !min-w-18 !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
               disabled={!selectedIds.size}
               onClick={() =>
                 setForwardInput({
@@ -771,7 +771,7 @@ export default function ChatPanel({
             </Button>
             <Button
               type="text"
-              className="!flex !h-16 !min-w-[72px] !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
+              className="!flex !h-16 !min-w-18 !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
               disabled={!selectedIds.size}
               onClick={() => void copySelected()}
             >
@@ -780,7 +780,7 @@ export default function ChatPanel({
             </Button>
             <Button
               type="text"
-              className="!flex !h-16 !min-w-[72px] !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
+              className="!flex !h-16 !min-w-18 !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
               disabled={
                 !selectedMessages.some((item) => messageImages(item).length)
               }
@@ -792,7 +792,7 @@ export default function ChatPanel({
             <Button
               danger
               type="text"
-              className="!flex !h-16 !min-w-[72px] !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-red-50"
+              className="!flex !h-16 !min-w-18 !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-red-50"
               disabled={!selectedIds.size}
               onClick={deleteSelected}
             >
@@ -810,7 +810,7 @@ export default function ChatPanel({
         </footer>
       ) : (
         <footer
-          className="relative min-h-[160px] max-h-[420px] border-t border-[var(--chat-line)] bg-[var(--app-surface)] px-[18px] pb-3 pt-2.5 max-md:pb-[calc(12px+env(safe-area-inset-bottom))]"
+          className="relative min-h-40 max-h-96 border-t border-[var(--chat-line)] bg-[var(--app-surface)] px-4 pb-3 pt-2.5 max-md:pb-[calc(12px+env(safe-area-inset-bottom))]"
           style={
             {
               height: composerHeight,
@@ -867,7 +867,7 @@ export default function ChatPanel({
               ) : undefined
             }
             disabled={chat.submitting}
-            editorClassName="min-h-[94px] h-[calc(var(--composer-height,176px)-74px)]"
+            editorClassName="min-h-24 h-[calc(var(--composer-height,176px)-74px)]"
             mentionsEnabled={conversation.type === "group"}
             sendKey={chatPreferences?.sendKey}
             mentionUsers={(conversation.members ?? []).filter(
@@ -876,7 +876,7 @@ export default function ChatPanel({
           />
           <Button
             type="text"
-            className="!absolute !bottom-3.5 !right-[18px] !min-w-0 !rounded-none !border-0 !bg-transparent !px-2 !font-medium !shadow-none enabled:!text-[var(--chat-primary)] hover:!bg-transparent active:!bg-transparent"
+            className="!absolute !right-4 !bottom-3.5 !min-w-0 !rounded-none !border-0 !bg-transparent !px-2 !font-medium !shadow-none enabled:!text-[var(--chat-primary)] hover:!bg-transparent active:!bg-transparent"
             onClick={() => void chat.submit()}
             disabled={!chat.canSend}
           >

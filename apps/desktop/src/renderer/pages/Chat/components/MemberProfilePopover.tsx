@@ -52,12 +52,12 @@ export default function MemberProfilePopover({
       onOpenChange={setOpen}
       styles={{ content: { padding: 0 } }}
       content={(
-        <div className="w-[304px] p-4">
+        <div className="w-76 p-4">
           <div className="flex min-w-0 items-start gap-3">
             <Avatar text={user.avatar || user.name} src={user.avatarUrl} online={user.online} />
             <div className="min-w-0 flex-1 pt-0.5">
               <div className="flex min-w-0 items-center gap-1.5">
-                <strong className="truncate text-[15px] font-semibold text-[var(--app-text)]">
+                <strong className="truncate text-sm font-semibold text-[var(--app-text)]">
                   {user.name}
                 </strong>
                 <Monitor
@@ -68,10 +68,10 @@ export default function MemberProfilePopover({
                 />
                 {disabled && <Tag bordered={false} color="default">已停用</Tag>}
               </div>
-              <p className="mt-1 mb-0 truncate text-xs text-[#7d8995]">
+              <p className="mt-1 mb-0 truncate text-xs text-slate-400">
                 {user.title || "企业成员"}
               </p>
-              <p className="mt-1 mb-0 truncate text-xs text-[#7d8995]">
+              <p className="mt-1 mb-0 truncate text-xs text-slate-400">
                 {user.departmentName || "未分配部门"}
               </p>
             </div>
@@ -79,21 +79,21 @@ export default function MemberProfilePopover({
 
           <Divider className="!my-4" />
 
-          <dl className="m-0 grid grid-cols-[56px_minmax(0,1fr)] gap-y-3 text-xs leading-5">
-            <dt className="text-[#8a949f]">部门</dt>
+          <dl className="m-0 grid grid-cols-2 gap-y-3 text-xs leading-5">
+            <dt className="text-slate-400">部门</dt>
             <dd className="m-0 truncate text-[var(--app-text)]">{user.departmentName || "未分配部门"}</dd>
-            <dt className="text-[#8a949f]">企业</dt>
+            <dt className="text-slate-400">企业</dt>
             <dd className="m-0 flex min-w-0 items-center gap-1 text-[var(--app-text)]">
               <span className="truncate">{companyName}</span>
-              <BadgeCheck size={14} className="shrink-0 text-[#22a06b]" />
+              <BadgeCheck size={14} className="shrink-0 text-emerald-600" />
             </dd>
-            <dt className="text-[#8a949f]">手机号</dt>
+            <dt className="text-slate-400">手机号</dt>
             <dd className="m-0 min-w-0">
               <Typography.Text copyable={{ text: user.phone }} className="!text-xs !text-[var(--app-text)]">
                 {user.phone}
               </Typography.Text>
             </dd>
-            <dt className="text-[#8a949f]">角色</dt>
+            <dt className="text-slate-400">角色</dt>
             <dd className="m-0 text-[var(--app-text)]">{roleText(user.role)}</dd>
           </dl>
 

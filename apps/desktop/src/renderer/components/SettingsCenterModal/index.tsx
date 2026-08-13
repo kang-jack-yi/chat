@@ -340,7 +340,7 @@ function AppearanceSection() {
         <SettingsRow title="界面缩放" description="同步应用到主窗口、聊天记录和云文档窗口">
           <Segmented
             value={preferences.appearance.zoom}
-            options={[0.9, 1, 1.1, 1.25].map((value) => ({ value, label: `${value * 100}%` }))}
+            options={[0.9, 1, 1.1, 1.25].map((value) => ({ value, label: `${Math.round(value * 100)}%` }))}
             onChange={(zoom) => void update({ appearance: { zoom: zoom as 0.9 | 1 | 1.1 | 1.25 } })}
           />
         </SettingsRow>

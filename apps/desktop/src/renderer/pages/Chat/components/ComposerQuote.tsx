@@ -12,7 +12,7 @@ export default function ComposerQuote({ quote, onClear }: ComposerQuoteProps) {
 
   return (
     <div
-      className="group flex min-h-[48px] items-center gap-2.5 rounded-md border-l-[3px] border-[var(--chat-primary)] bg-[var(--chat-header)] px-2.5 py-1.5"
+      className="group flex min-h-12 items-center gap-2.5 rounded-md border-l-[3px] border-[var(--chat-primary)] bg-[var(--chat-header)] px-2.5 py-1.5"
       contentEditable={false}
     >
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[var(--app-surface)] text-[var(--app-primary)] shadow-sm">
@@ -25,7 +25,7 @@ export default function ComposerQuote({ quote, onClear }: ComposerQuoteProps) {
         )}
       </span>
       <span className="grid min-w-0 flex-1 gap-0.5 text-left">
-        <strong className="truncate text-[11px] font-medium text-[var(--app-text-secondary)]">
+        <strong className="truncate text-xs font-medium text-[var(--app-text-secondary)]">
           回复 {quote.senderName}
         </strong>
         <span className="truncate text-xs text-[var(--app-text-tertiary)]">

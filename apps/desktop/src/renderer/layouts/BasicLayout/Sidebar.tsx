@@ -16,7 +16,7 @@ interface NavItemProps {
   label: string;
 }
 
-const railItem = "flex h-[50px] w-[46px] flex-col items-center justify-center gap-0.5 rounded-xl text-[var(--chat-text-secondary)] no-underline transition-colors duration-150 hover:bg-[var(--chat-rail-hover)] hover:text-[var(--chat-primary)] max-md:h-[48px] max-md:w-[44px]";
+const railItem = "flex h-12 w-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[var(--chat-text-secondary)] no-underline transition-colors duration-150 hover:bg-[var(--chat-rail-hover)] hover:text-[var(--chat-primary)] max-md:h-12 max-md:w-11";
 
 function NavItem({ to, icon, label }: NavItemProps) {
   return (
@@ -25,7 +25,7 @@ function NavItem({ to, icon, label }: NavItemProps) {
         to={to}
         className={({ isActive }) => `${railItem} ${isActive ? "bg-[var(--chat-rail-active)] !text-[var(--chat-primary)]" : ""}`}
       >
-        {icon}<span className="text-[11px]">{label}</span>
+        {icon}<span className="text-[11px] leading-4">{label}</span>
       </NavLink>
     </Tooltip>
   );
@@ -80,11 +80,11 @@ export default function Sidebar() {
         <Tooltip placement="right" title="服务器设置">
           <Button
             type="text"
-            className={`${railItem} !h-[52px] !gap-0.5 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]`}
+            className={`${railItem} !h-13 !gap-0.5 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]`}
             onClick={() => setSettingsCenterOpen(true)}
             icon={<Settings size={22} />}
           >
-            <span className="text-[11px]">设置</span>
+            <span className="text-[11px] leading-4">设置</span>
           </Button>
         </Tooltip>
       </div>

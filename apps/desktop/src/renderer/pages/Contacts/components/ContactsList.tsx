@@ -55,7 +55,7 @@ export default function ContactsList({
             return (
               <button
                 key={user.id}
-                className={`group flex w-full items-center gap-3 rounded-[14px] border px-3 py-3 text-left transition-all duration-200 ${
+                className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all duration-200 ${
                   active
                     ? "border-[#cfe2fa] bg-[var(--app-primary-soft)] shadow-[0_7px_20px_rgba(22,119,255,.07)]"
                     : "border-transparent bg-transparent hover:bg-[var(--app-surface-muted)]"
@@ -83,7 +83,7 @@ export default function ContactsList({
                 </span>
                 <ChevronRight
                   size={16}
-                  className={`shrink-0 transition-transform ${active ? "translate-x-0 text-[var(--app-primary)]" : "-translate-x-1 text-[#c0c5ce] opacity-0 group-hover:translate-x-0 group-hover:opacity-100"}`}
+                  className={`shrink-0 transition-transform ${active ? "translate-x-0 text-[var(--app-primary)]" : "-translate-x-1 text-slate-300 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"}`}
                 />
               </button>
             );

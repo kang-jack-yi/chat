@@ -11,7 +11,7 @@ import {
   Tree,
 } from "antd";
 import type { DataNode } from "antd/es/tree";
-import { ChevronRight, Search, UsersRound, X } from "lucide-react";
+import { Building2, ChevronRight, Search, UsersRound, X } from "lucide-react";
 import type { Conversation, Department, Message, User } from "@chat/shared";
 import { queryKeys } from "../../../constants/query-keys";
 import { chatService } from "../../../services/chat";
@@ -66,12 +66,16 @@ function createDepartmentTree(
     key: userKey(user.id),
     title: (
       <span className="flex min-w-0 items-center gap-2">
-        <Avatar shape="square" size={25} className="!rounded-md !bg-[#4b8fea]">
+        <Avatar
+          shape="square"
+          size={28}
+          className="!rounded-lg !bg-[var(--app-primary)] !text-xs"
+        >
           {user.avatar || user.name.slice(0, 1)}
         </Avatar>
-        <span className="min-w-0 truncate text-xs text-[var(--app-text)]">{user.name}</span>
+        <span className="min-w-0 truncate text-sm text-[var(--app-text)]">{user.name}</span>
         {existingMemberIds.has(user.id) && (
-          <small className="shrink-0 text-[10px] text-[#9aa3ad]">已在群聊</small>
+          <small className="shrink-0 text-xs text-[var(--app-text-tertiary)]">已在群聊</small>
         )}
       </span>
     ),
@@ -91,7 +95,7 @@ function createDepartmentTree(
         ];
         return {
           key: departmentKey(department.id),
-          title: <span className="text-xs text-[var(--app-text)]">{department.name}</span>,
+          title: <span className="text-sm font-medium text-[var(--app-text)]">{department.name}</span>,
           children,
         };
       })
@@ -102,7 +106,7 @@ function createDepartmentTree(
   if (unassigned.length) {
     roots.push({
       key: "department:unassigned",
-      title: <span className="text-xs text-[#6f7b86]">未分配部门</span>,
+      title: <span className="text-xs text-slate-500">未分配部门</span>,
       children: unassigned,
     });
   }
@@ -264,20 +268,20 @@ export default function InviteGroupMembersModal({
             <UsersRound size={20} strokeWidth={1.8} />
           </span>
           <span className="grid gap-0.5">
-            <strong className="text-[15px] font-semibold text-[var(--app-text)]">添加群成员</strong>
-            <small className="text-[11px] font-normal text-[#8b97a4]">
+            <strong className="text-sm font-semibold text-[var(--app-text)]">添加群成员</strong>
+            <small className="text-xs font-normal text-slate-400">
               从企业通讯录中选择要邀请的新成员
             </small>
           </span>
         </span>
       )}
-      width={800}
+      width={840}
       centered
       destroyOnHidden
       onCancel={onClose}
       footer={(
-        <div className="flex items-center justify-between gap-4">
-          <span className="flex min-w-0 items-center gap-1">
+        <div className="flex items-center justify-between gap-4 px-1">
+          <span className="flex min-w-0 items-center gap-1.5">
             <Checkbox
               checked={includeHistory}
               disabled={historyOpening}
@@ -292,7 +296,7 @@ export default function InviteGroupMembersModal({
             />
             <button
               type="button"
-              className="flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface-muted)] disabled:text-[var(--app-text-tertiary)]"
+              className="flex min-w-0 items-center gap-1.5 rounded-lg px-1 py-1.5 text-left text-sm text-[var(--app-text-secondary)] transition-colors hover:text-[var(--app-primary)] disabled:text-[var(--app-text-tertiary)]"
               disabled={historyOpening}
               onClick={() => void openHistorySelection(selectedHistoryIds.length === 0)}
             >
@@ -300,7 +304,9 @@ export default function InviteGroupMembersModal({
               <ChevronRight size={14} />
             </button>
             {includeHistory && selectedHistoryIds.length > 0 && (
-              <span className="text-[#8a949f]">{selectedHistoryIds.length} 条</span>
+              <span className="rounded-full bg-[var(--app-primary-soft)] px-2 py-0.5 text-xs font-medium text-[var(--app-primary)]">
+                {selectedHistoryIds.length} 条
+              </span>
             )}
           </span>
           <span className="flex shrink-0 gap-2">
@@ -326,19 +332,24 @@ export default function InviteGroupMembersModal({
           onClose={() => setError("")}
         />
       )}
-      <div className="grid h-[468px] grid-cols-[minmax(0,1fr)_280px] overflow-hidden rounded-2xl border border-[var(--app-line)] bg-[var(--app-surface)]">
-        <section className="grid min-w-0 grid-rows-[64px_minmax(0,1fr)] border-r border-[var(--app-line)]">
-          <div className="flex h-16 items-center border-b border-[var(--app-line)] bg-[var(--app-surface)] px-3">
+      <div className="grid h-[456px] grid-cols-[minmax(0,1fr)_288px] overflow-hidden rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)]">
+        <section className="grid min-h-0 min-w-0 grid-rows-[72px_minmax(0,1fr)] border-r border-[var(--app-line)]">
+          <div className="grid h-[72px] gap-2 border-b border-[var(--app-line)] bg-[var(--app-surface)] px-4 py-3">
+            <span className="flex items-center gap-2 text-xs font-medium text-[var(--app-text-secondary)]">
+              <Building2 size={15} className="text-[var(--app-primary)]" />
+              企业通讯录
+            </span>
             <Input
               allowClear
               value={keyword}
-              prefix={<Search size={15} className="text-[#8a949f]" />}
+              prefix={<Search size={15} className="text-slate-400" />}
               placeholder="搜索姓名、手机号、职位或部门"
+              size="middle"
               className="!rounded-lg !border-[var(--app-line)] !bg-[var(--app-surface-soft)]"
               onChange={(event) => setKeyword(event.target.value)}
             />
           </div>
-          <div className="overflow-y-auto bg-[var(--app-surface-soft)] px-2 py-2">
+          <div className="min-h-0 overflow-y-auto bg-[var(--app-surface-soft)] px-3 py-3">
             {!treeData.length ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -359,16 +370,19 @@ export default function InviteGroupMembersModal({
             )}
           </div>
         </section>
-        <section className="grid min-w-0 grid-rows-[64px_minmax(0,1fr)] bg-[var(--app-surface-soft)]">
-          <div className="flex h-16 items-center border-b border-[var(--app-line)] bg-[var(--app-surface)] px-4">
+        <section className="grid min-h-0 min-w-0 grid-rows-[72px_minmax(0,1fr)] bg-[var(--app-surface-soft)]">
+          <div className="flex h-[72px] items-center border-b border-[var(--app-line)] bg-[var(--app-surface)] px-4">
             <h3 className="m-0 flex w-full items-center justify-between text-sm font-medium text-[var(--app-text)]">
-              <span>已选择成员</span>
-              <span className="rounded-full bg-[var(--app-primary-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--app-primary)]">
+              <span className="grid gap-0.5">
+                <span>已选择成员</span>
+                <small className="text-xs font-normal text-[var(--app-text-tertiary)]">确认后将邀请加入当前群聊</small>
+              </span>
+              <span className="rounded-full bg-[var(--app-primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--app-primary)]">
                 {selectedUsers.length}
               </span>
             </h3>
           </div>
-          <div className="overflow-y-auto px-2 py-2">
+          <div className="min-h-0 overflow-y-auto px-3 py-3">
             {!selectedUsers.length && (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -379,9 +393,9 @@ export default function InviteGroupMembersModal({
             {selectedUsers.map((user) => (
               <div
                 key={user.id}
-                className="mb-2 flex items-center gap-2 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] px-3 py-2.5 shadow-[var(--app-shadow-panel)]"
+                className="mb-2 flex items-center gap-2 rounded-lg border border-[var(--app-line)] bg-[var(--app-surface)] px-3 py-2 shadow-[var(--app-shadow-panel)]"
               >
-                <Avatar shape="square" size={30} className="!rounded-md !bg-[#4b8fea]">
+                <Avatar shape="square" size={32} className="!rounded-lg !bg-[var(--app-primary)]">
                   {user.avatar || user.name.slice(0, 1)}
                 </Avatar>
                 <span className="min-w-0 flex-1 truncate text-xs text-[var(--app-text)]">

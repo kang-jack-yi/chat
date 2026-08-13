@@ -223,7 +223,7 @@ export default function GroupAnnouncementModal({
       destroyOnHidden
     >
       <div className="pb-2">
-        <div className="mb-3 flex items-center gap-2 text-xs text-[#8a94a3]">
+        <div className="mb-3 flex items-center gap-2 text-xs text-slate-400">
           <Megaphone size={15} />
           {isOwner
             ? "公告将作为一条独立消息发送给所有群成员"
@@ -283,7 +283,7 @@ export default function GroupAnnouncementModal({
                 )}
                 showFilePicker={false}
                 placeholder="输入群公告，支持文字、表情、@成员和图片"
-                editorClassName="min-h-[150px] max-h-[260px]"
+                editorClassName="min-h-36 max-h-64"
               />
             </div>
           </>

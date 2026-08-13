@@ -18,27 +18,27 @@ export default function ContactDetail({ user, currentUser, starting, onStartChat
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(20px,5vw,72px)] py-[clamp(28px,7vh,72px)] max-md:px-4 max-md:pt-[70px]">
-      <div className="mx-auto w-full max-w-[820px]">
+    <div className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(20px,5vw,72px)] py-[clamp(28px,7vh,72px)] max-md:px-4 max-md:pt-16">
+      <div className="mx-auto w-full max-w-3xl">
         <div className="mb-5">
           <h1 className="m-0 text-2xl font-semibold tracking-[-0.5px] text-[var(--app-text)]">成员资料</h1>
         </div>
         <Card
-          className="overflow-hidden !rounded-[14px] !border-[var(--app-line)]"
+          className="overflow-hidden !rounded-xl !border-[var(--app-line)]"
           styles={{ body: { padding: 0 } }}
         >
-          <div className="relative h-[112px] overflow-hidden bg-[linear-gradient(125deg,#294fad_0%,#3d70eb_62%,#7899eb_100%)]">
+          <div className="relative h-28 overflow-hidden bg-[linear-gradient(125deg,#294fad_0%,#3d70eb_62%,#7899eb_100%)]">
             <div className="absolute -top-24 right-8 size-52 rounded-full border border-white/12" />
           </div>
           <div className="px-8 pb-8 max-md:px-5">
             <div className="-mt-10 flex items-end justify-between gap-4 max-sm:items-start">
               <div className="flex items-end gap-5 max-sm:items-start">
-                <div className="rounded-[20px] border-4 border-[var(--app-surface)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)]">
+                <div className="rounded-2xl border-4 border-[var(--app-surface)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)]">
                   <Avatar text={user.avatar} src={user.avatarUrl} large online={user.online} />
                 </div>
                 <div className="pb-1">
                   <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                    <h2 className="m-0 text-[26px] font-semibold tracking-[-0.4px] text-[var(--app-text)]">{user.name}</h2>
+                    <h2 className="m-0 text-2xl font-semibold tracking-[-0.4px] text-[var(--app-text)]">{user.name}</h2>
                     <Tag bordered={false} color={user.online ? "success" : "default"}>{user.online ? "在线" : "离线"}</Tag>
                   </div>
                   <p className="m-0 text-sm text-[var(--app-text-secondary)]">{user.title || "企业成员"} · {user.departmentName || "未分配部门"}</p>

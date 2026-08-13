@@ -28,7 +28,7 @@ export default function GroupDialog({ open, users, onClose, onCreated }: GroupDi
       onCancel={onClose}
       footer={
         <div className="flex items-center justify-between">
-          <span className="text-xs text-[#9299a5]">已选择 {selected.length} 人</span>
+          <span className="text-xs text-slate-400">已选择 {selected.length} 人</span>
           <div className="flex gap-2">
             <Button onClick={onClose}>取消</Button>
             <Button type="primary" disabled={!name.trim() || selected.length < 1} loading={mutation.isPending} onClick={() => mutation.mutate()}>
@@ -38,14 +38,14 @@ export default function GroupDialog({ open, users, onClose, onCreated }: GroupDi
         </div>
       }
     >
-      <p className="mt-[-8px] mb-4 text-xs text-[#9299a5]">选择同事并设置一个容易识别的群名称</p>
-      <label className="mb-4 grid gap-2 text-[13px] font-semibold text-[var(--app-text)]">
+      <p className="-mt-2 mb-4 text-xs text-slate-400">选择同事并设置一个容易识别的群名称</p>
+      <label className="mb-4 grid gap-2 text-sm font-semibold text-[var(--app-text)]">
         群聊名称
         <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="例如：产品体验优化群" />
       </label>
       <List
         bordered
-        className="max-h-[360px] overflow-y-auto !rounded-[14px] !border-[var(--app-line)]"
+        className="max-h-80 overflow-y-auto !rounded-xl !border-[var(--app-line)]"
         dataSource={users}
         renderItem={(user) => {
           const checked = selected.includes(user.id);
@@ -56,8 +56,8 @@ export default function GroupDialog({ open, users, onClose, onCreated }: GroupDi
             >
               <div className="flex items-center gap-3">
                 <Checkbox checked={checked} />
-                <AntAvatar shape="square" className="!rounded-[10px]" style={{ backgroundColor: "#4b8fea" }}>{user.avatar}</AntAvatar>
-                <span className="grid gap-0.5"><strong>{user.name}</strong><small className="text-[#959ca8]">{user.departmentName} · {user.title}</small></span>
+                <AntAvatar shape="square" className="!rounded-lg" style={{ backgroundColor: "#4b8fea" }}>{user.avatar}</AntAvatar>
+                <span className="grid gap-0.5"><strong>{user.name}</strong><small className="text-slate-400">{user.departmentName} · {user.title}</small></span>
               </div>
             </List.Item>
           );

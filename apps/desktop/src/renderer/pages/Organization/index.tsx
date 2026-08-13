@@ -45,14 +45,14 @@ export default function OrganizationPage() {
         />
       </section>
       <main className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(20px,3vw,40px)] py-6 max-md:px-4 max-md:py-5">
-        <div className="mx-auto w-full max-w-[1180px]">
+        <div className="mx-auto w-full max-w-6xl">
           <header className="mb-4 flex items-center justify-between gap-6">
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--app-surface)] text-[var(--app-primary)] shadow-sm ring-1 ring-[var(--app-line)]">
                 <Building2 size={20} />
               </span>
               <div className="min-w-0">
-                <h1 className="m-0 truncate text-[22px] font-semibold tracking-[-0.3px] text-[var(--app-text)]">
+                <h1 className="m-0 truncate text-2xl font-semibold tracking-[-0.3px] text-[var(--app-text)]">
                   {session.company.name}
                 </h1>
                 <p className="mt-1 mb-0 text-xs text-[var(--app-text-secondary)]">
@@ -71,7 +71,7 @@ export default function OrganizationPage() {
           </header>
 
           {organization.mode === "members" && (
-            <div className="mb-4 grid grid-cols-4 overflow-hidden rounded-[14px] border border-[var(--app-line)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)] max-sm:grid-cols-2">
+            <div className="mb-4 grid grid-cols-4 overflow-hidden rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)] max-sm:grid-cols-2">
               {[
                 {
                   label: "在职成员",
@@ -83,7 +83,7 @@ export default function OrganizationPage() {
                   label: "管理角色",
                   value: managerUsers,
                   icon: <ShieldCheck size={18} />,
-                  tone: "bg-[color-mix(in_srgb,#8b7cf6_14%,transparent)] text-[#a99cff]",
+                  tone: "bg-[color-mix(in_srgb,#8b7cf6_14%,transparent)] text-violet-400",
                 },
                 {
                   label: "停用账号",
@@ -95,7 +95,7 @@ export default function OrganizationPage() {
                   label: "未分配部门",
                   value: unassignedUsers,
                   icon: <Building2 size={18} />,
-                  tone: "bg-[color-mix(in_srgb,#d68a16_14%,transparent)] text-[#d99832]",
+                  tone: "bg-[color-mix(in_srgb,#d68a16_14%,transparent)] text-amber-600",
                 },
               ].map((item, index) => (
                 <div
@@ -103,7 +103,7 @@ export default function OrganizationPage() {
                   className={`flex items-center gap-3 px-4 py-3.5 ${index ? "border-l border-[var(--app-line)]" : ""}`}
                 >
                   <span
-                    className={`grid size-9 shrink-0 place-items-center rounded-[10px] ${item.tone}`}
+                    className={`grid size-9 shrink-0 place-items-center rounded-lg ${item.tone}`}
                   >
                     {item.icon}
                   </span>
@@ -124,7 +124,7 @@ export default function OrganizationPage() {
           )}
 
           <Card
-            className="overflow-hidden !rounded-[14px] !border-[var(--app-line)] !bg-[var(--app-surface)]"
+            className="overflow-hidden !rounded-xl !border-[var(--app-line)] !bg-[var(--app-surface)]"
             styles={{ body: { padding: 0 } }}
           >
             <div className="flex min-h-12 items-center justify-between border-b border-[var(--app-line)] px-4">

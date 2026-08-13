@@ -55,7 +55,7 @@ export default function GroupMembersPanel({
   }, [conversation.createdBy, conversation.members, keyword, users]);
 
   return (
-    <aside className="grid h-full w-full min-h-0 min-w-0 max-w-full grid-rows-[60px_auto_minmax(0,1fr)] overflow-hidden bg-[var(--chat-list)]">
+    <aside className="grid h-full w-full min-h-0 min-w-0 max-w-full grid-rows-[48px_auto_minmax(0,1fr)] overflow-hidden bg-[var(--chat-list)]">
       <header className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,32px)] items-center justify-end overflow-hidden border-b border-l border-[var(--chat-line)] bg-[var(--chat-header)] px-2">
         <Button
           type="text"
@@ -98,7 +98,7 @@ export default function GroupMembersPanel({
         {announcementSummary && (
           <button
             type="button"
-            className="flex min-h-[160px] w-full min-w-0 max-w-full gap-2 overflow-hidden border-y border-[var(--chat-line)] bg-[var(--chat-list)] px-2.5 py-3 text-left transition-colors hover:bg-[var(--app-surface-muted)]"
+            className="flex min-h-40 w-full min-w-0 max-w-full gap-2 overflow-hidden border-y border-[var(--chat-line)] bg-[var(--chat-list)] px-2.5 py-3 text-left transition-colors hover:bg-[var(--app-surface-muted)]"
             onClick={onOpenSettings}
           >
             <Megaphone
@@ -106,10 +106,10 @@ export default function GroupMembersPanel({
               className="mt-0.5 shrink-0 text-[var(--chat-primary)]"
             />
             <span className="min-w-0 flex-1 overflow-hidden">
-              <strong className="block text-[11px] leading-4 font-medium text-[var(--chat-text)]">
+              <strong className="block text-xs leading-4 font-medium text-[var(--chat-text)]">
                 群公告
               </strong>
-              <span className="mt-1 line-clamp-7 block break-words text-[10px] leading-4 text-[var(--chat-text-tertiary)] [overflow-wrap:anywhere]">
+              <span className="mt-1 line-clamp-7 block break-words text-xs leading-4 text-[var(--chat-text-tertiary)] [overflow-wrap:anywhere]">
                 {announcementSummary}
               </span>
             </span>
@@ -136,7 +136,7 @@ export default function GroupMembersPanel({
                   <Avatar
                     shape="square"
                     size={28}
-                    className="!rounded-lg !bg-[var(--chat-primary)] !text-[12px]"
+                    className="!rounded-lg !bg-[var(--chat-primary)] !text-xs"
                   >
                     {member.avatar || member.name.slice(0, 1)}
                   </Avatar>
@@ -147,17 +147,17 @@ export default function GroupMembersPanel({
                   />
                 </span>
               </MemberProfilePopover>
-              <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--chat-text)]">
+              <span className="min-w-0 flex-1 truncate text-xs text-[var(--chat-text)]">
                 {member.name}
               </span>
               {member.id === conversation.createdBy && (
-                <Crown size={12} className="shrink-0 text-[#f2a93b]" />
+                <Crown size={12} className="shrink-0 text-amber-500" />
               )}
             </div>
           </Tooltip>
         ))}
         {!members.length && (
-          <div className="px-2 py-8 text-center text-[11px] text-[var(--chat-text-tertiary)]">
+          <div className="px-2 py-8 text-center text-xs text-[var(--chat-text-tertiary)]">
             没有匹配的成员
           </div>
         )}

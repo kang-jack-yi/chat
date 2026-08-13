@@ -191,8 +191,8 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="chat-theme relative grid h-full w-full min-w-0 grid-cols-[258px_minmax(0,1fr)] overflow-hidden bg-[var(--chat-canvas)] max-lg:grid-cols-[238px_minmax(0,1fr)] max-md:grid-cols-1">
-      <section className="flex min-w-0 max-w-full flex-col overflow-hidden border-r border-[var(--chat-line)] bg-[var(--chat-list)]">
+    <div className="chat-theme relative grid h-full min-h-0 w-full min-w-0 grid-cols-[258px_minmax(0,1fr)] overflow-hidden bg-[var(--chat-canvas)] max-lg:grid-cols-[238px_minmax(0,1fr)] max-md:grid-cols-1">
+      <section className="flex h-full min-h-0 min-w-0 max-w-full flex-col overflow-hidden border-r border-[var(--chat-line)] bg-[var(--chat-list)]">
         <ConversationList
           conversations={conversations.data ?? []}
           loading={conversations.isLoading}
@@ -211,7 +211,7 @@ export default function ChatPage() {
         />
       </section>
       <main
-        className={`relative grid min-h-0 min-w-0 max-w-full grid-rows-[minmax(0,1fr)] overflow-hidden bg-[var(--chat-canvas)] transition-transform duration-200 max-md:absolute max-md:inset-0 max-md:z-10 ${mobileDetailOpen ? "max-md:translate-x-0" : "max-md:translate-x-full"}`}
+        className={`relative grid h-full min-h-0 min-w-0 max-w-full grid-rows-[minmax(0,1fr)] overflow-hidden bg-[var(--chat-canvas)] max-md:absolute max-md:inset-0 max-md:z-10 ${mobileDetailOpen ? "max-md:translate-x-0" : "max-md:translate-x-full"}`}
         style={{
           gridTemplateColumns: showMembers
             ? "minmax(0, 1fr) 160px"

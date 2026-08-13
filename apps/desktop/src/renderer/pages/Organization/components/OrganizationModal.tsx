@@ -75,7 +75,7 @@ export default function OrganizationModal({
       onCancel={onClose}
       destroyOnHidden
     >
-      <p className="mb-5 text-xs text-[#9299a5]">{description}</p>
+      <p className="mb-5 text-xs text-slate-400">{description}</p>
       <Form
         key={isEdit ? `edit-${editingDepartment?.id}` : `${modal?.kind}-${modal?.kind === "department-create" ? modal.parentId : ""}`}
         layout="vertical"

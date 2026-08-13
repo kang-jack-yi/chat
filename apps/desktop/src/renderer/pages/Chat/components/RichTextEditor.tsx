@@ -217,7 +217,7 @@ export default function RichTextEditor({
   mentionsEnabled = false,
   showFilePicker = true,
   placeholder = "输入消息，Enter 发送，Shift + Enter 换行",
-  editorClassName = "min-h-[94px]",
+  editorClassName = "min-h-24",
   sendKey = "enter",
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);

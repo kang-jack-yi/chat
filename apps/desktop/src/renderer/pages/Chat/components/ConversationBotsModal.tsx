@@ -179,7 +179,7 @@ export default function ConversationBotsModal({
       {loading ? (
         <div className="grid h-32 place-items-center"><Spin /></div>
       ) : (
-        <div className="grid max-h-[320px] gap-2 overflow-y-auto pr-1">
+        <div className="grid max-h-80 gap-2 overflow-y-auto pr-1">
           {!items.length && (
             <div className="grid h-32 place-items-center rounded-xl border border-dashed border-[var(--app-line)] bg-[var(--app-surface-soft)] text-sm text-[var(--app-text-tertiary)]">
               还没有机器人
@@ -192,7 +192,7 @@ export default function ConversationBotsModal({
               </span>
               <span className="min-w-0 flex-1">
                 <strong className="block truncate text-sm font-medium text-[var(--app-text)]">{bot.name}</strong>
-                <small className="mt-1 block truncate text-[11px] text-[var(--app-text-tertiary)]">
+                <small className="mt-1 block truncate text-xs text-[var(--app-text-tertiary)]">
                   创建人：{bot.createdByName || "成员"} · 密钥尾号 {bot.secretTail}
                 </small>
               </span>

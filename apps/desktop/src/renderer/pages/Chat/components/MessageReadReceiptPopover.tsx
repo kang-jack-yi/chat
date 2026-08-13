@@ -83,7 +83,7 @@ export default function MessageReadReceiptPopover({
   const unread = receipts.data?.unread ?? [];
   const read = receipts.data?.read ?? [];
   const content = (
-    <div className="w-[400px] max-w-[calc(100vw-32px)]">
+    <div className="w-96 max-w-[calc(100vw-32px)]">
       <div className="border-b border-[var(--app-line)] px-4 py-3 text-sm font-semibold text-[var(--app-text)]">
         消息接收人列表
       </div>
@@ -92,7 +92,7 @@ export default function MessageReadReceiptPopover({
           <Skeleton active avatar paragraph={{ rows: 3 }} />
         </div>
       ) : receipts.isError ? (
-        <div className="px-4 py-8 text-center text-sm text-[#d33a34]">
+        <div className="px-4 py-8 text-center text-sm text-red-600">
           接收状态加载失败，请稍后重试
         </div>
       ) : (

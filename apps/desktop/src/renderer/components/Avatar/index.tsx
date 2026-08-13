@@ -51,8 +51,8 @@ export default function Avatar({ text, online, group, large, active, src }: Avat
       }}
       className={
         large
-          ? "!rounded-[21px] !shadow-[0_8px_22px_rgba(39,48,67,.15)]"
-          : `!rounded-xl ${active ? "!shadow-[0_2px_8px_rgba(20,74,145,.22)]" : ""}`
+          ? "!rounded-2xl !shadow-lg"
+          : `!rounded-xl ${active ? "!shadow-sm" : ""}`
       }
     >
       {!group && text?.slice(0, 1)}

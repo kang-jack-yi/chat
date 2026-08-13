@@ -47,10 +47,10 @@ export interface MessageContentProps extends MessageActions {
 }
 
 export const messageContentClassNames = {
-  file: "w-[262px] max-w-full overflow-hidden text-left",
-  fileIcon: "grid h-[42px] w-[40px] shrink-0 place-items-center rounded-xl bg-[var(--chat-attachment-icon)] text-[var(--chat-primary)]",
+  file: "w-64 max-w-full overflow-hidden text-left",
+  fileIcon: "grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--chat-attachment-icon)] text-[var(--chat-primary)]",
   image: "relative cursor-zoom-in overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--chat-attachment)]",
-  imageElement: "block max-h-[360px] max-w-full object-contain",
+  imageElement: "block max-h-80 max-w-full object-contain",
   text: "min-w-0 break-words whitespace-pre-wrap [overflow-wrap:anywhere]",
 } as const;
 
@@ -162,7 +162,7 @@ function MarkdownInline({ value }: { value: string }) {
   return <>
     {tokens.map((token, index) => {
       if (!token) return null;
-      if (/^`[^`]+`$/.test(token)) return <code key={index} className="rounded bg-black/[.06] px-1 py-0.5 font-mono text-[.9em]">{token.slice(1, -1)}</code>;
+      if (/^`[^`]+`$/.test(token)) return <code key={index} className="rounded bg-black/[.06] px-1 py-0.5 font-mono text-sm">{token.slice(1, -1)}</code>;
       if (/^(\*\*[^*]+\*\*|__[^_]+__)$/.test(token)) return <strong key={index} className="font-semibold">{token.slice(2, -2)}</strong>;
       if (/^~~[^~]+~~$/.test(token)) return <del key={index}>{token.slice(2, -2)}</del>;
       if (/^(\*[^*]+\*|_[^_]+_)$/.test(token)) return <em key={index}>{token.slice(1, -1)}</em>;
@@ -175,7 +175,7 @@ export function MarkdownContent({ content }: { content: string }) {
   return <div className="grid gap-2 break-words [overflow-wrap:anywhere]">
     {markdownBlocks(content).map((block, index) => {
       if (block.type === "heading") {
-        const className = block.level === 1 ? "text-base font-semibold" : block.level === 2 ? "text-[15px] font-semibold" : "text-sm font-semibold";
+        const className = block.level === 1 ? "text-base font-semibold" : "text-sm font-semibold";
         return <div key={index} className={className}><MarkdownInline value={block.text} /></div>;
       }
       if (block.type === "quote") return <blockquote key={index} className="border-l-2 border-[var(--chat-primary)] bg-[var(--chat-primary-soft)]/60 px-2.5 py-1.5 text-[var(--chat-text-secondary)]"><MarkdownInline value={block.text} /></blockquote>;
@@ -446,7 +446,7 @@ function MessageImage({
         </div>
       )}
       {status === "queued" && (
-        <span className="absolute right-2 bottom-2 rounded-full bg-black/55 px-2 py-1 text-[10px] text-white">
+        <span className="absolute right-2 bottom-2 rounded-full bg-black/55 px-2 py-1 text-xs text-white">
           等待发送
         </span>
       )}
@@ -475,10 +475,10 @@ function MessageFile({
           <FileText size={24} />
         </span>
         <span className="grid min-w-0 flex-1 gap-1">
-          <strong className="overflow-hidden text-[12px] text-ellipsis whitespace-nowrap">
+          <strong className="overflow-hidden text-xs text-ellipsis whitespace-nowrap">
             {part.attachment.originalName}
           </strong>
-          <small className="text-[10px] text-[var(--chat-text-tertiary)]">
+          <small className="text-xs text-[var(--chat-text-tertiary)]">
             {formatFileSize(part.attachment.size)}
           </small>
         </span>
@@ -490,7 +490,7 @@ function MessageFile({
         <Progress className="!mb-0 !mt-2" percent={progress} size="small" />
       )}
       {status === "queued" && (
-        <div className="mt-1 text-[11px] text-[var(--chat-text-secondary)]">等待上传</div>
+        <div className="mt-1 text-xs text-[var(--chat-text-secondary)]">等待上传</div>
       )}
     </div>
   );
@@ -524,7 +524,7 @@ function ReplyPreview({
         />
       )}
       {filePart?.type === "file" && (
-        <span className="max-w-[112px] shrink-0 truncate rounded bg-[var(--app-surface-soft)] px-2 py-1 text-[10px]">
+        <span className="max-w-28 shrink-0 truncate rounded bg-[var(--app-surface-soft)] px-2 py-1 text-xs">
           {filePart.attachment.originalName}
         </span>
       )}
@@ -575,7 +575,7 @@ export default function MessageContent({
     return (
       <button
         type="button"
-        className="grid w-[290px] min-w-0 max-w-full gap-2 overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--chat-attachment)] p-3 text-left transition-colors hover:bg-[var(--app-surface-muted)]"
+        className="grid w-72 min-w-0 max-w-full gap-2 overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--chat-attachment)] p-3 text-left transition-colors hover:bg-[var(--app-surface-muted)]"
         onClick={() => onOpenForwardRecord?.(message)}
       >
         <strong className="truncate text-sm font-medium text-[var(--chat-text)]">
@@ -591,14 +591,14 @@ export default function MessageContent({
             </span>
           ))}
         </span>
-        <span className="border-t border-[var(--chat-line)] pt-2 text-[10px] text-[var(--chat-text-tertiary)]">
+        <span className="border-t border-[var(--chat-line)] pt-2 text-xs text-[var(--chat-text-tertiary)]">
           共 {chatRecord.items.length} 条聊天记录
         </span>
       </button>
     );
   }
   return (
-    <div className="grid min-w-0 max-w-full gap-2 overflow-hidden">
+    <div data-message-content className="grid min-w-0 max-w-full gap-2 overflow-hidden">
       {quote?.type === "quote" && (
         <ReplyPreview
           quote={quote}

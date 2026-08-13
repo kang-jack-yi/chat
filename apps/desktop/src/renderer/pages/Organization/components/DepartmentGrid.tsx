@@ -72,11 +72,11 @@ export default function DepartmentGrid({
     : [];
 
   if (!departments.length) {
-    return <div className="grid min-h-[420px] place-items-center"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无部门" /></div>;
+    return <div className="grid min-h-96 place-items-center"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无部门" /></div>;
   }
 
   return (
-    <div className="grid min-h-[460px] grid-cols-[minmax(250px,0.8fr)_minmax(340px,1.2fr)] max-lg:grid-cols-[250px_minmax(0,1fr)]">
+    <div className="grid min-h-96 grid-cols-2 max-lg:grid-cols-2">
       <section className="min-w-0 border-r border-[var(--app-line)] bg-[var(--app-surface)] p-4">
         <div className="mb-3 flex items-center justify-between px-1">
           <strong className="text-sm text-[var(--app-text)]">部门列表</strong>
@@ -147,7 +147,7 @@ export default function DepartmentGrid({
                         <Avatar text={user.avatar} src={user.avatarUrl} online={user.online} />
                         <span className="min-w-0">
                           <strong className="block truncate text-xs font-medium text-[var(--app-text)]">{user.name}</strong>
-                          <small className="block truncate text-[10px] text-[var(--app-text-tertiary)]">{user.title || "未设置职位"}</small>
+                          <small className="block truncate text-xs text-[var(--app-text-tertiary)]">{user.title || "未设置职位"}</small>
                         </span>
                       </div>
                     ))}

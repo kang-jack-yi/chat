@@ -67,7 +67,7 @@ export default function DocumentsPage() {
     },
     {
       key: "sheet",
-      icon: <FileSpreadsheet size={17} className="text-[#13a36f]" />,
+      icon: <FileSpreadsheet size={17} className="text-emerald-600" />,
       label: "新建在线表格",
       onClick: () => documents.createDocument.mutate("sheet"),
     },
@@ -147,6 +147,8 @@ export default function DocumentsPage() {
     ];
   }
 
+  const hasTableContent = documents.documents.isLoading || data.length > 0;
+
   return (
     <div className="grid h-full grid-cols-[224px_minmax(0,1fr)] bg-[var(--app-canvas)]">
       <aside className="flex min-h-0 flex-col border-r border-[var(--app-line)] bg-[var(--app-surface-soft)] p-4">
@@ -184,7 +186,7 @@ export default function DocumentsPage() {
               key={item.key}
               type="button"
               onClick={() => documents.setView(item.key)}
-              className={`flex h-10 items-center gap-3 rounded-lg px-3 text-left text-sm transition-colors ${
+              className={`flex h-10 items-center gap-3 rounded-lg px-3 text-left text-xs transition-colors ${
                 documents.view === item.key
                   ? "bg-[var(--app-primary-soft)] font-medium text-[var(--app-primary)]"
                   : "text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
@@ -195,7 +197,7 @@ export default function DocumentsPage() {
           ))}
         </nav>
         <div className="mt-auto rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-3 shadow-sm">
-          <div className="flex items-center gap-2 text-sm font-medium text-[var(--app-text)]">
+          <div className="flex items-center gap-2 text-xs font-medium text-[var(--app-text)]">
             <Share2 size={16} className="text-[var(--app-primary)]" />多人实时协作
           </div>
           <p className="mb-0 mt-1 text-xs leading-5 text-[var(--app-text-secondary)]">
@@ -203,11 +205,11 @@ export default function DocumentsPage() {
           </p>
         </div>
       </aside>
-      <main className="min-w-0 overflow-y-auto px-[clamp(28px,4vw,58px)] py-8">
-        <div className="mx-auto max-w-[1180px]">
+      <main className="min-h-0 min-w-0 overflow-hidden px-8 py-8 lg:px-12">
+        <div className="mx-auto flex h-full min-h-0 max-w-6xl flex-col">
           <header className="flex items-start justify-between gap-6">
             <div>
-              <h1 className="m-0 text-[26px] font-semibold tracking-[-.4px] text-[var(--app-text)]">云文档</h1>
+              <h1 className="m-0 text-2xl font-semibold tracking-[-.4px] text-[var(--app-text)]">云文档</h1>
               <p className="mb-0 mt-1 text-sm text-[var(--app-text-secondary)]">
                 在线文档与表格，内容实时保存并支持多人协作
               </p>
@@ -218,7 +220,7 @@ export default function DocumentsPage() {
               placeholder="搜索文档"
               value={documents.query}
               onChange={(event) => documents.setQuery(event.target.value)}
-              className="!w-[320px]"
+              className="!w-80"
             />
           </header>
 
@@ -226,7 +228,7 @@ export default function DocumentsPage() {
             <button
               type="button"
               onClick={() => documents.createDocument.mutate("doc")}
-              className="group flex items-center gap-4 rounded-[14px] border border-[var(--app-line)] bg-[var(--app-surface)] p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[var(--app-primary)] hover:bg-[var(--app-surface-soft)]"
+              className="group flex items-center gap-4 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[var(--app-primary)] hover:bg-[var(--app-surface-soft)]"
             >
               <span className="grid size-12 place-items-center rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]"><FilePlus2 size={23} /></span>
               <span><strong className="block text-sm text-[var(--app-text)]">创建在线文档</strong><small className="mt-1 block text-[var(--app-text-secondary)]">撰写方案、会议纪要与知识内容</small></span>
@@ -234,14 +236,14 @@ export default function DocumentsPage() {
             <button
               type="button"
               onClick={() => documents.createDocument.mutate("sheet")}
-              className="group flex items-center gap-4 rounded-[14px] border border-[var(--app-line)] bg-[var(--app-surface)] p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[var(--app-primary)] hover:bg-[var(--app-surface-soft)]"
+              className="group flex items-center gap-4 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[var(--app-primary)] hover:bg-[var(--app-surface-soft)]"
             >
-              <span className="grid size-12 place-items-center rounded-xl bg-[#e8f8f2] text-[#13a36f]"><FileSpreadsheet size={23} /></span>
+              <span className="grid size-12 place-items-center rounded-xl bg-[#e8f8f2] text-emerald-600"><FileSpreadsheet size={23} /></span>
               <span><strong className="block text-sm text-[var(--app-text)]">创建在线表格</strong><small className="mt-1 block text-[var(--app-text-secondary)]">协作维护数据、计划和项目清单</small></span>
             </button>
           </section>
 
-          <section className="mt-7 overflow-hidden rounded-[14px] border border-[var(--app-line)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)]">
+          <section className={`mt-7 flex min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)] ${hasTableContent ? "flex-1" : "shrink-0"}`}>
             <div className="flex items-center justify-between border-b border-[var(--app-line)] px-5 py-4">
               <div className="flex items-center gap-2">
                 <FolderClock size={18} className="text-[var(--app-primary)]" />
@@ -251,6 +253,7 @@ export default function DocumentsPage() {
                 <Tag bordered={false}>{data.length}</Tag>
               </div>
             </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
             <Table<CloudDocument>
               rowKey="id"
               loading={documents.documents.isLoading}
@@ -308,7 +311,7 @@ export default function DocumentsPage() {
                   ),
                 },
                 {
-                  title: "",
+                  title: "操作",
                   width: 92,
                   align: "right",
                   render: (_, document) => (
@@ -331,6 +334,7 @@ export default function DocumentsPage() {
                 },
               ]}
             />
+            </div>
           </section>
         </div>
         <ShareDocumentModal

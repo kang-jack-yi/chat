@@ -28,7 +28,7 @@ describe("groupMessageContent", () => {
       "text",
     ]);
     expect(messageContentClassNames.file).not.toContain("history");
-    expect(messageContentClassNames.imageElement).toContain("max-h-[360px]");
+    expect(messageContentClassNames.imageElement).toContain("max-h-80");
   });
 
   it("exposes one renderer for persisted messages", () => {

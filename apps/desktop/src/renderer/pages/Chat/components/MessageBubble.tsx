@@ -141,7 +141,8 @@ export default function MessageBubble({
         getPopupContainer={popupContainer}
       >
         <div
-          className={`w-[290px] max-w-full cursor-default overflow-hidden rounded-[14px] border p-3.5 text-left shadow-[0_4px_14px_rgba(24,34,48,.045)] ${
+          data-message-content
+          className={`w-72 max-w-full cursor-default overflow-hidden rounded-xl border p-3.5 text-left shadow-sm ${
             own
               ? "border-[var(--chat-file-own-border)] bg-[var(--chat-file-own)]"
               : "border-[var(--chat-file-other-border)] bg-[var(--chat-file-other)]"
@@ -167,7 +168,7 @@ export default function MessageBubble({
           {status === "failed" && (
             <button
               type="button"
-              className="mt-2 text-xs text-[#e5484d]"
+              className="mt-2 text-xs text-red-500"
               onClick={() => onRetry?.(message.clientId)}
             >
               {(message as Partial<LocalMessage>).error?.message || "发送失败"}，点击重试
@@ -221,14 +222,14 @@ export default function MessageBubble({
         menu={bubbleMenu}
         getPopupContainer={popupContainer}
       >
-        <div className="w-[min(420px,54vw)] min-w-0 max-w-full overflow-hidden rounded-[14px] border border-[var(--chat-attachment-border)] bg-[var(--app-surface)] text-left shadow-[var(--app-shadow-panel)]">
+        <div data-message-content className="w-full min-w-0 max-w-md overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--app-surface)] text-left shadow-[var(--app-shadow-panel)]">
           <div className="flex items-center gap-2 border-b border-[var(--chat-line)] bg-[var(--chat-primary-soft)] px-3.5 py-2.5 text-xs font-medium text-[var(--chat-primary)]">
             <span className="grid h-6 w-6 place-items-center rounded-md bg-[var(--app-surface-soft)] text-[var(--chat-primary)]">
               <Megaphone size={14} />
             </span>
             群公告
           </div>
-          <div className="px-3.5 py-3 text-sm leading-[1.65] text-[var(--chat-text)]">
+          <div className="px-3.5 py-3 text-sm leading-relaxed text-[var(--chat-text)]">
             <MessageContent
               message={message}
               contextMenuEnabled={contextMenuEnabled}
@@ -256,10 +257,11 @@ export default function MessageBubble({
       getPopupContainer={popupContainer}
     >
       <div
-        className={`min-w-0 max-w-[min(520px,58vw)] overflow-hidden break-words border px-3.5 py-2.5 text-left text-sm leading-[1.6] [overflow-wrap:anywhere] shadow-[0_5px_16px_rgba(24,34,48,.045)] max-md:max-w-[70vw] ${
+        data-message-content
+        className={`min-w-0 max-w-xl overflow-hidden break-words border px-3.5 py-2.5 text-left text-sm leading-relaxed [overflow-wrap:anywhere] shadow-sm max-md:max-w-xs ${
           own
-            ? "rounded-[15px_5px_15px_15px] border-[var(--chat-own-bubble-border)] bg-[var(--chat-own-bubble)] text-[var(--chat-text)]"
-            : "rounded-[5px_15px_15px_15px] border-[var(--chat-attachment-border)] bg-[var(--chat-other-bubble)] text-[var(--chat-text)]"
+            ? "rounded-2xl border-[var(--chat-own-bubble-border)] bg-[var(--chat-own-bubble)] text-[var(--chat-text)]"
+            : "rounded-2xl border-[var(--chat-attachment-border)] bg-[var(--chat-other-bubble)] text-[var(--chat-text)]"
         }`}
       >
         <MessageContent
@@ -280,12 +282,12 @@ export default function MessageBubble({
           onPreviewImage={onPreviewImage}
         />
         {status === "sending" && (
-          <div className="mt-1 text-right text-[10px] text-[#7b84a0]">正在确认…</div>
+          <div className="mt-1 text-right text-xs text-slate-400">正在确认…</div>
         )}
         {status === "failed" && (
           <button
             type="button"
-            className="mt-1 text-xs text-[#e5484d]"
+            className="mt-1 text-xs text-red-500"
             onClick={() => onRetry?.(message.clientId)}
           >
             {(message as Partial<LocalMessage>).error?.message || "发送失败"}，点击重试

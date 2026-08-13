@@ -68,8 +68,8 @@ export default function SystemMessage({
     <span
       className={
         compact
-          ? "block break-words text-[11px] leading-5 text-[var(--chat-text-secondary)]"
-          : "inline-block px-1 text-[10px] leading-5 text-[var(--chat-text-tertiary)]"
+          ? "block break-words text-xs leading-5 text-[var(--chat-text-secondary)]"
+          : "inline-block px-1 text-xs leading-5 text-[var(--chat-text-tertiary)]"
       }
     >
       {text}

@@ -181,8 +181,8 @@ export default function ServerSettingsModal() {
         <Alert type="error" showIcon message="连接失败" description={error} />
       )}
       {health && (
-        <div className="rounded-[14px] border border-[var(--app-line)] bg-[var(--app-surface-soft)] p-4">
-          <div className="mb-3 flex items-center gap-2 font-semibold text-[#178761]">
+        <div className="rounded-xl border border-[var(--app-line)] bg-[var(--app-surface-soft)] p-4">
+          <div className="mb-3 flex items-center gap-2 font-semibold text-emerald-700">
             <CheckCircle2 size={17} />
             连接正常
           </div>

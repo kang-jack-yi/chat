@@ -72,7 +72,7 @@ export default function ForwardTargetModal({
         placeholder="搜索已有会话"
         onChange={(event) => setKeyword(event.target.value)}
       />
-      <div className="mt-3 max-h-[420px] overflow-y-auto rounded-lg border border-[var(--chat-line)]">
+      <div className="mt-3 max-h-96 overflow-y-auto rounded-lg border border-[var(--chat-line)]">
         {filtered.map((conversation) => {
           const checked = selectedIds.includes(conversation.id);
           return (
@@ -91,7 +91,7 @@ export default function ForwardTargetModal({
                 <strong className="truncate text-sm font-medium text-[var(--chat-text)]">
                   {conversation.name}
                 </strong>
-                <small className="truncate text-[11px] text-[var(--chat-text-tertiary)]">
+                <small className="truncate text-xs text-[var(--chat-text-tertiary)]">
                   {conversation.lastMessage || "暂无消息"}
                 </small>
               </span>

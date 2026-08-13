@@ -161,7 +161,7 @@ export default function ConversationList({
 
   return (
     <>
-      <header className="flex h-[60px] shrink-0 items-center gap-2 border-b border-[var(--chat-line)] bg-[var(--app-surface-soft)] px-3">
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--chat-line)] bg-[var(--app-surface-soft)] px-3">
         <Input
           allowClear
           value={query}
@@ -170,14 +170,14 @@ export default function ConversationList({
           }
           onChange={(event) => setQuery(event.target.value)}
           placeholder="搜索"
-          className="!rounded-[10px] !border !border-transparent !bg-[var(--app-surface-muted)] !shadow-none focus-within:!border-[var(--chat-primary)] focus-within:!bg-[var(--app-surface)]"
+          className="!rounded-lg !border !border-transparent !bg-[var(--app-surface-muted)] !shadow-none focus-within:!border-[var(--chat-primary)] focus-within:!bg-[var(--app-surface)]"
         />
         <Button
           type="text"
           icon={<Plus size={19} />}
           onClick={onNewGroup}
           title="新建群聊"
-          className="!w-8 !shrink-0 !rounded-[10px] !bg-[var(--app-surface-muted)] !px-0 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]"
+          className="!w-8 !shrink-0 !rounded-lg !bg-[var(--app-surface-muted)] !px-0 !text-[var(--chat-text-secondary)] hover:!bg-[var(--chat-rail-hover)] hover:!text-[var(--chat-primary)]"
         />
       </header>
       <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-1.5 py-1.5">
@@ -191,13 +191,13 @@ export default function ConversationList({
             {!searchLoading && searchPage && (
               <div className="grid gap-3 px-1 py-1">
                 {!searchPage.historyComplete && (
-                  <div className="rounded-md bg-[var(--app-surface-soft)] px-2 py-1.5 text-[11px] text-[var(--app-text-secondary)]">
+                  <div className="rounded-md bg-[var(--app-surface-soft)] px-2 py-1.5 text-xs text-[var(--app-text-secondary)]">
                     完整历史仍在同步，搜索结果可能不完整
                   </div>
                 )}
                 {searchPage.conversations.length > 0 && (
                   <section>
-                    <h3 className="m-0 px-1 pb-1.5 text-[11px] font-medium text-[var(--chat-text-secondary)]">
+                    <h3 className="m-0 px-1 pb-1.5 text-xs font-medium text-[var(--chat-text-secondary)]">
                       会话
                     </h3>
                     {searchPage.conversations.map((conversation) => (
@@ -218,7 +218,7 @@ export default function ConversationList({
                           {conversation.name}
                         </span>
                         {conversation.hidden && (
-                          <span className="text-[10px] text-[var(--chat-text-tertiary)]">
+                          <span className="text-xs text-[var(--chat-text-tertiary)]">
                             已隐藏
                           </span>
                         )}
@@ -228,7 +228,7 @@ export default function ConversationList({
                 )}
                 {searchPage.messages.length > 0 && (
                   <section>
-                    <h3 className="m-0 px-1 pb-1.5 text-[11px] font-medium text-[var(--chat-text-secondary)]">
+                    <h3 className="m-0 px-1 pb-1.5 text-xs font-medium text-[var(--chat-text-secondary)]">
                       聊天记录
                     </h3>
                     <div className="grid gap-0.5">
@@ -249,12 +249,12 @@ export default function ConversationList({
                             <strong className="truncate text-xs text-[var(--chat-text)]">
                               {hit.conversation.name}
                             </strong>
-                            <time className="shrink-0 text-[9px] text-[var(--chat-text-tertiary)]">
+                            <time className="shrink-0 text-xs text-[var(--chat-text-tertiary)]">
                               {formatTime(hit.message.createdAt)}
                             </time>
                           </span>
                           {hit.message.kind !== "system" && (
-                            <span className="truncate text-[11px] text-[var(--chat-text-secondary)]">
+                            <span className="truncate text-xs text-[var(--chat-text-secondary)]">
                               {hit.message.senderName}
                             </span>
                           )}
@@ -346,7 +346,7 @@ export default function ConversationList({
               return (
                 <Dropdown key={item.id} trigger={["contextMenu"]} menu={menu}>
                   <button
-                    className={`group flex w-full max-w-full items-center gap-2.5 overflow-hidden rounded-[10px] border px-2.5 py-2.5 text-left transition-colors duration-150 ${
+                    className={`group flex w-full max-w-full items-center gap-2.5 overflow-hidden rounded-lg border px-2.5 py-2.5 text-left transition-colors duration-150 ${
                       selected
                         ? "border-transparent bg-[var(--chat-primary-soft)]"
                         : item.pinned
@@ -358,17 +358,17 @@ export default function ConversationList({
                     <Avatar text={item.avatar} group={item.type === "group"} />
                     <span className="grid min-w-0 max-w-full flex-1 gap-1.5 overflow-hidden">
                       <span className="flex min-w-0 max-w-full justify-between gap-2 overflow-hidden">
-                        <strong className="flex min-w-0 items-center gap-1 overflow-hidden text-[13px] text-[var(--chat-text)] whitespace-nowrap">
+                        <strong className="flex min-w-0 items-center gap-1 overflow-hidden text-sm text-[var(--chat-text)] whitespace-nowrap">
                           <span className="overflow-hidden text-ellipsis">
                             {item.name}
                           </span>
                           {draftPreview && item.mentioned && (
-                            <span className="shrink-0 text-[10px] text-[#e17a2d]">
+                            <span className="shrink-0 text-xs text-amber-600">
                               {item.mentionType === "all" ? "@所有人" : "@我"}
                             </span>
                           )}
                         </strong>
-                        <time className="shrink-0 text-[10px] text-[var(--chat-text-tertiary)]">
+                        <time className="shrink-0 text-xs text-[var(--chat-text-tertiary)]">
                           {formatTime(item.lastMessageAt)}
                         </time>
                       </span>
@@ -376,13 +376,13 @@ export default function ConversationList({
                         <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[var(--chat-text-secondary)]">
                           {draftPreview ? (
                             <>
-                              <span className="text-[#e5484d]">[草稿]</span>
+                              <span className="text-red-500">[草稿]</span>
                               <span>{draftPreview}</span>
                             </>
                           ) : (
                             <>
                               {item.mentioned && (
-                                <span className="text-[#e17a2d]">
+                                <span className="text-amber-600">
                                   {item.mentionType === "all"
                                     ? "[@所有人]"
                                     : "[有人@我]"}
@@ -400,7 +400,7 @@ export default function ConversationList({
                         )}
                         {item.unreadCount > 0 && (
                           <span
-                            className={`grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold text-white shadow-sm ${item.muted ? "bg-[#b5bbc5]" : "bg-[#e85d75]"}`}
+                            className={`grid h-4 min-w-4 place-items-center rounded-full px-1 text-xs font-bold text-white shadow-sm ${item.muted ? "bg-[#b5bbc5]" : "bg-[#e85d75]"}`}
                           >
                             {item.unreadCount > 99 ? "99+" : item.unreadCount}
                           </span>
