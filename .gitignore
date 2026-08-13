@@ -5,7 +5,7 @@ coverage/
 .DS_Store
 apps/server/data/*.sqlite
 apps/server/data/*.sqlite-*
-apps/server/storage/uploads/
+apps/server/storage/*
 apps/server/logs/
 apps/server/run/
 apps/server/typings/app/

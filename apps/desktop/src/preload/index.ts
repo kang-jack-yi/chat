@@ -4,6 +4,19 @@ const desktop = {
   app: {
     getVersion: () => ipcRenderer.invoke("app:get-version"),
   },
+  preferences: {
+    get: () => ipcRenderer.invoke("preferences:get"),
+    update: (input: unknown) => ipcRenderer.invoke("preferences:update", input),
+    chooseDownloadDirectory: () => ipcRenderer.invoke("preferences:choose-download-directory"),
+    openLogs: () => ipcRenderer.invoke("preferences:open-logs"),
+    cacheStats: () => ipcRenderer.invoke("preferences:cache-stats"),
+    clearAttachmentCache: () => ipcRenderer.invoke("preferences:clear-attachment-cache"),
+    onChanged: (listener: (preferences: unknown) => void) => {
+      const handler = (_event: unknown, preferences: unknown) => listener(preferences);
+      ipcRenderer.on("preferences:changed", handler);
+      return () => ipcRenderer.off("preferences:changed", handler);
+    },
+  },
   auth: {
     updateAccessToken: (accessToken: string | null) =>
       ipcRenderer.invoke("auth:update-access-token", accessToken),

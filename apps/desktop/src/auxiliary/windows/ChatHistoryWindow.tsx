@@ -161,7 +161,7 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
       className="fixed inset-0 grid min-h-0 grid-rows-[minmax(0,1fr)] bg-[var(--app-canvas)] text-[var(--app-text)]"
     >
       <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_240px]">
-        <section className="grid min-h-0 grid-rows-[56px_44px_minmax(0,1fr)] border-r border-[var(--app-line)] bg-white">
+        <section className="grid min-h-0 grid-rows-[56px_44px_minmax(0,1fr)] border-r border-[var(--app-line)] bg-[var(--app-surface)]">
           <div className="flex items-center px-5">
             <Input
               allowClear
@@ -328,7 +328,7 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
               />
             </label>
             {!metadata?.historyComplete && (
-              <span className="rounded-lg bg-[#fff7e6] px-3 py-2 text-[11px] leading-5 text-[#a66b18]">
+              <span className="rounded-lg bg-[color-mix(in_srgb,#d99832_14%,transparent)] px-3 py-2 text-[11px] leading-5 text-[#e5ad55]">
                 历史消息仍在同步，当前结果可能不完整
               </span>
             )}

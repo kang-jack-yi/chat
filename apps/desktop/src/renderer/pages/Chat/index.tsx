@@ -211,7 +211,7 @@ export default function ChatPage() {
         />
       </section>
       <main
-        className={`relative grid min-h-0 min-w-0 max-w-full grid-rows-[minmax(0,1fr)] overflow-hidden bg-white transition-transform duration-200 max-md:absolute max-md:inset-0 max-md:z-10 ${mobileDetailOpen ? "max-md:translate-x-0" : "max-md:translate-x-full"}`}
+        className={`relative grid min-h-0 min-w-0 max-w-full grid-rows-[minmax(0,1fr)] overflow-hidden bg-[var(--chat-canvas)] transition-transform duration-200 max-md:absolute max-md:inset-0 max-md:z-10 ${mobileDetailOpen ? "max-md:translate-x-0" : "max-md:translate-x-full"}`}
         style={{
           gridTemplateColumns: showMembers
             ? "minmax(0, 1fr) 160px"

@@ -241,7 +241,7 @@ export default function GroupAnnouncementModal({
         )}
 
         {conversation.announcementMessage && (
-          <div className="mb-3 rounded-xl border border-[#e7ebf0] bg-[#f7f9fb] p-3">
+          <div className="mb-3 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface-soft)] p-3">
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-[var(--app-text-secondary)]">
               <Megaphone size={14} className="text-[var(--app-primary)]" />
               当前群公告
@@ -267,7 +267,7 @@ export default function GroupAnnouncementModal({
                 void addImages(files, "picker");
               }}
             />
-            <div className="rounded-xl border border-[var(--app-line)] bg-white px-3 py-2 focus-within:border-[#79afff] focus-within:shadow-[0_0_0_2px_rgba(22,119,255,.1)]">
+            <div className="rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] px-3 py-2 focus-within:border-[var(--app-primary)] focus-within:shadow-[0_0_0_2px_rgba(115,167,247,.12)]">
               <RichTextEditor
                 value={draft}
                 attachments={attachments}

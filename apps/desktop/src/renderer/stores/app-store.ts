@@ -5,10 +5,12 @@ interface AppStore {
   groupDialogOpen: boolean;
   sidebarCollapsed: boolean;
   serverSettingsOpen: boolean;
+  settingsCenterOpen: boolean;
   setMobileDetailOpen: (value: boolean) => void;
   setGroupDialogOpen: (value: boolean) => void;
   setSidebarCollapsed: (value: boolean) => void;
   setServerSettingsOpen: (value: boolean) => void;
+  setSettingsCenterOpen: (value: boolean) => void;
   reset: () => void;
 }
 
@@ -17,6 +19,7 @@ const initialState = {
   groupDialogOpen: false,
   sidebarCollapsed: false,
   serverSettingsOpen: false,
+  settingsCenterOpen: false,
 };
 
 export const useAppStore = create<AppStore>((set) => ({
@@ -25,5 +28,6 @@ export const useAppStore = create<AppStore>((set) => ({
   setGroupDialogOpen: (groupDialogOpen) => set({ groupDialogOpen }),
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
   setServerSettingsOpen: (serverSettingsOpen) => set({ serverSettingsOpen }),
+  setSettingsCenterOpen: (settingsCenterOpen) => set({ settingsCenterOpen }),
   reset: () => set(initialState),
 }));

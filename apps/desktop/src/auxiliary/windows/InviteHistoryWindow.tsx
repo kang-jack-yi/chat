@@ -80,9 +80,9 @@ export default function InviteHistoryWindow({ task }: InviteHistoryWindowProps) 
   return (
     <main
       data-chat-root
-      className="fixed inset-0 grid min-h-0 grid-rows-[minmax(0,1fr)_70px] border border-[var(--app-line)] bg-white"
+      className="fixed inset-0 grid min-h-0 grid-rows-[minmax(0,1fr)_70px] border border-[var(--app-line)] bg-[var(--app-surface)]"
     >
-      <section className="min-h-0 overflow-y-auto bg-white px-5 py-3">
+      <section className="min-h-0 overflow-y-auto bg-[var(--app-surface)] px-5 py-3">
         {loading && (
           <div className="grid h-full place-items-center">
             <Spin tip="正在读取本地聊天记录…" />

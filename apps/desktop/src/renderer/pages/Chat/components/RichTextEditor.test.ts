@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clipboardFiles, mentionPanelPosition } from "./RichTextEditor";
+import { clipboardFiles, mentionPanelPosition, shouldSubmitMessage } from "./RichTextEditor";
 
 function file(name: string, type: string, size = 10) {
   return { name, type, size } as File;
@@ -45,5 +45,28 @@ describe("mentionPanelPosition", () => {
       1000,
       760,
     )).toEqual({ left: 768, top: 126 });
+  });
+});
+
+describe("shouldSubmitMessage", () => {
+  const event = (overrides: Partial<KeyboardEvent> = {}) => ({
+    key: "Enter",
+    shiftKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    isComposing: false,
+    ...overrides,
+  });
+
+  it("respects Enter mode and keeps IME/Shift+Enter for editing", () => {
+    expect(shouldSubmitMessage(event(), "enter")).toBe(true);
+    expect(shouldSubmitMessage(event({ shiftKey: true }), "enter")).toBe(false);
+    expect(shouldSubmitMessage(event({ isComposing: true }), "enter")).toBe(false);
+  });
+
+  it("requires Ctrl or Command in Ctrl+Enter mode", () => {
+    expect(shouldSubmitMessage(event(), "ctrlEnter")).toBe(false);
+    expect(shouldSubmitMessage(event({ ctrlKey: true }), "ctrlEnter")).toBe(true);
+    expect(shouldSubmitMessage(event({ metaKey: true }), "ctrlEnter")).toBe(true);
   });
 });

@@ -303,7 +303,7 @@ export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
           <Spin />
         )}
       </div>
-      <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center rounded-xl border border-[var(--app-line)] bg-white/95 p-1.5 shadow-[0_8px_24px_rgba(31,45,61,.14)]">
+      <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center rounded-xl border border-[var(--app-line)] bg-[color-mix(in_srgb,var(--app-surface)_95%,transparent)] p-1.5 shadow-[0_8px_24px_rgba(31,45,61,.14)]">
         {tools.map(([title, icon, disabled, action], toolIndex) => (
           <span key={title} className="flex items-center">
             {[2, 4, 6].includes(toolIndex) && <i className="mx-1 h-5 w-px bg-[var(--app-line)]" />}

@@ -3,17 +3,20 @@ import { Check, MessageCircleMore, Settings } from "lucide-react";
 import { useAuthForm } from "./hooks";
 import { useServerStore } from "../../stores/server-store";
 import { useAppStore } from "../../stores/app-store";
+import styles from "./style.module.less";
 
 export default function LoginPage() {
   const { mode, error, pending, changeMode, submit } = useAuthForm();
   const health = useServerStore((state) => state.health);
   const serverStatus = useServerStore((state) => state.status);
   const serverError = useServerStore((state) => state.error);
-  const setServerSettingsOpen = useAppStore((state) => state.setServerSettingsOpen);
+  const setServerSettingsOpen = useAppStore(
+    (state) => state.setServerSettingsOpen,
+  );
   const registrationEnabled = health?.features.companyRegistration !== false;
   return (
-    <div className="grid h-full grid-cols-[minmax(420px,1.05fr)_minmax(440px,.95fr)] gap-3 bg-[var(--app-canvas)] p-3 max-md:grid-cols-1 max-md:overflow-y-auto max-md:p-0">
-      <section className="relative overflow-hidden rounded-[24px] bg-[linear-gradient(145deg,#0958b8_0%,#1677ff_52%,#69a8ff_100%)] px-[7vw] py-[54px] text-white shadow-[0_20px_55px_rgba(22,119,255,.20)] max-md:hidden">
+    <div className={`${styles.loginPage} grid h-full grid-cols-[minmax(420px,1.05fr)_minmax(440px,.95fr)] gap-3 bg-[var(--app-canvas)] p-3 max-md:grid-cols-1 max-md:overflow-y-auto max-md:p-0`}>
+      <section className={`${styles.storyPanel} relative overflow-hidden rounded-[24px] bg-[linear-gradient(145deg,#0958b8_0%,#1677ff_52%,#69a8ff_100%)] px-[7vw] py-[54px] text-white shadow-[0_20px_55px_rgba(22,119,255,.20)] max-md:hidden`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_78%,rgba(255,255,255,.18),transparent_29%)]" />
         <div className="absolute -top-24 -left-24 size-72 rounded-full border border-white/10" />
         <div className="absolute top-[12%] right-[8%] size-24 rounded-full bg-white/8 blur-sm" />
@@ -24,31 +27,43 @@ export default function LoginPage() {
           同频
         </div>
         <div className="relative z-10 mt-[17vh] max-w-[580px]">
-          <span className="text-xs font-bold tracking-[2px] text-white/72">为团队而生的协作空间</span>
+          <span className="text-xs font-bold tracking-[2px] text-white/72">
+            为团队而生的协作空间
+          </span>
           <h1 className="my-[18px] text-[clamp(42px,4.5vw,72px)] leading-[1.14] tracking-[-2px]">
-            沟通更清晰，<br />协作更同频。
+            沟通更清晰，
+            <br />
+            协作更同频。
           </h1>
           <p className="max-w-[520px] text-[17px] leading-[1.8] text-white/70">
             把组织通讯录、即时消息和团队文件放在一个安静、可靠的工作空间里。
           </p>
           <div className="mt-[38px] grid gap-4 text-white/85">
-            <span className="flex items-center gap-2.5"><Check size={16} /> 企业通讯录与部门架构</span>
-            <span className="flex items-center gap-2.5"><Check size={16} /> 单聊、群聊与实时状态</span>
-            <span className="flex items-center gap-2.5"><Check size={16} /> 文件安全保存在企业空间</span>
+            <span className="flex items-center gap-2.5">
+              <Check size={16} /> 企业通讯录与部门架构
+            </span>
+            <span className="flex items-center gap-2.5">
+              <Check size={16} /> 单聊、群聊与实时状态
+            </span>
+            <span className="flex items-center gap-2.5">
+              <Check size={16} /> 文件安全保存在企业空间
+            </span>
           </div>
         </div>
       </section>
 
-      <section className="relative flex items-center justify-center rounded-[24px] border border-white/80 bg-white/92 p-10 shadow-[0_18px_48px_rgba(39,48,67,.08)] backdrop-blur-xl max-md:min-h-dvh max-md:rounded-none max-md:px-6 max-md:pt-8 max-md:pb-[70px]">
+      <section className={`${styles.formPanel} relative flex items-center justify-center rounded-[24px] border border-[var(--app-line)] bg-[var(--app-surface)] p-10 shadow-[var(--app-shadow-panel)] max-md:min-h-dvh max-md:rounded-none max-md:px-6 max-md:pt-8 max-md:pb-[70px]`}>
         <div className="w-full max-w-[420px]">
           <Tabs
             activeKey={mode}
             onChange={(key) => changeMode(key as "login" | "register")}
             items={[
               { key: "login", label: "员工登录" },
-              ...(registrationEnabled ? [{ key: "register", label: "创建企业" }] : []),
+              ...(registrationEnabled
+                ? [{ key: "register", label: "创建企业" }]
+                : []),
             ]}
-            tabBarExtraContent={(
+            tabBarExtraContent={
               <Button
                 type="text"
                 size="small"
@@ -57,7 +72,7 @@ export default function LoginPage() {
               >
                 服务器设置
               </Button>
-            )}
+            }
             className="mb-7"
           />
           <div>
@@ -65,34 +80,66 @@ export default function LoginPage() {
               {mode === "login" ? "欢迎回来" : "创建你的企业空间"}
             </h2>
             <p className="mb-8 text-sm text-[var(--app-text-secondary)]">
-              {mode === "login" ? "使用管理员为你创建的账号登录" : "完成后即可邀请同事开始协作"}
+              {mode === "login"
+                ? "使用管理员为你创建的账号登录"
+                : "完成后即可邀请同事开始协作"}
             </p>
           </div>
           <form onSubmit={submit} className="grid gap-[18px]">
             {mode === "register" && (
               <>
                 <label className="grid gap-2 text-[13px] font-semibold text-[var(--app-text)]">
-                  企业名称<Input name="companyName" placeholder="例如：星海科技" required />
+                  企业名称
+                  <Input
+                    name="companyName"
+                    placeholder="例如：星海科技"
+                    required
+                  />
                 </label>
                 <label className="grid gap-2 text-[13px] font-semibold text-[var(--app-text)]">
-                  你的姓名<Input name="name" placeholder="请输入真实姓名" required />
+                  你的姓名
+                  <Input name="name" placeholder="请输入真实姓名" required />
                 </label>
               </>
             )}
             <label className="grid gap-2 text-[13px] font-semibold text-[var(--app-text)]">
-              手机号<Input name="phone" placeholder="11 位手机号" inputMode="numeric" required />
+              手机号
+              <Input
+                name="phone"
+                placeholder="11 位手机号"
+                inputMode="numeric"
+                required
+              />
             </label>
             <label className="grid gap-2 text-[13px] font-semibold text-[var(--app-text)]">
-              密码<Input.Password name="password" placeholder="至少 6 位" minLength={6} required />
+              密码
+              <Input.Password
+                name="password"
+                placeholder="至少 6 位"
+                minLength={6}
+                required
+              />
             </label>
             {error && <Alert type="error" message={error} showIcon />}
-            {serverStatus === "offline" && !error && <Alert type="error" message={serverError || "服务器连接失败，请检查设置"} showIcon />}
-            <Button type="primary" htmlType="submit" loading={pending} disabled={serverStatus !== "online"} block>
+            {serverStatus === "offline" && !error && (
+              <Alert
+                type="error"
+                message={serverError || "服务器连接失败，请检查设置"}
+                showIcon
+              />
+            )}
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={pending}
+              disabled={serverStatus !== "online"}
+              block
+            >
               {mode === "login" ? "登录企业空间" : "创建并进入"}
             </Button>
           </form>
           {mode === "login" && (
-            <p className="mt-[22px] rounded-xl border border-[var(--app-line)] bg-[var(--app-surface-soft)] px-3.5 py-3 text-center text-xs text-[var(--app-text-secondary)]">
+            <p className={`${styles.demoAccount} mt-[22px] rounded-xl border border-[var(--app-line)] bg-[var(--app-surface-soft)] px-3.5 py-3 text-center text-xs text-[var(--app-text-secondary)]`}>
               演示账号：13800000001 / 123456
             </p>
           )}

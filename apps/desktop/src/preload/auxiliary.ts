@@ -10,6 +10,14 @@ import type {
 } from "@chat/shared";
 
 const auxiliary = {
+  preferences: {
+    get: () => ipcRenderer.invoke("preferences:get"),
+    onChanged: (listener: (preferences: unknown) => void) => {
+      const handler = (_event: unknown, preferences: unknown) => listener(preferences);
+      ipcRenderer.on("preferences:changed", handler);
+      return () => ipcRenderer.off("preferences:changed", handler);
+    },
+  },
   task: {
     get: () => ipcRenderer.invoke("auxiliary:task:get") as Promise<AuxiliaryTask | null>,
     complete: (taskId: string, result: InviteHistoryResult) =>

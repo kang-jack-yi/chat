@@ -45,7 +45,7 @@ export default function GroupDialog({ open, users, onClose, onCreated }: GroupDi
       </label>
       <List
         bordered
-        className="max-h-[360px] overflow-y-auto !rounded-[14px] !border-[#e7eaf0]"
+        className="max-h-[360px] overflow-y-auto !rounded-[14px] !border-[var(--app-line)]"
         dataSource={users}
         renderItem={(user) => {
           const checked = selected.includes(user.id);

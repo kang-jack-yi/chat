@@ -1,12 +1,14 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { Button, Checkbox, Dropdown, Image, Popover, Tooltip, message } from "antd";
+import {
+  Button,
+  Checkbox,
+  Dropdown,
+  Image,
+  Popover,
+  Tooltip,
+  message,
+} from "antd";
 import {
   ChevronDown,
   FolderOpen,
@@ -17,7 +19,11 @@ import {
 } from "lucide-react";
 import EmojiPicker, { EmojiStyle } from "emoji-picker-react";
 import type { User } from "@chat/shared";
-import { readClipboardText, writeClipboardImage, writeClipboardText } from "../../../services/clipboard";
+import {
+  readClipboardText,
+  writeClipboardImage,
+  writeClipboardText,
+} from "../../../services/clipboard";
 import { formatFileSize } from "../../../utils/format";
 import {
   composerCaretAttribute,
@@ -44,12 +50,16 @@ export function mentionPanelPosition(
 ) {
   const left = Math.min(
     Math.max(caret.left, mentionPanelMargin),
-    Math.max(viewportWidth - mentionPanelWidth - mentionPanelMargin, mentionPanelMargin),
+    Math.max(
+      viewportWidth - mentionPanelWidth - mentionPanelMargin,
+      mentionPanelMargin,
+    ),
   );
   const spaceBelow = viewportHeight - caret.bottom;
-  const top = spaceBelow >= mentionPanelHeight + mentionPanelMargin
-    ? caret.bottom + 6
-    : Math.max(mentionPanelMargin, caret.top - mentionPanelHeight - 6);
+  const top =
+    spaceBelow >= mentionPanelHeight + mentionPanelMargin
+      ? caret.bottom + 6
+      : Math.max(mentionPanelMargin, caret.top - mentionPanelHeight - 6);
   return { left, top };
 }
 
@@ -69,10 +79,25 @@ export interface RichTextEditorProps {
   showFilePicker?: boolean;
   placeholder?: string;
   editorClassName?: string;
+  sendKey?: "enter" | "ctrlEnter";
+}
+
+export function shouldSubmitMessage(
+  event: Pick<
+    KeyboardEvent,
+    "key" | "shiftKey" | "ctrlKey" | "metaKey" | "isComposing"
+  >,
+  sendKey: "enter" | "ctrlEnter",
+) {
+  if (event.key !== "Enter" || event.isComposing || event.shiftKey)
+    return false;
+  return sendKey === "enter"
+    ? !event.ctrlKey && !event.metaKey
+    : event.ctrlKey || event.metaKey;
 }
 
 const popupContainer = (trigger: HTMLElement) =>
-  trigger.closest("[data-chat-root]") as HTMLElement || document.body;
+  (trigger.closest("[data-chat-root]") as HTMLElement) || document.body;
 
 function looksLikeClipboardTemporaryFile(file: File) {
   const basename = file.name.replace(/\.[^.]+$/, "");
@@ -81,7 +106,9 @@ function looksLikeClipboardTemporaryFile(file: File) {
 
 function fileExtension(name: string) {
   const extension = name.split(".").pop();
-  return extension && extension !== name ? extension.toUpperCase().slice(0, 6) : "FILE";
+  return extension && extension !== name
+    ? extension.toUpperCase().slice(0, 6)
+    : "FILE";
 }
 
 /** 去除 Windows 截图剪贴板附带的无类型哈希临时文件。 */
@@ -93,8 +120,10 @@ export function clipboardFiles(transfer: DataTransfer) {
   const files = itemFiles.length ? itemFiles : Array.from(transfer.files || []);
   const images = files.filter((file) => file.type.startsWith("image/"));
   if (!images.length) return files;
-  return files.filter((file) =>
-    file.type.startsWith("image/") || !looksLikeClipboardTemporaryFile(file));
+  return files.filter(
+    (file) =>
+      file.type.startsWith("image/") || !looksLikeClipboardTemporaryFile(file),
+  );
 }
 
 function decorateAttachmentNode(node: HTMLElement, item: DraftAttachmentItem) {
@@ -117,9 +146,8 @@ function decorateAttachmentNode(node: HTMLElement, item: DraftAttachmentItem) {
 
     const dimensions = document.createElement("small");
     dimensions.className = "composer-attachment-dimensions";
-    dimensions.textContent = meta.width && meta.height
-      ? `${meta.width}×${meta.height}`
-      : "图片";
+    dimensions.textContent =
+      meta.width && meta.height ? `${meta.width}×${meta.height}` : "图片";
     node.append(dimensions);
   } else {
     const icon = document.createElement("span");
@@ -147,7 +175,8 @@ function decorateAttachmentNode(node: HTMLElement, item: DraftAttachmentItem) {
 
 function ensureCaretAnchorAfter(node: HTMLElement) {
   const existing = node.nextElementSibling;
-  if (existing?.hasAttribute(composerCaretAttribute)) return existing as HTMLElement;
+  if (existing?.hasAttribute(composerCaretAttribute))
+    return existing as HTMLElement;
   const anchor = document.createElement("span");
   anchor.setAttribute(composerCaretAttribute, "true");
   anchor.className = "composer-caret-anchor";
@@ -189,6 +218,7 @@ export default function RichTextEditor({
   showFilePicker = true,
   placeholder = "输入消息，Enter 发送，Shift + Enter 换行",
   editorClassName = "min-h-[94px]",
+  sendKey = "enter",
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const savedRange = useRef<Range | null>(null);
@@ -209,8 +239,11 @@ export default function RichTextEditor({
   const previewAttachment = previewAttachmentId
     ? attachmentMap.get(previewAttachmentId)
     : undefined;
-  const filteredMentionUsers = mentionUsers.filter((user) =>
-    !mentionQuery || user.name.toLowerCase().includes(mentionQuery.toLowerCase()));
+  const filteredMentionUsers = mentionUsers.filter(
+    (user) =>
+      !mentionQuery ||
+      user.name.toLowerCase().includes(mentionQuery.toLowerCase()),
+  );
   const mentionOptions = [
     { all: true, label: "所有人" },
     ...filteredMentionUsers.map((user) => ({
@@ -235,13 +268,13 @@ export default function RichTextEditor({
     saveSelection();
     setScreenshotBusy(true);
     try {
-      const result = await window.desktop.screenshot.capture({ hideMainWindow });
+      const result = await window.desktop.screenshot.capture({
+        hideMainWindow,
+      });
       if (result.canceled) return;
-      const file = new File(
-        [new Uint8Array(result.data)],
-        result.name,
-        { type: result.mimeType },
-      );
+      const file = new File([new Uint8Array(result.data)], result.name, {
+        type: result.mimeType,
+      });
       onPasteFiles([file], "screenshot");
     } catch (error) {
       message.error(error instanceof Error ? error.message : "截图失败");
@@ -252,12 +285,15 @@ export default function RichTextEditor({
 
   useEffect(() => {
     if (!showFilePicker) return;
-    void window.desktop?.screenshot.getPreferences().then((preferences) => {
-      setHideMainWindow(preferences.hideMainWindow);
-      if (!preferences.shortcutAvailable) {
-        message.warning("截图快捷键 Ctrl/Cmd + Shift + G 已被其他应用占用");
-      }
-    }).catch(() => undefined);
+    void window.desktop?.screenshot
+      .getPreferences()
+      .then((preferences) => {
+        setHideMainWindow(preferences.hideMainWindow);
+        if (!preferences.shortcutAvailable) {
+          message.warning("截图快捷键 Ctrl/Cmd + Shift + G 已被其他应用占用");
+        }
+      })
+      .catch(() => undefined);
   }, [showFilePicker]);
 
   useEffect(() => {
@@ -273,7 +309,10 @@ export default function RichTextEditor({
     if (!editor || !selection) return;
     editor.focus();
     selection.removeAllRanges();
-    if (savedRange.current && editor.contains(savedRange.current.commonAncestorContainer)) {
+    if (
+      savedRange.current &&
+      editor.contains(savedRange.current.commonAncestorContainer)
+    ) {
       selection.addRange(savedRange.current);
       return;
     }
@@ -288,7 +327,9 @@ export default function RichTextEditor({
     const selection = window.getSelection();
     if (!editor || !selection?.rangeCount) return "";
     const range = selection.getRangeAt(0);
-    return editor.contains(range.commonAncestorContainer) ? selection.toString() : "";
+    return editor.contains(range.commonAncestorContainer)
+      ? selection.toString()
+      : "";
   }
 
   function emitChange() {
@@ -299,16 +340,24 @@ export default function RichTextEditor({
   }
 
   function updateMentionQuery() {
-    if (!mentionOpen || !mentionStartRange.current || !savedRange.current) return;
+    if (!mentionOpen || !mentionStartRange.current || !savedRange.current)
+      return;
     try {
       const range = document.createRange();
       range.setStart(
         mentionStartRange.current.startContainer,
         mentionStartRange.current.startOffset,
       );
-      range.setEnd(savedRange.current.endContainer, savedRange.current.endOffset);
+      range.setEnd(
+        savedRange.current.endContainer,
+        savedRange.current.endOffset,
+      );
       const text = range.toString();
-      if (!text.startsWith("@") || /\s/.test(text.slice(1)) || text.length > 40) {
+      if (
+        !text.startsWith("@") ||
+        /\s/.test(text.slice(1)) ||
+        text.length > 40
+      ) {
         setMentionOpen(false);
         return;
       }
@@ -319,7 +368,11 @@ export default function RichTextEditor({
     }
   }
 
-  function insertMention(mention: { userId?: number; label: string; all?: boolean }) {
+  function insertMention(mention: {
+    userId?: number;
+    label: string;
+    all?: boolean;
+  }) {
     const editor = editorRef.current;
     const current = savedRange.current;
     const start = mentionStartRange.current;
@@ -355,9 +408,10 @@ export default function RichTextEditor({
     const selection = window.getSelection();
     if (!selection?.rangeCount) return;
     const range = selection.getRangeAt(0);
-    const rangeElement = range.startContainer instanceof HTMLElement
-      ? range.startContainer
-      : range.startContainer.parentElement;
+    const rangeElement =
+      range.startContainer instanceof HTMLElement
+        ? range.startContainer
+        : range.startContainer.parentElement;
     const currentAnchor = rangeElement?.closest<HTMLElement>(
       `[${composerCaretAttribute}]`,
     );
@@ -387,36 +441,42 @@ export default function RichTextEditor({
     }
 
     const validIds = new Set(attachments.map((item) => item.meta.id));
-    editor.querySelectorAll<HTMLElement>(`[${draftAttachmentAttribute}]`).forEach((node) => {
-      const id = node.getAttribute(draftAttachmentAttribute) || "";
-      const item = attachmentMap.get(id);
-      if (!item) {
-        node.remove();
-        return;
-      }
-      if (!node.classList.contains("composer-attachment-node")) {
-        decorateAttachmentNode(node, item);
-      }
-      ensureCaretAnchorAfter(node);
-    });
-    editor.querySelectorAll<HTMLElement>(
-      `[${mentionUserIdAttribute}], [${mentionAllAttribute}]`,
-    ).forEach((node) => {
-      const all = node.hasAttribute(mentionAllAttribute);
-      const userId = Number(node.getAttribute(mentionUserIdAttribute));
-      const label = all
-        ? "所有人"
-        : String(node.getAttribute(mentionLabelAttribute) || "");
-      if (!all && (!Number.isSafeInteger(userId) || userId <= 0 || !label)) {
-        node.replaceWith(document.createTextNode(node.textContent || ""));
-        return;
-      }
-      decorateMentionNode(node, { all, userId, label });
-      ensureCaretAnchorAfter(node);
-    });
+    editor
+      .querySelectorAll<HTMLElement>(`[${draftAttachmentAttribute}]`)
+      .forEach((node) => {
+        const id = node.getAttribute(draftAttachmentAttribute) || "";
+        const item = attachmentMap.get(id);
+        if (!item) {
+          node.remove();
+          return;
+        }
+        if (!node.classList.contains("composer-attachment-node")) {
+          decorateAttachmentNode(node, item);
+        }
+        ensureCaretAnchorAfter(node);
+      });
+    editor
+      .querySelectorAll<HTMLElement>(
+        `[${mentionUserIdAttribute}], [${mentionAllAttribute}]`,
+      )
+      .forEach((node) => {
+        const all = node.hasAttribute(mentionAllAttribute);
+        const userId = Number(node.getAttribute(mentionUserIdAttribute));
+        const label = all
+          ? "所有人"
+          : String(node.getAttribute(mentionLabelAttribute) || "");
+        if (!all && (!Number.isSafeInteger(userId) || userId <= 0 || !label)) {
+          node.replaceWith(document.createTextNode(node.textContent || ""));
+          return;
+        }
+        decorateMentionNode(node, { all, userId, label });
+        ensureCaretAnchorAfter(node);
+      });
 
     const currentIds = new Set(
-      Array.from(editor.querySelectorAll<HTMLElement>(`[${draftAttachmentAttribute}]`))
+      Array.from(
+        editor.querySelectorAll<HTMLElement>(`[${draftAttachmentAttribute}]`),
+      )
         .map((node) => node.getAttribute(draftAttachmentAttribute) || "")
         .filter((id) => validIds.has(id)),
     );
@@ -429,7 +489,11 @@ export default function RichTextEditor({
 
   function insertText(text: string, html?: string) {
     restoreSelection();
-    document.execCommand(html ? "insertHTML" : "insertText", false, html || text);
+    document.execCommand(
+      html ? "insertHTML" : "insertText",
+      false,
+      html || text,
+    );
     emitChange();
   }
 
@@ -437,8 +501,9 @@ export default function RichTextEditor({
     const editor = editorRef.current;
     if (!editor) return;
     const present = new Set(
-      Array.from(editor.querySelectorAll<HTMLElement>(`[${draftAttachmentAttribute}]`))
-        .map((node) => node.getAttribute(draftAttachmentAttribute) || ""),
+      Array.from(
+        editor.querySelectorAll<HTMLElement>(`[${draftAttachmentAttribute}]`),
+      ).map((node) => node.getAttribute(draftAttachmentAttribute) || ""),
     );
     attachments.forEach((item) => {
       if (!present.has(item.meta.id)) onRemoveAttachment(item.meta.id);
@@ -450,8 +515,10 @@ export default function RichTextEditor({
     const node = editor?.querySelector<HTMLElement>(
       `[${draftAttachmentAttribute}="${CSS.escape(id)}"]`,
     );
-    const anchor = node?.nextElementSibling?.hasAttribute(composerCaretAttribute)
-      ? node.nextElementSibling as HTMLElement
+    const anchor = node?.nextElementSibling?.hasAttribute(
+      composerCaretAttribute,
+    )
+      ? (node.nextElementSibling as HTMLElement)
       : undefined;
     if (anchor) {
       const text = (anchor.textContent || "").replace(/\u200b/g, "");
@@ -496,11 +563,11 @@ export default function RichTextEditor({
         if (!imageType) continue;
         const blob = await item.getType(imageType);
         const extension = imageType.split("/")[1] || "png";
-        imageFiles.push(new File(
-          [blob],
-          `剪贴板图片-${Date.now()}.${extension}`,
-          { type: imageType },
-        ));
+        imageFiles.push(
+          new File([blob], `剪贴板图片-${Date.now()}.${extension}`, {
+            type: imageType,
+          }),
+        );
       }
       if (imageFiles.length) {
         onPasteFiles(imageFiles, "clipboard");
@@ -563,47 +630,55 @@ export default function RichTextEditor({
   const contextAttachment = contextAttachmentId
     ? attachmentMap.get(contextAttachmentId)
     : undefined;
-  const attachmentMenu = contextAttachment ? {
-    items: [
-      ...(contextAttachment.meta.image ? [
-        {
-          key: "preview",
-          label: "查看图片",
-          onClick: () => setPreviewAttachmentId(contextAttachment.meta.id),
-        },
-        {
-          key: "copy-image",
-          label: "复制图片",
-          onClick: async () => {
-            const blob = await fetch(contextAttachment.meta.previewUrl)
-              .then((response) => response.blob());
-            await writeClipboardImage(blob);
+  const attachmentMenu = contextAttachment
+    ? {
+        items: [
+          ...(contextAttachment.meta.image
+            ? [
+                {
+                  key: "preview",
+                  label: "查看图片",
+                  onClick: () =>
+                    setPreviewAttachmentId(contextAttachment.meta.id),
+                },
+                {
+                  key: "copy-image",
+                  label: "复制图片",
+                  onClick: async () => {
+                    const blob = await fetch(
+                      contextAttachment.meta.previewUrl,
+                    ).then((response) => response.blob());
+                    await writeClipboardImage(blob);
+                  },
+                },
+              ]
+            : [
+                {
+                  key: "open",
+                  label: "打开文件",
+                  icon: <FolderOpen size={14} />,
+                  onClick: () =>
+                    void window.desktop?.attachment.open({
+                      draftId: contextAttachment.meta.id,
+                    }),
+                },
+                {
+                  key: "copy-name",
+                  label: "复制文件名",
+                  onClick: () =>
+                    void writeClipboardText(contextAttachment.meta.name),
+                },
+              ]),
+          { type: "divider" as const },
+          {
+            key: "remove",
+            label: "从草稿移除",
+            danger: true,
+            onClick: () => removeAttachment(contextAttachment.meta.id),
           },
-        },
-      ] : [
-        {
-          key: "open",
-          label: "打开文件",
-          icon: <FolderOpen size={14} />,
-          onClick: () => void window.desktop?.attachment.open({
-            draftId: contextAttachment.meta.id,
-          }),
-        },
-        {
-          key: "copy-name",
-          label: "复制文件名",
-          onClick: () => void writeClipboardText(contextAttachment.meta.name),
-        },
-      ]),
-      { type: "divider" as const },
-      {
-        key: "remove",
-        label: "从草稿移除",
-        danger: true,
-        onClick: () => removeAttachment(contextAttachment.meta.id),
-      },
-    ],
-  } : editorMenu;
+        ],
+      }
+    : editorMenu;
 
   const emojiPanel = (
     <EmojiPicker
@@ -622,7 +697,12 @@ export default function RichTextEditor({
       <div className="flex h-9 items-center gap-1 border-b border-[var(--chat-line)] pb-1">
         <Popover content={emojiPanel} trigger="click" placement="topLeft">
           <Tooltip title="表情">
-            <Button type="text" size="small" disabled={disabled} icon={<Smile size={19} />} />
+            <Button
+              type="text"
+              size="small"
+              disabled={disabled}
+              icon={<Smile size={19} />}
+            />
           </Tooltip>
         </Popover>
         <Tooltip title="选择图片">
@@ -672,7 +752,9 @@ export default function RichTextEditor({
                         <span className="flex min-w-48 items-center justify-between gap-5">
                           <span>截图</span>
                           <span className="text-xs text-[var(--chat-muted)]">
-                            {navigator.platform.includes("Mac") ? "⌘⇧G" : "Ctrl+Shift+G"}
+                            {navigator.platform.includes("Mac")
+                              ? "⌘⇧G"
+                              : "Ctrl+Shift+G"}
                           </span>
                         </span>
                       ),
@@ -687,13 +769,17 @@ export default function RichTextEditor({
                           onChange={(event) => {
                             const checked = event.target.checked;
                             setHideMainWindow(checked);
-                            void window.desktop?.screenshot.setPreferences({
-                              hideMainWindow: checked,
-                            }).catch((error: unknown) => {
-                              message.error(error instanceof Error
-                                ? error.message
-                                : "无法保存截图设置");
-                            });
+                            void window.desktop?.screenshot
+                              .setPreferences({
+                                hideMainWindow: checked,
+                              })
+                              .catch((error: unknown) => {
+                                message.error(
+                                  error instanceof Error
+                                    ? error.message
+                                    : "无法保存截图设置",
+                                );
+                              });
                           }}
                         >
                           隐藏聊天窗口
@@ -739,7 +825,8 @@ export default function RichTextEditor({
             onMouseUp={saveSelection}
             onClick={(event) => {
               const target = event.target as HTMLElement;
-              const removeId = target.closest<HTMLElement>("[data-remove-draft-attachment]")
+              const removeId = target
+                .closest<HTMLElement>("[data-remove-draft-attachment]")
                 ?.getAttribute("data-remove-draft-attachment");
               if (removeId) {
                 event.preventDefault();
@@ -749,10 +836,12 @@ export default function RichTextEditor({
               const attachmentNode = target.closest<HTMLElement>(
                 `[${draftAttachmentAttribute}]`,
               );
-              editorRef.current?.querySelectorAll(".is-selected")
+              editorRef.current
+                ?.querySelectorAll(".is-selected")
                 .forEach((node) => node.classList.remove("is-selected"));
               if (attachmentNode) {
-                const id = attachmentNode.getAttribute(draftAttachmentAttribute) || "";
+                const id =
+                  attachmentNode.getAttribute(draftAttachmentAttribute) || "";
                 attachmentNode.classList.add("is-selected");
                 setSelectedAttachmentId(id);
               } else {
@@ -767,7 +856,8 @@ export default function RichTextEditor({
               if (!id) return;
               const item = attachmentMap.get(id);
               if (item?.meta.image) setPreviewAttachmentId(id);
-              else if (item) void window.desktop?.attachment.open({ draftId: id });
+              else if (item)
+                void window.desktop?.attachment.open({ draftId: id });
             }}
             onContextMenuCapture={(event) => {
               const id = (event.target as HTMLElement)
@@ -793,10 +883,17 @@ export default function RichTextEditor({
                 setMentionOpen(false);
                 return;
               }
-              if (mentionsEnabled && event.key === "@" && !event.ctrlKey && !event.metaKey) {
+              if (
+                mentionsEnabled &&
+                event.key === "@" &&
+                !event.ctrlKey &&
+                !event.metaKey
+              ) {
                 const selection = window.getSelection();
                 if (selection?.rangeCount) {
-                  mentionStartRange.current = selection.getRangeAt(0).cloneRange();
+                  mentionStartRange.current = selection
+                    .getRangeAt(0)
+                    .cloneRange();
                   window.requestAnimationFrame(() => {
                     saveSelection();
                     const range = window.getSelection()?.rangeCount
@@ -804,11 +901,13 @@ export default function RichTextEditor({
                       : undefined;
                     if (range) {
                       const caret = range.getBoundingClientRect();
-                      setMentionPosition(mentionPanelPosition(
-                        caret,
-                        window.innerWidth,
-                        window.innerHeight,
-                      ));
+                      setMentionPosition(
+                        mentionPanelPosition(
+                          caret,
+                          window.innerWidth,
+                          window.innerHeight,
+                        ),
+                      );
                     }
                     setMentionQuery("");
                     setMentionIndex(0);
@@ -823,16 +922,31 @@ export default function RichTextEditor({
               }
               if (mentionOpen && event.key === "ArrowUp") {
                 event.preventDefault();
-                setMentionIndex((index) =>
-                  (index - 1 + mentionOptions.length) % mentionOptions.length);
+                setMentionIndex(
+                  (index) =>
+                    (index - 1 + mentionOptions.length) % mentionOptions.length,
+                );
                 return;
               }
               if (mentionOpen && event.key === "Enter") {
                 event.preventDefault();
-                insertMention(mentionOptions[mentionIndex] || mentionOptions[0]);
+                insertMention(
+                  mentionOptions[mentionIndex] || mentionOptions[0],
+                );
                 return;
               }
-              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+              if (
+                shouldSubmitMessage(
+                  {
+                    key: event.key,
+                    shiftKey: event.shiftKey,
+                    ctrlKey: event.ctrlKey,
+                    metaKey: event.metaKey,
+                    isComposing: event.nativeEvent.isComposing,
+                  },
+                  sendKey,
+                )
+              ) {
                 event.preventDefault();
                 onSubmit();
               }
@@ -842,53 +956,66 @@ export default function RichTextEditor({
             aria-multiline="true"
           />
         </Dropdown>
-        {mentionsEnabled && mentionOpen && createPortal((
-          <div
-            className="fixed z-[2100] w-56 overflow-hidden rounded-lg border border-[var(--chat-line)] bg-white py-1 shadow-[0_12px_34px_rgba(31,43,58,.18)]"
-            style={mentionPosition}
-          >
-            <button
-              type="button"
-              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[#eef2f6] ${
-                mentionIndex === 0 ? "bg-[#eef2f6]" : ""
-              }`}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => insertMention({ all: true, label: "所有人" })}
+        {mentionsEnabled &&
+          mentionOpen &&
+          createPortal(
+            <div
+              className="fixed z-[2100] w-56 overflow-hidden rounded-lg border border-[var(--chat-line)] bg-[var(--app-surface)] py-1 shadow-[var(--app-shadow-float)]"
+              style={mentionPosition}
             >
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--chat-primary-soft)] text-xs text-[var(--chat-primary)]">@</span>
-              <span>所有人</span>
-            </button>
-            <div className="max-h-48 overflow-y-auto">
-              {filteredMentionUsers.map((user, index) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[#eef2f6] ${
-                    mentionIndex === index + 1 ? "bg-[#eef2f6]" : ""
-                  }`}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => insertMention({ userId: user.id, label: user.name })}
-                >
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-[#e8eef7] text-xs text-[#526b84]">
-                    {user.avatar || user.name.slice(0, 1)}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">{user.name}</span>
-                </button>
-              ))}
-              {!filteredMentionUsers.length && (
-                <div className="px-3 py-3 text-center text-xs text-[var(--chat-text-tertiary)]">没有匹配成员</div>
-              )}
-            </div>
-          </div>
-        ), document.body)}
+              <button
+                type="button"
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--app-surface-muted)] ${
+                  mentionIndex === 0 ? "bg-[var(--app-surface-muted)]" : ""
+                }`}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => insertMention({ all: true, label: "所有人" })}
+              >
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--chat-primary-soft)] text-xs text-[var(--chat-primary)]">
+                  @
+                </span>
+                <span>所有人</span>
+              </button>
+              <div className="max-h-48 overflow-y-auto">
+                {filteredMentionUsers.map((user, index) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--app-surface-muted)] ${
+                      mentionIndex === index + 1
+                        ? "bg-[var(--app-surface-muted)]"
+                        : ""
+                    }`}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() =>
+                      insertMention({ userId: user.id, label: user.name })
+                    }
+                  >
+                    <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--app-primary-soft)] text-xs text-[var(--app-primary)]">
+                      {user.avatar || user.name.slice(0, 1)}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{user.name}</span>
+                  </button>
+                ))}
+                {!filteredMentionUsers.length && (
+                  <div className="px-3 py-3 text-center text-xs text-[var(--chat-text-tertiary)]">
+                    没有匹配成员
+                  </div>
+                )}
+              </div>
+            </div>,
+            document.body,
+          )}
       </div>
 
       {previewAttachment?.meta.image && (
         <Image.PreviewGroup
-          items={[{
-            src: previewAttachment.meta.previewUrl,
-            alt: previewAttachment.meta.name,
-          }]}
+          items={[
+            {
+              src: previewAttachment.meta.previewUrl,
+              alt: previewAttachment.meta.name,
+            },
+          ]}
           preview={{
             open: true,
             onOpenChange: (open) => {

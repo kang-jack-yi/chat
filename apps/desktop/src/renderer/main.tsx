@@ -2,8 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ConfigProvider } from "antd";
-import zhCN from "antd/locale/zh_CN";
 import App from "./App";
 import { ROUTES } from "./constants/routes";
 import { setUnauthorizedHandler } from "./services/request";
@@ -13,7 +11,9 @@ import { useSyncStore } from "./stores/sync-store";
 import { applyHostAccessToken, clearAccessToken } from "./services/token";
 import DesktopBootstrap from "./providers/DesktopBootstrap";
 import ServerSettingsModal from "./components/ServerSettingsModal";
-import { appTheme } from "./styles/theme";
+import SettingsCenterModal from "./components/SettingsCenterModal";
+import PreferencesRuntime from "./providers/PreferencesRuntime";
+import AppThemeProvider from "./providers/AppThemeProvider";
 import "antd/dist/reset.css";
 import "./styles/tailwind.css";
 import "./styles/global.less";
@@ -43,18 +43,18 @@ window.desktop?.auth.onRequired(handleUnauthorized);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ConfigProvider
-      locale={zhCN}
-      theme={appTheme}
-    >
-      <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
-          <DesktopBootstrap>
-            <App />
-            <ServerSettingsModal />
-          </DesktopBootstrap>
-        </QueryClientProvider>
-      </BrowserRouter>
-    </ConfigProvider>
+    <PreferencesRuntime>
+      <AppThemeProvider>
+        <BrowserRouter>
+          <QueryClientProvider client={queryClient}>
+            <DesktopBootstrap>
+              <App />
+              <ServerSettingsModal />
+              <SettingsCenterModal />
+            </DesktopBootstrap>
+          </QueryClientProvider>
+        </BrowserRouter>
+      </AppThemeProvider>
+    </PreferencesRuntime>
   </StrictMode>,
 );

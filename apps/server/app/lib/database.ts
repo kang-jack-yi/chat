@@ -13,6 +13,8 @@ export interface ChatDatabase {
   User: AnyModel;
   Conversation: AnyModel;
   ConversationMember: AnyModel;
+  ConversationBot: AnyModel;
+  BotMedia: AnyModel;
   Message: AnyModel;
   MessageUserState: AnyModel;
   Attachment: AnyModel;
@@ -49,6 +51,12 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     name: { type: DataTypes.STRING(40), allowNull: false },
     title: { type: DataTypes.STRING(60), allowNull: false, defaultValue: "" },
     avatar: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "" },
+    avatarFile: { type: DataTypes.STRING(500), allowNull: true },
+    email: { type: DataTypes.STRING(120), allowNull: false, defaultValue: "" },
+    bio: { type: DataTypes.STRING(300), allowNull: false, defaultValue: "" },
+    presenceStatus: { type: DataTypes.STRING(16), allowNull: false, defaultValue: "available" },
+    statusText: { type: DataTypes.STRING(80), allowNull: false, defaultValue: "" },
+    statusExpiresAt: { type: DataTypes.DATE, allowNull: true },
     role: { type: DataTypes.ENUM("owner", "admin", "member"), allowNull: false, defaultValue: "member" },
     status: { type: DataTypes.ENUM("active", "disabled"), allowNull: false, defaultValue: "active" },
   }, { ...common, tableName: "users", indexes: [{ fields: ["company_id", "department_id"] }] });
@@ -88,11 +96,39 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     indexes: [{ unique: true, fields: ["conversation_id", "user_id"] }, { fields: ["user_id", "left_at"] }],
   });
 
+  const ConversationBot = sequelize.define("ConversationBot", {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    companyId: { type: DataTypes.INTEGER, allowNull: false },
+    conversationId: { type: DataTypes.INTEGER, allowNull: false },
+    name: { type: DataTypes.STRING(40), allowNull: false },
+    avatar: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "" },
+    createdBy: { type: DataTypes.INTEGER, allowNull: false },
+    secret: { type: DataTypes.STRING(160), allowNull: false },
+    secretTail: { type: DataTypes.STRING(12), allowNull: false },
+    deletedAt: { type: DataTypes.DATE, allowNull: true },
+  }, {
+    ...common,
+    tableName: "conversation_bots",
+    indexes: [{ fields: ["company_id", "conversation_id", "deleted_at"] }],
+  });
+
+  const BotMedia = sequelize.define("BotMedia", {
+    id: { type: DataTypes.STRING(64), primaryKey: true },
+    botId: { type: DataTypes.INTEGER, allowNull: false },
+    attachmentId: { type: DataTypes.INTEGER, allowNull: false },
+    type: { type: DataTypes.ENUM("file"), allowNull: false },
+    expiresAt: { type: DataTypes.DATE, allowNull: false },
+  }, { ...common, tableName: "bot_media", indexes: [{ fields: ["bot_id", "expires_at"] }] });
+
   const Message = sequelize.define("Message", {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     companyId: { type: DataTypes.INTEGER, allowNull: false },
     conversationId: { type: DataTypes.INTEGER, allowNull: false },
-    senderId: { type: DataTypes.INTEGER, allowNull: false },
+    senderId: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    senderType: { type: DataTypes.ENUM("user", "bot"), allowNull: false, defaultValue: "user" },
+    senderBotId: { type: DataTypes.INTEGER, allowNull: true },
+    senderName: { type: DataTypes.STRING(40), allowNull: false, defaultValue: "" },
+    senderAvatar: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "" },
     clientId: { type: DataTypes.STRING(80), allowNull: false, unique: true },
     kind: { type: DataTypes.ENUM("user", "system", "announcement"), allowNull: false, defaultValue: "user" },
     schemaVersion: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
@@ -217,6 +253,8 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     User,
     Conversation,
     ConversationMember,
+    ConversationBot,
+    BotMedia,
     Message,
     MessageUserState,
     Attachment,
@@ -251,6 +289,25 @@ export async function initializeDatabase(app: Application): Promise<ChatDatabase
     where: { createdAt: { [Op.lt]: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) } },
   });
   const queryInterface = sequelize.getQueryInterface();
+  const userColumns = await queryInterface.describeTable("users");
+  if (!userColumns.avatar_file) {
+    await queryInterface.addColumn("users", "avatar_file", { type: DataTypes.STRING(500), allowNull: true });
+  }
+  if (!userColumns.email) {
+    await queryInterface.addColumn("users", "email", { type: DataTypes.STRING(120), allowNull: false, defaultValue: "" });
+  }
+  if (!userColumns.bio) {
+    await queryInterface.addColumn("users", "bio", { type: DataTypes.STRING(300), allowNull: false, defaultValue: "" });
+  }
+  if (!userColumns.presence_status) {
+    await queryInterface.addColumn("users", "presence_status", { type: DataTypes.STRING(16), allowNull: false, defaultValue: "available" });
+  }
+  if (!userColumns.status_text) {
+    await queryInterface.addColumn("users", "status_text", { type: DataTypes.STRING(80), allowNull: false, defaultValue: "" });
+  }
+  if (!userColumns.status_expires_at) {
+    await queryInterface.addColumn("users", "status_expires_at", { type: DataTypes.DATE, allowNull: true });
+  }
   const conversationColumns = await queryInterface.describeTable("conversations");
   if (!conversationColumns.announcement) {
     await queryInterface.addColumn("conversations", "announcement", {
@@ -292,6 +349,30 @@ export async function initializeDatabase(app: Application): Promise<ChatDatabase
   }
   if (!membershipColumns.invited_history_message_ids) {
     await queryInterface.addColumn("conversation_members", "invited_history_message_ids", { type: DataTypes.JSON, allowNull: true });
+  }
+  const messageColumns = await queryInterface.describeTable("messages");
+  if (!messageColumns.sender_type) {
+    await queryInterface.addColumn("messages", "sender_type", {
+      type: DataTypes.ENUM("user", "bot"),
+      allowNull: false,
+      defaultValue: "user",
+    });
+  }
+  if (!messageColumns.sender_bot_id) {
+    await queryInterface.addColumn("messages", "sender_bot_id", {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    });
+  }
+  if (!messageColumns.sender_name) {
+    await queryInterface.addColumn("messages", "sender_name", {
+      type: DataTypes.STRING(40), allowNull: false, defaultValue: "",
+    });
+  }
+  if (!messageColumns.sender_avatar) {
+    await queryInterface.addColumn("messages", "sender_avatar", {
+      type: DataTypes.STRING(20), allowNull: false, defaultValue: "",
+    });
   }
   app.chatDb = db;
   await seedDemoData(db);

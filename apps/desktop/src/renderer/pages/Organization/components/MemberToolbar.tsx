@@ -26,7 +26,7 @@ export default function MemberToolbar({
   );
 
   return (
-    <div className="border-b border-[var(--app-line)] bg-white px-4 py-3">
+    <div className="border-b border-[var(--app-line)] bg-[var(--app-surface)] px-4 py-3">
       <div className="flex flex-wrap items-center gap-2">
         <Input
           allowClear

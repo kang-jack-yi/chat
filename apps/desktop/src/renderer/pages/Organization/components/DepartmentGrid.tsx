@@ -77,7 +77,7 @@ export default function DepartmentGrid({
 
   return (
     <div className="grid min-h-[460px] grid-cols-[minmax(250px,0.8fr)_minmax(340px,1.2fr)] max-lg:grid-cols-[250px_minmax(0,1fr)]">
-      <section className="min-w-0 border-r border-[var(--app-line)] bg-white p-4">
+      <section className="min-w-0 border-r border-[var(--app-line)] bg-[var(--app-surface)] p-4">
         <div className="mb-3 flex items-center justify-between px-1">
           <strong className="text-sm text-[var(--app-text)]">部门列表</strong>
           <span className="text-xs text-[var(--app-text-tertiary)]">{departments.length} 个部门</span>
@@ -119,7 +119,7 @@ export default function DepartmentGrid({
               </div>
             </div>
 
-            <div className="my-4 grid grid-cols-3 overflow-hidden rounded-xl border border-[var(--app-line)] bg-white">
+            <div className="my-4 grid grid-cols-3 overflow-hidden rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)]">
               <div className="px-4 py-3">
                 <span className="block text-xs text-[var(--app-text-tertiary)]">直属成员</span>
                 <strong className="mt-1 block text-lg text-[var(--app-text)]">{directMembers.length}</strong>
@@ -135,7 +135,7 @@ export default function DepartmentGrid({
             </div>
 
             <div className="grid gap-4">
-              <div className="rounded-xl border border-[var(--app-line)] bg-white p-4">
+              <div className="rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <strong className="flex items-center gap-2 text-sm text-[var(--app-text)]"><Users size={15} className="text-[var(--app-primary)]" />直属成员</strong>
                   <span className="text-xs text-[var(--app-text-tertiary)]">{directMembers.length} 人</span>
@@ -144,7 +144,7 @@ export default function DepartmentGrid({
                   <div className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
                     {directMembers.map((user) => (
                       <div key={user.id} className="flex min-w-0 items-center gap-2.5 rounded-lg bg-[var(--app-surface-soft)] px-3 py-2">
-                        <Avatar text={user.avatar} online={user.online} />
+                        <Avatar text={user.avatar} src={user.avatarUrl} online={user.online} />
                         <span className="min-w-0">
                           <strong className="block truncate text-xs font-medium text-[var(--app-text)]">{user.name}</strong>
                           <small className="block truncate text-[10px] text-[var(--app-text-tertiary)]">{user.title || "未设置职位"}</small>
@@ -157,7 +157,7 @@ export default function DepartmentGrid({
                 )}
               </div>
 
-              <div className="rounded-xl border border-[var(--app-line)] bg-white p-4">
+              <div className="rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <strong className="text-sm text-[var(--app-text)]">下级部门</strong>
                   <span className="text-xs text-[var(--app-text-tertiary)]">{children.length} 个</span>
@@ -169,7 +169,7 @@ export default function DepartmentGrid({
                         key={department.id}
                         type="button"
                         onClick={() => setSelectedId(department.id)}
-                        className="flex items-center gap-2 rounded-lg border border-[var(--app-line)] bg-white px-3 py-2 text-xs text-[var(--app-text-secondary)] hover:border-[#b8d5ff] hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary)]"
+                        className="flex items-center gap-2 rounded-lg border border-[var(--app-line)] bg-[var(--app-surface)] px-3 py-2 text-xs text-[var(--app-text-secondary)] hover:border-[var(--app-primary)] hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary)]"
                       >
                         <Building2 size={14} />{department.name}
                         <span className="text-[var(--app-text-tertiary)]">{department.memberCount || 0} 人</span>

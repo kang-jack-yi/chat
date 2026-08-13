@@ -13,6 +13,8 @@ export default (app: Application) => {
   router.post("/api/auth/refresh", controller.auth.refresh);
   router.post("/api/auth/logout", controller.auth.logout);
   router.get("/api/auth/me", auth, controller.auth.me);
+  router.patch("/api/auth/profile", auth, controller.auth.updateProfile);
+  router.post("/api/auth/profile/avatar", auth, controller.auth.uploadAvatar);
 
   router.get("/api/company", auth, controller.organization.company);
   router.patch("/api/company", auth, controller.organization.updateCompany);
@@ -23,6 +25,7 @@ export default (app: Application) => {
   router.get("/api/users", auth, controller.organization.users);
   router.post("/api/users", auth, controller.organization.createUser);
   router.patch("/api/users/:id", auth, controller.organization.updateUser);
+  router.get("/api/users/:id/avatar", auth, controller.auth.avatar);
   router.post("/api/users/:id/reset-password", auth, controller.organization.resetPassword);
   router.post("/api/users/:id/status", auth, controller.organization.setStatus);
   router.get("/api/contacts", auth, controller.organization.contacts);
@@ -49,6 +52,12 @@ export default (app: Application) => {
   router.post("/api/conversations/:id/owner", auth, controller.chat.transferOwner);
   router.post("/api/conversations/:id/members", auth, controller.chat.addMembers);
   router.delete("/api/conversations/:id/members/:userId", auth, controller.chat.removeMember);
+  router.get("/api/conversations/:id/bots", auth, controller.conversationBot.list);
+  router.post("/api/conversations/:id/bots", auth, controller.conversationBot.create);
+  router.get("/api/conversations/:id/bots/:botId", auth, controller.conversationBot.detail);
+  router.patch("/api/conversations/:id/bots/:botId", auth, controller.conversationBot.update);
+  router.post("/api/conversations/:id/bots/:botId/reset", auth, controller.conversationBot.reset);
+  router.delete("/api/conversations/:id/bots/:botId", auth, controller.conversationBot.remove);
   router.get("/api/conversations/:id/messages", auth, controller.chat.messages);
   router.get("/api/conversations/:id/messages/:messageId/receipts", auth, controller.chat.messageReceipts);
   router.post("/api/conversations/:id/messages", auth, controller.chat.send);
@@ -60,4 +69,7 @@ export default (app: Application) => {
   router.post("/api/uploads", auth, controller.upload.upload);
   router.delete("/api/uploads/:id", auth, controller.upload.remove);
   router.get("/api/files/:id", auth, controller.upload.download);
+
+  router.post("/cgi-bin/webhook/send", controller.conversationBot.sendWebhook);
+  router.post("/cgi-bin/webhook/upload_media", controller.conversationBot.uploadWebhookMedia);
 };

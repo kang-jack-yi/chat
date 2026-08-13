@@ -54,7 +54,7 @@ export default function MemberProfilePopover({
       content={(
         <div className="w-[304px] p-4">
           <div className="flex min-w-0 items-start gap-3">
-            <Avatar text={user.avatar || user.name} online={user.online} />
+            <Avatar text={user.avatar || user.name} src={user.avatarUrl} online={user.online} />
             <div className="min-w-0 flex-1 pt-0.5">
               <div className="flex min-w-0 items-center gap-1.5">
                 <strong className="truncate text-[15px] font-semibold text-[var(--app-text)]">

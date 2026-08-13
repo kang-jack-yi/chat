@@ -194,7 +194,7 @@ export default function DocumentsPage() {
             </button>
           ))}
         </nav>
-        <div className="mt-auto rounded-xl border border-[var(--app-line)] bg-white p-3 shadow-sm">
+        <div className="mt-auto rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-3 shadow-sm">
           <div className="flex items-center gap-2 text-sm font-medium text-[var(--app-text)]">
             <Share2 size={16} className="text-[var(--app-primary)]" />多人实时协作
           </div>
@@ -226,7 +226,7 @@ export default function DocumentsPage() {
             <button
               type="button"
               onClick={() => documents.createDocument.mutate("doc")}
-              className="group flex items-center gap-4 rounded-[14px] border border-[var(--app-line)] bg-white p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[#b9ceff] hover:bg-[var(--app-surface-soft)]"
+              className="group flex items-center gap-4 rounded-[14px] border border-[var(--app-line)] bg-[var(--app-surface)] p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[var(--app-primary)] hover:bg-[var(--app-surface-soft)]"
             >
               <span className="grid size-12 place-items-center rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]"><FilePlus2 size={23} /></span>
               <span><strong className="block text-sm text-[var(--app-text)]">创建在线文档</strong><small className="mt-1 block text-[var(--app-text-secondary)]">撰写方案、会议纪要与知识内容</small></span>
@@ -234,14 +234,14 @@ export default function DocumentsPage() {
             <button
               type="button"
               onClick={() => documents.createDocument.mutate("sheet")}
-              className="group flex items-center gap-4 rounded-[14px] border border-[var(--app-line)] bg-white p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[#b9ceff] hover:bg-[var(--app-surface-soft)]"
+              className="group flex items-center gap-4 rounded-[14px] border border-[var(--app-line)] bg-[var(--app-surface)] p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[var(--app-primary)] hover:bg-[var(--app-surface-soft)]"
             >
               <span className="grid size-12 place-items-center rounded-xl bg-[#e8f8f2] text-[#13a36f]"><FileSpreadsheet size={23} /></span>
               <span><strong className="block text-sm text-[var(--app-text)]">创建在线表格</strong><small className="mt-1 block text-[var(--app-text-secondary)]">协作维护数据、计划和项目清单</small></span>
             </button>
           </section>
 
-          <section className="mt-7 overflow-hidden rounded-[14px] border border-[var(--app-line)] bg-white shadow-[var(--app-shadow-panel)]">
+          <section className="mt-7 overflow-hidden rounded-[14px] border border-[var(--app-line)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)]">
             <div className="flex items-center justify-between border-b border-[var(--app-line)] px-5 py-4">
               <div className="flex items-center gap-2">
                 <FolderClock size={18} className="text-[var(--app-primary)]" />

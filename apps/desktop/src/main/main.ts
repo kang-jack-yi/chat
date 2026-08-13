@@ -7,6 +7,7 @@ import {
   ipcMain,
   Menu,
   net,
+  nativeTheme,
   nativeImage,
   protocol,
   session,
@@ -24,7 +25,11 @@ import { pathToFileURL } from "node:url";
 import crypto from "node:crypto";
 import type {
   ChatHistoryMetadata,
+  ChatPreferences,
   Conversation,
+  DesktopPreferences,
+  DesktopPreferencesUpdate,
+  DesktopStorageStats,
   ImageGalleryItem,
   ImageGalleryPage,
   InviteHistoryResult,
@@ -139,7 +144,71 @@ type StoredSettings = {
   server?: ServerConfig;
   window?: { width: number; height: number; x?: number; y?: number; maximized?: boolean };
   screenshot?: { hideMainWindow: boolean };
+  preferences?: {
+    device?: {
+      appearance?: Partial<DesktopPreferences["appearance"]>;
+      general?: Partial<DesktopPreferences["general"]>;
+    };
+    accounts?: Record<string, { chat?: Partial<ChatPreferences> }>;
+  };
 };
+
+const defaultPreferences: DesktopPreferences = {
+  appearance: { theme: "system", zoom: 1, reducedMotion: false },
+  general: { launchAtLogin: false, closeToTray: true, downloadDirectory: null },
+  chat: { sendKey: "enter", fontSize: 14, density: "comfortable" },
+};
+
+let currentPreferences: DesktopPreferences = structuredClone(defaultPreferences);
+
+function accountPreferenceKey(account = activeAccount) {
+  return account
+    ? `${account.serverId}:${account.companyId}:${account.userId}`
+    : null;
+}
+
+function normalizePreferences(settings: StoredSettings): DesktopPreferences {
+  const appearance = settings.preferences?.device?.appearance || {};
+  const general = settings.preferences?.device?.general || {};
+  const key = accountPreferenceKey();
+  const chat = (key && settings.preferences?.accounts?.[key]?.chat) || {};
+  const theme = ["light", "dark", "system"].includes(String(appearance.theme))
+    ? appearance.theme as DesktopPreferences["appearance"]["theme"]
+    : defaultPreferences.appearance.theme;
+  const zoom = [0.9, 1, 1.1, 1.25].includes(Number(appearance.zoom))
+    ? Number(appearance.zoom) as DesktopPreferences["appearance"]["zoom"]
+    : defaultPreferences.appearance.zoom;
+  const sendKey = ["enter", "ctrlEnter"].includes(String(chat.sendKey))
+    ? chat.sendKey as ChatPreferences["sendKey"]
+    : defaultPreferences.chat.sendKey;
+  const fontSize = [13, 14, 15, 16].includes(Number(chat.fontSize))
+    ? Number(chat.fontSize) as ChatPreferences["fontSize"]
+    : defaultPreferences.chat.fontSize;
+  const density = ["comfortable", "compact"].includes(String(chat.density))
+    ? chat.density as ChatPreferences["density"]
+    : defaultPreferences.chat.density;
+  return {
+    appearance: {
+      theme,
+      zoom,
+      reducedMotion: typeof appearance.reducedMotion === "boolean"
+        ? appearance.reducedMotion
+        : defaultPreferences.appearance.reducedMotion,
+    },
+    general: {
+      launchAtLogin: typeof general.launchAtLogin === "boolean"
+        ? general.launchAtLogin
+        : defaultPreferences.general.launchAtLogin,
+      closeToTray: typeof general.closeToTray === "boolean"
+        ? general.closeToTray
+        : defaultPreferences.general.closeToTray,
+      downloadDirectory: typeof general.downloadDirectory === "string" && general.downloadDirectory.trim()
+        ? path.resolve(general.downloadDirectory)
+        : null,
+    },
+    chat: { sendKey, fontSize, density },
+  };
+}
 
 function settingsPath() {
   return path.join(app.getPath("userData"), "settings.json");
@@ -172,6 +241,72 @@ async function writeSettings(settings: StoredSettings) {
     }
     throw error;
   }
+}
+
+function preferenceWindows() {
+  return BrowserWindow.getAllWindows().filter((window) => !window.isDestroyed());
+}
+
+function applyRuntimePreferences(preferences: DesktopPreferences) {
+  nativeTheme.themeSource = preferences.appearance.theme;
+  for (const window of preferenceWindows()) {
+    window.webContents.setZoomFactor(preferences.appearance.zoom);
+  }
+  if (app.isPackaged) {
+    app.setLoginItemSettings({ openAtLogin: preferences.general.launchAtLogin });
+  }
+}
+
+function broadcastPreferences(preferences: DesktopPreferences) {
+  for (const window of preferenceWindows()) {
+    window.webContents.send("preferences:changed", preferences);
+  }
+}
+
+async function reloadPreferences({ broadcast = true } = {}) {
+  currentPreferences = normalizePreferences(await readSettings());
+  applyRuntimePreferences(currentPreferences);
+  if (broadcast) broadcastPreferences(currentPreferences);
+  return currentPreferences;
+}
+
+async function updatePreferences(input: DesktopPreferencesUpdate) {
+  const stored = await readSettings();
+  const preferences = stored.preferences || {};
+  const device = preferences.device || {};
+  const accounts = { ...(preferences.accounts || {}) };
+  if (input.chat) {
+    const key = accountPreferenceKey();
+    if (!key) throw new Error("请先登录后再修改聊天设置");
+    accounts[key] = {
+      ...accounts[key],
+      chat: { ...accounts[key]?.chat, ...input.chat },
+    };
+  }
+  const next: StoredSettings = {
+    ...stored,
+    preferences: {
+      device: {
+        appearance: { ...device.appearance, ...input.appearance },
+        general: { ...device.general, ...input.general },
+      },
+      accounts,
+    },
+  };
+  const normalized = normalizePreferences(next);
+  const key = accountPreferenceKey();
+  next.preferences = {
+    device: {
+      appearance: normalized.appearance,
+      general: normalized.general,
+    },
+    accounts: {
+      ...accounts,
+      ...(key ? { [key]: { ...accounts[key], chat: normalized.chat } } : {}),
+    },
+  };
+  await writeSettings(next);
+  return reloadPreferences();
 }
 
 function normalizeServerUrl(rawValue: string) {
@@ -390,7 +525,12 @@ class ImPluginClient {
     name: string;
   }, owner?: BrowserWindow | null) {
     const source = await this.attachmentPath(input);
-    const options = { defaultPath: path.basename(input.name) };
+    const fileName = path.basename(input.name);
+    const options = {
+      defaultPath: currentPreferences.general.downloadDirectory
+        ? path.join(currentPreferences.general.downloadDirectory, fileName)
+        : fileName,
+    };
     const targetWindow = owner && !owner.isDestroyed() ? owner : mainWindow;
     const result = targetWindow
       ? await dialog.showSaveDialog(targetWindow, options)
@@ -473,6 +613,29 @@ class ImPluginClient {
       await fs.rm(file.filePath, { force: true });
       total -= file.size;
     }
+  }
+
+  async cacheStats(): Promise<DesktopStorageStats> {
+    if (!this.cacheDirectory) {
+      return { attachmentCacheBytes: 0, attachmentFileCount: 0 };
+    }
+    const entries = await fs.readdir(this.cacheDirectory, { withFileTypes: true }).catch(() => []);
+    const files = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".bin"));
+    const sizes = await Promise.all(files.map((entry) =>
+      fs.stat(path.join(this.cacheDirectory, entry.name)).then((stat) => stat.size).catch(() => 0)));
+    return {
+      attachmentCacheBytes: sizes.reduce((total, size) => total + size, 0),
+      attachmentFileCount: files.length,
+    };
+  }
+
+  async clearAttachmentCache(): Promise<DesktopStorageStats> {
+    if (!this.cacheDirectory) return this.cacheStats();
+    const entries = await fs.readdir(this.cacheDirectory, { withFileTypes: true }).catch(() => []);
+    await Promise.all(entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".bin"))
+      .map((entry) => fs.rm(path.join(this.cacheDirectory, entry.name), { force: true })));
+    return this.cacheStats();
   }
 }
 
@@ -571,7 +734,9 @@ async function downloadCloudDocument(
     .slice(0, 100);
   const options = {
     title: "下载文档",
-    defaultPath: `${safeTitle}.${extension}`,
+    defaultPath: currentPreferences.general.downloadDirectory
+      ? path.join(currentPreferences.general.downloadDirectory, `${safeTitle}.${extension}`)
+      : `${safeTitle}.${extension}`,
     filters: [{
       name: extension === "xlsx" ? "Excel 工作簿" : "Word 文档",
       extensions: [extension],
@@ -686,6 +851,8 @@ async function registerProtocol() {
 
 async function createWindow() {
   const stored = await readSettings();
+  currentPreferences = normalizePreferences(stored);
+  applyRuntimePreferences(currentPreferences);
   const bounds = stored.window || { width: 1280, height: 800 };
   mainWindow = new BrowserWindow({
     width: bounds.width,
@@ -715,9 +882,12 @@ async function createWindow() {
     if (bounds.maximized) mainWindow?.maximize();
   });
   mainWindow.on("close", (event) => {
-    if (!quitting) {
+    if (!quitting && currentPreferences.general.closeToTray) {
       event.preventDefault();
       mainWindow?.hide();
+    } else if (!quitting) {
+      quitting = true;
+      setTimeout(() => app.quit(), 0);
     }
   });
   mainWindow.on("closed", () => {
@@ -725,6 +895,7 @@ async function createWindow() {
   });
   if (developmentUrl) await mainWindow.loadURL(developmentUrl);
   else await mainWindow.loadURL("chat://app/");
+  mainWindow.webContents.setZoomFactor(currentPreferences.appearance.zoom);
   auxiliaryWindowPool = new AuxiliaryWindowPool({
     parent: mainWindow,
     preloadPath: path.join(__dirname, "auxiliary-preload.cjs"),
@@ -1208,6 +1379,7 @@ function registerIpc() {
     activeAccount = null;
     hostAccessToken = null;
     await imPlugin.close();
+    await reloadPreferences();
     const stored = await readSettings();
     await writeSettings({ ...stored, server: checked.config });
     await session.defaultSession.clearStorageData({ storages: ["cookies"] });
@@ -1222,6 +1394,7 @@ function registerIpc() {
       userId: Number(input.userId),
     };
     await auxiliaryWindowPool?.activate(activeAccount);
+    await reloadPreferences();
     return result;
   });
   ipcMain.handle("database:close", async () => {
@@ -1229,13 +1402,16 @@ function registerIpc() {
     hostAccessToken = null;
     documentWindowManager?.closeAll();
     await auxiliaryWindowPool?.reset();
-    return imPlugin.close();
+    await imPlugin.close();
+    await reloadPreferences();
   });
   ipcMain.handle("database:clear", async () => {
     activeAccount = null;
     documentWindowManager?.closeAll();
     await auxiliaryWindowPool?.reset();
-    return imPlugin.clear();
+    const result = await imPlugin.clear();
+    await reloadPreferences();
+    return result;
   });
   ipcMain.handle("database:call", (_event, method: string, args: unknown) => {
     if (!imPluginMethods.has(method)) throw new Error("不允许的 IM Plugin 操作");
@@ -1258,7 +1434,10 @@ function registerIpc() {
     name: string;
   }>) => {
     const owner = BrowserWindow.fromWebContents(event.sender);
-    const options = { properties: ["openDirectory"] as Array<"openDirectory"> };
+    const options = {
+      properties: ["openDirectory"] as Array<"openDirectory">,
+      defaultPath: currentPreferences.general.downloadDirectory || app.getPath("downloads"),
+    };
     const result = owner
       ? await dialog.showOpenDialog(owner, options)
       : await dialog.showOpenDialog(options);
@@ -1290,6 +1469,31 @@ function registerIpc() {
   });
   ipcMain.handle("attachment:show-in-folder", (_event, input) =>
     imPlugin.showAttachment(input));
+  ipcMain.handle("preferences:get", () => reloadPreferences({ broadcast: false }));
+  ipcMain.handle("preferences:update", (_event, input: DesktopPreferencesUpdate) =>
+    updatePreferences(input || {}));
+  ipcMain.handle("preferences:choose-download-directory", async (event) => {
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    const options = {
+      properties: ["openDirectory", "createDirectory"] as Array<"openDirectory" | "createDirectory">,
+      defaultPath: currentPreferences.general.downloadDirectory || app.getPath("downloads"),
+    };
+    const result = owner && !owner.isDestroyed()
+      ? await dialog.showOpenDialog(owner, options)
+      : await dialog.showOpenDialog(options);
+    if (result.canceled || !result.filePaths[0]) return null;
+    const directory = path.resolve(result.filePaths[0]);
+    await updatePreferences({ general: { downloadDirectory: directory } });
+    return directory;
+  });
+  ipcMain.handle("preferences:open-logs", async () => {
+    const directory = app.getPath("logs");
+    await fs.mkdir(directory, { recursive: true });
+    const error = await shell.openPath(directory);
+    if (error) throw new Error(error);
+  });
+  ipcMain.handle("preferences:cache-stats", () => imPlugin.cacheStats());
+  ipcMain.handle("preferences:clear-attachment-cache", () => imPlugin.clearAttachmentCache());
   ipcMain.handle("sync:get-status", () => syncStatus);
   ipcMain.handle("sync:report", (_event, status: SyncStatus) => {
     syncStatus = { ...syncStatus, ...status };
@@ -1318,6 +1522,13 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(async () => {
     Menu.setApplicationMenu(null);
     app.setAppUserModelId("com.enterprise.chat");
+    app.on("web-contents-created", (_event, contents) => {
+      contents.once("did-finish-load", () => {
+        if (contents.isDestroyed()) return;
+        contents.setZoomFactor(currentPreferences.appearance.zoom);
+        contents.send("preferences:changed", currentPreferences);
+      });
+    });
     await registerProtocol();
     registerIpc();
     session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) => {

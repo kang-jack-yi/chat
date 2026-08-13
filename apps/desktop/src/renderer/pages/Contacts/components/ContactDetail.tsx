@@ -33,8 +33,8 @@ export default function ContactDetail({ user, currentUser, starting, onStartChat
           <div className="px-8 pb-8 max-md:px-5">
             <div className="-mt-10 flex items-end justify-between gap-4 max-sm:items-start">
               <div className="flex items-end gap-5 max-sm:items-start">
-                <div className="rounded-[20px] border-4 border-white bg-white shadow-[0_8px_20px_rgba(24,34,48,.14)]">
-                  <Avatar text={user.avatar} large online={user.online} />
+                <div className="rounded-[20px] border-4 border-[var(--app-surface)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)]">
+                  <Avatar text={user.avatar} src={user.avatarUrl} large online={user.online} />
                 </div>
                 <div className="pb-1">
                   <div className="mb-1.5 flex flex-wrap items-center gap-2">

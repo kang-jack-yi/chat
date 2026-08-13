@@ -64,7 +64,7 @@ export default function MessageBubble({
   const status = messageStatus(message);
   const filePart = message.parts.find((part) => part.type === "file");
   const textParts = message.parts.filter((part) =>
-    part.type === "text" || part.type === "mention" || part.type === "mention_all");
+    part.type === "text" || part.type === "markdown" || part.type === "mention" || part.type === "mention_all");
   const fileUrl = useAttachmentUrl(
     filePart?.type === "file" ? filePart.attachment : undefined,
   );
@@ -186,6 +186,8 @@ export default function MessageBubble({
         onClick: () => void writeClipboardText(textParts.map((part) =>
           part.type === "text"
             ? displayMessageText(part.text)
+            : part.type === "markdown"
+              ? displayMessageText(part.content)
             : `@${part.label}`).join("")),
       },
       {
@@ -219,9 +221,9 @@ export default function MessageBubble({
         menu={bubbleMenu}
         getPopupContainer={popupContainer}
       >
-        <div className="w-[min(420px,54vw)] min-w-0 max-w-full overflow-hidden rounded-[14px] border border-[var(--chat-attachment-border)] bg-white text-left shadow-[0_8px_24px_rgba(24,34,48,.06)]">
+        <div className="w-[min(420px,54vw)] min-w-0 max-w-full overflow-hidden rounded-[14px] border border-[var(--chat-attachment-border)] bg-[var(--app-surface)] text-left shadow-[var(--app-shadow-panel)]">
           <div className="flex items-center gap-2 border-b border-[var(--chat-line)] bg-[var(--chat-primary-soft)] px-3.5 py-2.5 text-xs font-medium text-[var(--chat-primary)]">
-            <span className="grid h-6 w-6 place-items-center rounded-md bg-white/75 text-[var(--chat-primary)]">
+            <span className="grid h-6 w-6 place-items-center rounded-md bg-[var(--app-surface-soft)] text-[var(--chat-primary)]">
               <Megaphone size={14} />
             </span>
             群公告
@@ -256,7 +258,7 @@ export default function MessageBubble({
       <div
         className={`min-w-0 max-w-[min(520px,58vw)] overflow-hidden break-words border px-3.5 py-2.5 text-left text-sm leading-[1.6] [overflow-wrap:anywhere] shadow-[0_5px_16px_rgba(24,34,48,.045)] max-md:max-w-[70vw] ${
           own
-            ? "rounded-[15px_5px_15px_15px] border-[#cfe0ff] bg-[var(--chat-own-bubble)] text-[var(--chat-text)]"
+            ? "rounded-[15px_5px_15px_15px] border-[var(--chat-own-bubble-border)] bg-[var(--chat-own-bubble)] text-[var(--chat-text)]"
             : "rounded-[5px_15px_15px_15px] border-[var(--chat-attachment-border)] bg-[var(--chat-other-bubble)] text-[var(--chat-text)]"
         }`}
       >

@@ -92,6 +92,7 @@ function systemEventSearchText(event: any) {
 function messageSearchText(message: any) {
   const parts = flattenedMessageParts(message).map((part: any) => {
     if (part.type === "text") return String(part.text || "");
+    if (part.type === "markdown") return String(part.content || "");
     if (part.type === "mention") return String(part.label || "");
     if (part.type === "mention_all") return "所有人";
     if (part.type === "quote") return String(part.summary || "");

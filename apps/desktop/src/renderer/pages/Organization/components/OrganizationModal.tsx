@@ -124,7 +124,7 @@ export default function OrganizationModal({
           </>
         )}
         {error && <Alert className="mb-4" type="error" message={error} showIcon />}
-        <div className="flex justify-end gap-2 border-t border-[#eceef3] pt-5">
+        <div className="flex justify-end gap-2 border-t border-[var(--app-line)] pt-5">
           <Button onClick={onClose}>取消</Button>
           <Button type="primary" htmlType="submit" loading={pending}>
             {isMember ? "确认添加" : isEdit ? "保存修改" : "确认创建"}

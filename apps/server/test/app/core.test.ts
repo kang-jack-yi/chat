@@ -53,6 +53,66 @@ describe("企业聊天核心接口", () => {
     await conversationBefore?.update({ lastMessage: originalLastMessage, lastMessageAt: originalLastMessageAt });
   });
 
+  it("会话成员可管理 Webhook 机器人，机器人消息会写入会话历史", async () => {
+    const login = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000001", password: "123456" })
+      .expect(200);
+    const authorization = `Bearer ${login.body.data.accessToken}`;
+    const conversations = await app.httpRequest()
+      .get("/api/conversations")
+      .set("Authorization", authorization)
+      .expect(200);
+    const conversationId = conversations.body.data[0].id;
+    const conversationBefore = await app.chatDb.Conversation.findByPk(conversationId);
+    const originalLastMessage = conversationBefore?.get("lastMessage");
+    const originalLastMessageAt = conversationBefore?.get("lastMessageAt");
+    const syncCursor = Number(await app.chatDb.SyncEvent.max("id") || 0);
+
+    const created = await app.httpRequest()
+      .post(`/api/conversations/${conversationId}/bots`)
+      .set("Authorization", authorization)
+      .send({ name: "测试机器人" })
+      .expect(200);
+    assert.ok(created.body.data.webhookUrl);
+    const botId = created.body.data.id;
+    const webhookPath = new URL(created.body.data.webhookUrl).pathname
+      + new URL(created.body.data.webhookUrl).search;
+
+    await app.httpRequest()
+      .post(webhookPath)
+      .send({ msgtype: "markdown", markdown: { content: "**机器人测试消息**" } })
+      .expect(200);
+    const history = await app.httpRequest()
+      .get(`/api/conversations/${conversationId}/messages?limit=10`)
+      .set("Authorization", authorization)
+      .expect(200);
+    const botMessage = history.body.data.items.find((item: any) => item.senderBotId === botId);
+    assert.equal(botMessage.senderType, "bot");
+    assert.equal(botMessage.senderName, "测试机器人");
+    assert.deepEqual(botMessage.parts, [{ type: "markdown", content: "**机器人测试消息**" }]);
+
+    const reset = await app.httpRequest()
+      .post(`/api/conversations/${conversationId}/bots/${botId}/reset`)
+      .set("Authorization", authorization)
+      .expect(200);
+    await app.httpRequest().post(webhookPath).send({ msgtype: "text", text: { content: "旧密钥" } }).expect(404);
+    const resetPath = new URL(reset.body.data.webhookUrl).pathname
+      + new URL(reset.body.data.webhookUrl).search;
+    await app.httpRequest().post(resetPath).send({ msgtype: "text", text: { content: "新密钥" } }).expect(200);
+
+    await app.httpRequest()
+      .delete(`/api/conversations/${conversationId}/bots/${botId}`)
+      .set("Authorization", authorization)
+      .expect(200);
+    await app.httpRequest().post(resetPath).send({ msgtype: "text", text: { content: "已删除" } }).expect(404);
+    await app.chatDb.SyncEvent.destroy({ where: { id: { [Op.gt]: syncCursor } } });
+    await app.chatDb.Message.destroy({ where: { senderBotId: botId } });
+    await app.chatDb.BotMedia.destroy({ where: { botId } });
+    await app.chatDb.ConversationBot.destroy({ where: { id: botId } });
+    await conversationBefore?.update({ lastMessage: originalLastMessage, lastMessageAt: originalLastMessageAt });
+  });
+
   it("提供桌面健康检查与增量同步游标", async () => {
     const health = await app.httpRequest().get("/api/health").expect(200);
     assert.equal(health.body.data.serviceId, "enterprise-chat");

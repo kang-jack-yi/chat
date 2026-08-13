@@ -1,6 +1,14 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("documentDesktop", {
+  preferences: {
+    get: () => ipcRenderer.invoke("preferences:get"),
+    onChanged: (listener: (preferences: unknown) => void) => {
+      const handler = (_event: unknown, preferences: unknown) => listener(preferences);
+      ipcRenderer.on("preferences:changed", handler);
+      return () => ipcRenderer.off("preferences:changed", handler);
+    },
+  },
   context: {
     get: () => ipcRenderer.invoke("document:get-context"),
     refreshToken: () => ipcRenderer.invoke("document:refresh-token"),

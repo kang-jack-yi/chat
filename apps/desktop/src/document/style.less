@@ -15,7 +15,7 @@ body,
   min-width: 0;
   flex-direction: column;
   overflow: hidden;
-  background: #f2f5fa;
+  background: var(--app-canvas);
   color: var(--app-text);
 }
 
@@ -26,7 +26,7 @@ body,
   padding: 40px;
   border: 1px solid var(--app-line);
   border-radius: 18px;
-  background: #fff;
+  background: var(--app-surface);
 }
 
 .documentHeader {
@@ -36,8 +36,8 @@ body,
   flex: 0 0 auto;
   align-items: center;
   gap: 12px;
-  border-bottom: 1px solid #e1e6ed;
-  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid var(--app-line);
+  background: color-mix(in srgb, var(--app-surface) 96%, transparent);
   padding: 8px 18px;
   backdrop-filter: blur(14px);
 }
@@ -110,8 +110,8 @@ body,
   flex-wrap: wrap;
   align-items: center;
   gap: 2px;
-  border-bottom: 1px solid #e1e6ed;
-  background: #fff;
+  border-bottom: 1px solid var(--app-line);
+  background: var(--app-surface);
   padding: 6px 16px;
   box-shadow: 0 3px 12px rgba(36, 48, 72, 0.04);
 }
@@ -149,7 +149,7 @@ body,
 
 .sheetCanvas {
   overflow: auto;
-  background: #f7f9fc;
+  background: var(--app-canvas);
   padding: 14px;
 }
 
@@ -161,9 +161,9 @@ body,
   flex: 1 0 auto;
   flex-direction: column;
   margin: 0 auto;
-  border: 1px solid #e3e8ef;
+  border: 1px solid var(--app-line);
   border-radius: 3px;
-  background: #fff;
+  background: var(--app-surface);
   padding: 72px 84px 100px;
   box-shadow: 0 12px 38px rgba(36, 48, 72, 0.08);
 }
@@ -188,7 +188,7 @@ body,
   width: 100%;
   min-width: 100%;
   min-height: calc(100vh - 150px);
-  background: #fff;
+  background: var(--app-surface);
 }
 
 .sheetEditorPage > div,
@@ -201,12 +201,12 @@ body,
 .sheetEditorPage .cloudEditor {
   flex: 1 1 auto;
   outline: none;
-  background: #fff;
+  background: var(--app-surface);
 }
 
 .cloudEditor {
   line-height: 1.75;
-  color: #1f2733;
+  color: var(--app-text);
 }
 
 .cloudEditor h1 {
@@ -231,10 +231,10 @@ body,
 
 .cloudEditor blockquote {
   margin: 18px 0;
-  border-left: 3px solid #79afff;
-  background: #f5f9ff;
+  border-left: 3px solid var(--app-primary);
+  background: var(--app-primary-soft);
   padding: 8px 14px;
-  color: #526170;
+  color: var(--app-text-secondary);
 }
 
 .cloudEditor a {
@@ -268,7 +268,7 @@ body,
   position: relative;
   min-width: 96px;
   height: 42px;
-  border: 1px solid #dfe5ec;
+  border: 1px solid var(--app-line);
   padding: 8px 10px;
   vertical-align: top;
 }
@@ -279,7 +279,7 @@ body,
 }
 
 .cloudEditor th {
-  background: #f1f5f9;
+  background: var(--app-surface-soft);
   font-weight: 600;
 }
 

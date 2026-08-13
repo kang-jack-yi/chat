@@ -1,5 +1,7 @@
 import type {
   Conversation,
+  ConversationBot,
+  ConversationBotWithWebhook,
   DeleteMessagesForMeResult,
   ForwardMessagesInput,
   ForwardMessagesResult,
@@ -139,4 +141,16 @@ export const chatService = {
       await refreshConversationCache();
       return result;
     }),
+  bots: (conversationId: number) =>
+    get<ConversationBot[]>(`/api/conversations/${conversationId}/bots`),
+  createBot: (conversationId: number, payload: { name: string; avatar?: string }) =>
+    post<ConversationBotWithWebhook>(`/api/conversations/${conversationId}/bots`, payload),
+  botDetail: (conversationId: number, botId: number) =>
+    get<ConversationBotWithWebhook>(`/api/conversations/${conversationId}/bots/${botId}`),
+  updateBot: (conversationId: number, botId: number, payload: { name: string; avatar?: string }) =>
+    patch<ConversationBot>(`/api/conversations/${conversationId}/bots/${botId}`, payload),
+  resetBot: (conversationId: number, botId: number) =>
+    post<ConversationBotWithWebhook>(`/api/conversations/${conversationId}/bots/${botId}/reset`, {}),
+  removeBot: (conversationId: number, botId: number) =>
+    remove<boolean>(`/api/conversations/${conversationId}/bots/${botId}`),
 };

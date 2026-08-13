@@ -4,6 +4,9 @@ declare module "socket.io-client" {
 }
 import type {
   ChatHistoryMetadata,
+  DesktopPreferences,
+  DesktopPreferencesUpdate,
+  DesktopStorageStats,
   DraftAttachment,
   AuxiliaryTask,
   ImageGalleryPage,
@@ -25,6 +28,15 @@ declare global {
     desktop?: {
       app: {
         getVersion(): Promise<string>;
+      };
+      preferences: {
+        get(): Promise<DesktopPreferences>;
+        update(input: DesktopPreferencesUpdate): Promise<DesktopPreferences>;
+        chooseDownloadDirectory(): Promise<string | null>;
+        openLogs(): Promise<void>;
+        cacheStats(): Promise<DesktopStorageStats>;
+        clearAttachmentCache(): Promise<DesktopStorageStats>;
+        onChanged(listener: (preferences: DesktopPreferences) => void): () => void;
       };
       auth: {
         updateAccessToken(accessToken: string | null): Promise<boolean>;
@@ -130,6 +142,10 @@ declare global {
       };
     };
     auxiliary?: {
+      preferences: {
+        get(): Promise<DesktopPreferences>;
+        onChanged(listener: (preferences: DesktopPreferences) => void): () => void;
+      };
       task: {
         get(): Promise<AuxiliaryTask | null>;
         complete(taskId: string, result: InviteHistoryResult): Promise<void>;
@@ -190,6 +206,10 @@ declare global {
       };
     };
     documentDesktop?: {
+      preferences: {
+        get(): Promise<DesktopPreferences>;
+        onChanged(listener: (preferences: DesktopPreferences) => void): () => void;
+      };
       context: {
         get(): Promise<{
           documentId: number;

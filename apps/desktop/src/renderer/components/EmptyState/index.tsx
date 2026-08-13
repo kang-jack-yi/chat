@@ -10,7 +10,7 @@ export interface EmptyStateProps {
 
 export default function EmptyState({ icon, title, text, compact }: EmptyStateProps) {
   return (
-    <div className={`flex flex-col items-center justify-center text-center text-[var(--app-text-tertiary)] ${compact ? "px-2 py-20" : "h-full bg-white"}`}>
+    <div className={`flex flex-col items-center justify-center text-center text-[var(--app-text-tertiary)] ${compact ? "px-2 py-20" : "h-full bg-[var(--app-surface)]"}`}>
       <Empty
         image={<div className={compact ? "text-[#7692ad]" : "mx-auto grid size-[68px] place-items-center rounded-[22px] bg-[var(--app-primary-soft)] text-[var(--app-primary)] shadow-[inset_0_0_0_1px_rgba(22,119,255,.06)]"}>{icon}</div>}
         description={

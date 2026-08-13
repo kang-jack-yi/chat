@@ -292,7 +292,7 @@ export default function InviteGroupMembersModal({
             />
             <button
               type="button"
-              className="flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs text-[#4f5d69] transition-colors hover:bg-[#f2f6fa] disabled:text-[#a8b0b8]"
+              className="flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs text-[var(--app-text-secondary)] transition-colors hover:bg-[var(--app-surface-muted)] disabled:text-[var(--app-text-tertiary)]"
               disabled={historyOpening}
               onClick={() => void openHistorySelection(selectedHistoryIds.length === 0)}
             >
@@ -326,19 +326,19 @@ export default function InviteGroupMembersModal({
           onClose={() => setError("")}
         />
       )}
-      <div className="grid h-[468px] grid-cols-[minmax(0,1fr)_280px] overflow-hidden rounded-2xl border border-[#dde5ed] bg-white">
-        <section className="grid min-w-0 grid-rows-[64px_minmax(0,1fr)] border-r border-[#e1e6eb]">
-          <div className="flex h-16 items-center border-b border-[#edf1f4] bg-white px-3">
+      <div className="grid h-[468px] grid-cols-[minmax(0,1fr)_280px] overflow-hidden rounded-2xl border border-[var(--app-line)] bg-[var(--app-surface)]">
+        <section className="grid min-w-0 grid-rows-[64px_minmax(0,1fr)] border-r border-[var(--app-line)]">
+          <div className="flex h-16 items-center border-b border-[var(--app-line)] bg-[var(--app-surface)] px-3">
             <Input
               allowClear
               value={keyword}
               prefix={<Search size={15} className="text-[#8a949f]" />}
               placeholder="搜索姓名、手机号、职位或部门"
-              className="!rounded-lg !border-[#d7e1eb] !bg-[#f7f9fc]"
+              className="!rounded-lg !border-[var(--app-line)] !bg-[var(--app-surface-soft)]"
               onChange={(event) => setKeyword(event.target.value)}
             />
           </div>
-          <div className="overflow-y-auto bg-[#fbfcfe] px-2 py-2">
+          <div className="overflow-y-auto bg-[var(--app-surface-soft)] px-2 py-2">
             {!treeData.length ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -359,8 +359,8 @@ export default function InviteGroupMembersModal({
             )}
           </div>
         </section>
-        <section className="grid min-w-0 grid-rows-[64px_minmax(0,1fr)] bg-[#f7f9fc]">
-          <div className="flex h-16 items-center border-b border-[#e4eaf0] bg-white px-4">
+        <section className="grid min-w-0 grid-rows-[64px_minmax(0,1fr)] bg-[var(--app-surface-soft)]">
+          <div className="flex h-16 items-center border-b border-[var(--app-line)] bg-[var(--app-surface)] px-4">
             <h3 className="m-0 flex w-full items-center justify-between text-sm font-medium text-[var(--app-text)]">
               <span>已选择成员</span>
               <span className="rounded-full bg-[var(--app-primary-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--app-primary)]">
@@ -379,7 +379,7 @@ export default function InviteGroupMembersModal({
             {selectedUsers.map((user) => (
               <div
                 key={user.id}
-                className="mb-2 flex items-center gap-2 rounded-xl border border-[#e2e8ee] bg-white px-3 py-2.5 shadow-[0_2px_6px_rgba(46,62,80,.035)]"
+                className="mb-2 flex items-center gap-2 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] px-3 py-2.5 shadow-[var(--app-shadow-panel)]"
               >
                 <Avatar shape="square" size={30} className="!rounded-md !bg-[#4b8fea]">
                   {user.avatar || user.name.slice(0, 1)}
@@ -392,7 +392,7 @@ export default function InviteGroupMembersModal({
                   size="small"
                   aria-label={`移除${user.name}`}
                   icon={<X size={14} />}
-                  className="!text-[#8a949f] hover:!bg-[#eef1f4]"
+                  className="!text-[var(--app-text-tertiary)] hover:!bg-[var(--app-surface-muted)]"
                   onClick={() => setSelectedIds((current) =>
                     current.filter((id) => id !== user.id))}
                 />

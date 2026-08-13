@@ -1,6 +1,8 @@
 import type { ThemeConfig } from "antd";
 
 export const appTheme: ThemeConfig = {
+  cssVar: {},
+  algorithm: undefined,
   token: {
     colorPrimary: "#2f6bff",
     colorPrimaryHover: "#2458d8",

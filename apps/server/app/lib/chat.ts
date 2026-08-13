@@ -22,6 +22,7 @@ export type SystemMessageEvent =
 
 type StoredPart =
   | { type: "text"; text: string }
+  | { type: "markdown"; content: string }
   | { type: "mention"; userId: number; label: string }
   | { type: "mention_all"; label: "所有人" }
   | { type: "image"; attachmentId: number; width: number; height: number }
@@ -33,6 +34,7 @@ type StoredPart =
 
 type StoredForwardSnapshotPart =
   | { type: "text"; text: string }
+  | { type: "markdown"; content: string }
   | { type: "mention"; userId: number; label: string }
   | { type: "mention_all"; label: "所有人" }
   | { type: "image"; attachmentId: number; width: number; height: number }
@@ -260,6 +262,7 @@ function systemMessageSearchText(event: SystemMessageEvent) {
 function buildSummary(parts: StoredPart[], attachmentMap: Map<number, any>) {
   const summary = parts.map((part) => {
     if (part.type === "text") return part.text;
+    if (part.type === "markdown") return part.content.replace(/<[^>]+>/g, "").replace(/[*_#>`\[\]()]/g, " ");
     if (part.type === "mention") return `@${part.label}`;
     if (part.type === "mention_all") return "@所有人";
     if (part.type === "image") return "[图片]";
@@ -320,15 +323,28 @@ export async function serializeMessage(
   const quoteMap = new Map<number, any>();
   for (const quotedRow of quotedRows) {
     const quoted = toPlain(quotedRow);
-    const quotedSender = toPlain(await app.chatDb.User.findByPk(quoted.senderId, { transaction }));
+    const quotedBot = quoted.senderType === "bot" && quoted.senderBotId
+      ? toPlain(await app.chatDb.ConversationBot.findByPk(quoted.senderBotId, { transaction }))
+      : null;
+    const quotedSender = quoted.senderType === "bot"
+      ? null
+      : toPlain(await app.chatDb.User.findByPk(quoted.senderId, { transaction }));
     quoteMap.set(Number(quoted.id), {
       messageId: Number(quoted.id),
       senderId: Number(quoted.senderId),
-      senderName: quotedSender?.name || "未知成员",
+      senderName: quoted.senderType === "bot"
+        ? String(quoted.senderName || quotedBot?.name || "机器人")
+        : quotedSender?.name || "未知成员",
       summary: quoted.summary || "[消息]",
     });
   }
-  const sender = toPlain(await app.chatDb.User.findByPk(message.senderId, { transaction }));
+  const senderType = message.senderType === "bot" ? "bot" : "user";
+  const sender = senderType === "user"
+    ? toPlain(await app.chatDb.User.findByPk(message.senderId, { transaction }))
+    : null;
+  const bot = senderType === "bot" && message.senderBotId
+    ? toPlain(await app.chatDb.ConversationBot.findByPk(message.senderBotId, { transaction }))
+    : null;
   const serializeSnapshot = (snapshot: StoredForwardMessageSnapshot) => ({
     ...snapshot,
     parts: snapshot.parts.flatMap<any>((part) => {
@@ -387,8 +403,15 @@ export async function serializeMessage(
     clientId: message.clientId,
     conversationId: Number(message.conversationId),
     senderId: Number(message.senderId),
-    senderName: sender?.name || "未知成员",
-    senderAvatar: sender?.avatar || "?",
+    senderType,
+    senderBotId: message.senderBotId ? Number(message.senderBotId) : null,
+    senderName: senderType === "bot" ? String(message.senderName || bot?.name || "机器人") : sender?.name || "未知成员",
+    senderAvatar: senderType === "bot" ? String(message.senderAvatar || bot?.avatar || "机") : sender?.avatar || "?",
+    senderBot: senderType === "bot" ? {
+      id: Number(message.senderBotId || bot?.id || 0),
+      name: String(message.senderName || bot?.name || "机器人"),
+      avatar: String(message.senderAvatar || bot?.avatar || "机"),
+    } : null,
     kind: message.kind || "user",
     parts,
     summary: message.summary || buildSummary(storedParts, attachmentMap),
@@ -717,11 +740,101 @@ export async function createMessage(
   }
 }
 
+export async function createBotMessage(
+  app: Application,
+  bot: any,
+  parts: StoredPart[],
+  attachments: any[] = [],
+) {
+  const botData = toPlain(bot);
+  const conversation = await app.chatDb.Conversation.findOne({
+    where: { id: botData.conversationId, companyId: botData.companyId },
+  });
+  if (!conversation) throw messageError(404, "CONVERSATION_NOT_FOUND", "会话不存在");
+  const attachmentMap = new Map(attachments.map((row: any) => {
+    const item = toPlain(row);
+    return [Number(item.id), item];
+  }));
+  const summary = buildSummary(parts, attachmentMap);
+  const searchText = [botData.name, ...parts.map((part) => {
+    if (part.type === "text") return part.text;
+    if (part.type === "markdown") return part.content.replace(/<[^>]+>/g, "");
+    if (part.type === "file") return attachmentMap.get(part.attachmentId)?.originalName || "";
+    return "";
+  })].join(" ").trim();
+  const transaction = await app.chatDb.sequelize.transaction();
+  try {
+    const row = await app.chatDb.Message.create({
+      companyId: botData.companyId,
+      conversationId: botData.conversationId,
+      senderId: 0,
+      senderType: "bot",
+      senderBotId: botData.id,
+      senderName: botData.name,
+      senderAvatar: botData.avatar,
+      clientId: `bot:${botData.id}:${crypto.randomUUID()}`,
+      kind: "user",
+      schemaVersion: 1,
+      payloadJson: parts,
+      summary,
+      searchText,
+      version: 1,
+    }, { transaction });
+    if (attachments.length) {
+      await app.chatDb.Attachment.update(
+        { messageId: row.get("id") },
+        { where: { id: attachments.map((item: any) => Number(item.get("id"))) }, transaction },
+      );
+    }
+    const messageId = Number(row.get("id"));
+    const memberships = await app.chatDb.ConversationMember.findAll({
+      where: { conversationId: botData.conversationId, leftAt: null },
+      transaction,
+    });
+    for (const membership of memberships) {
+      const recipientId = Number(membership.get("userId"));
+      const wasHidden = Boolean(membership.get("isHidden"));
+      await membership.update({
+        // 新的机器人消息与普通消息一样恢复被隐藏的会话。
+        isHidden: false,
+        hiddenAtMessageId: null,
+        ...(wasHidden ? { clearedAtMessageId: null } : {}),
+      }, { transaction });
+      // Bot is virtual: all normal members are recipients, including the creator.
+      void recipientId;
+    }
+    await conversation.update({ lastMessage: summary, lastMessageAt: new Date() }, { transaction });
+    const message = await serializeMessage(app, row, transaction);
+    await appendConversationSyncEvents(app, {
+      companyId: botData.companyId,
+      conversationId: botData.conversationId,
+      type: "message.upsert",
+      entityId: String(messageId),
+      version: 1,
+      payload: message,
+    }, transaction);
+    await appendConversationSyncEvents(app, {
+      companyId: botData.companyId,
+      conversationId: botData.conversationId,
+      type: "conversation.upsert",
+      entityId: String(botData.conversationId),
+      version: Date.now(),
+      payload: { id: botData.conversationId },
+    }, transaction);
+    await transaction.commit();
+    return withReadStatus(app, message);
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
 function snapshotSearchText(snapshot: StoredForwardMessageSnapshot) {
   return [
     snapshot.senderName,
     ...snapshot.parts.map((part) => {
       if (part.type === "text") return part.text;
+      if (part.type === "markdown") return part.content;
       if (part.type === "mention") return part.label;
       if (part.type === "mention_all") return "所有人";
       if (part.type === "quote_snapshot") return `${part.senderName} ${part.summary}`;
@@ -743,6 +856,8 @@ async function cloneForwardSnapshot(
   for (const part of snapshot.parts || []) {
     if (part.type === "text") {
       parts.push({ type: "text", text: String(part.text || "") });
+    } else if (part.type === "markdown") {
+      parts.push({ type: "markdown", content: String(part.content || "") });
     } else if (part.type === "mention") {
       parts.push({
         type: "mention",

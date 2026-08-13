@@ -15,7 +15,7 @@ export default function SearchBox({ value, onChange, placeholder }: SearchBoxPro
       prefix={<Search size={15} className="text-[var(--app-text-tertiary)]" />}
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
-      className="mx-4 mb-3 !w-auto !rounded-xl !border !border-[var(--app-line)] !bg-white/90 !shadow-[0_2px_8px_rgba(39,48,67,.03)] hover:!border-[#a9cfff]"
+      className="mx-4 mb-3 !w-auto !rounded-xl !border !border-[var(--app-line)] !bg-[var(--app-surface)] !shadow-[0_2px_8px_rgba(39,48,67,.03)] hover:!border-[var(--app-primary)]"
     />
   );
 }

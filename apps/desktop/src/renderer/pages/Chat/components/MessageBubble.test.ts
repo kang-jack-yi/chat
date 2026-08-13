@@ -3,6 +3,7 @@ import type { Attachment, Message, MessagePart } from "@chat/shared";
 import {
   displayMessageText,
   groupMessageContent,
+  markdownBlocks,
   messageContentClassNames,
 } from "./MessageContent";
 import { systemMessageText } from "./SystemMessage";
@@ -37,6 +38,14 @@ describe("groupMessageContent", () => {
   it("keeps tag-like source code as visible text", () => {
     const source = '<template #portRoute="{ row }">content</template>';
     expect(displayMessageText(source)).toBe(source);
+  });
+
+  it("turns webhook Markdown into visual blocks instead of displaying syntax", () => {
+    expect(markdownBlocks("## 机器人测试\\n> Markdown 消息已发送\\n\\n- 状态：**正常**\\n- 时间：`10:30`")).toEqual([
+      { type: "heading", level: 2, text: "机器人测试" },
+      { type: "quote", text: "Markdown 消息已发送" },
+      { type: "unordered", items: ["状态：**正常**", "时间：`10:30`"] },
+    ]);
   });
 
   it("preserves text and image order from the composer", () => {

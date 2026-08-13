@@ -135,6 +135,9 @@ export function setRefreshCookie(ctx: Context, token: string | null) {
 }
 
 export function publicUser(user: any, departmentName?: string) {
+  const rawExpiry = user.statusExpiresAt || null;
+  const statusExpired = rawExpiry ? new Date(rawExpiry).getTime() <= Date.now() : false;
+  const updatedAt = user.updatedAt ? new Date(user.updatedAt).getTime() : 0;
   return {
     id: user.id,
     companyId: user.companyId,
@@ -143,6 +146,12 @@ export function publicUser(user: any, departmentName?: string) {
     name: user.name,
     title: user.title || "",
     avatar: user.avatar || user.name?.slice(0, 1) || "企",
+    ...(user.avatarFile ? { avatarUrl: `/api/users/${user.id}/avatar?v=${updatedAt}` } : {}),
+    email: user.email || "",
+    bio: user.bio || "",
+    presenceStatus: statusExpired ? "available" : (user.presenceStatus || "available"),
+    statusText: statusExpired ? "" : (user.statusText || ""),
+    statusExpiresAt: statusExpired || !rawExpiry ? null : new Date(rawExpiry).toISOString(),
     role: user.role,
     status: user.status,
     departmentName,

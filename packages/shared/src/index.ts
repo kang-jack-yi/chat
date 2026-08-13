@@ -1,5 +1,6 @@
 export type UserRole = "owner" | "admin" | "member";
 export type UserStatus = "active" | "disabled";
+export type PresenceStatus = "available" | "busy" | "dnd" | "away";
 export type ConversationType = "direct" | "group";
 export type MessageKind = "user" | "system" | "announcement";
 export type MessageStatus = "queued" | "uploading" | "sending" | "sent" | "failed";
@@ -28,6 +29,12 @@ export interface User {
   name: string;
   title: string;
   avatar: string;
+  avatarUrl?: string;
+  email: string;
+  bio: string;
+  presenceStatus: PresenceStatus;
+  statusText: string;
+  statusExpiresAt: string | null;
   role: UserRole;
   status: UserStatus;
   departmentName?: string;
@@ -80,6 +87,12 @@ export interface TextPart {
   text: string;
 }
 
+/** Webhook 机器人发送的 Markdown 正文。 */
+export interface MarkdownPart {
+  type: "markdown";
+  content: string;
+}
+
 export interface MentionPart {
   type: "mention";
   userId: number;
@@ -119,6 +132,7 @@ export interface ForwardQuoteSnapshotPart {
 
 export type ForwardSnapshotPart =
   | TextPart
+  | MarkdownPart
   | MentionPart
   | MentionAllPart
   | ImagePart
@@ -199,6 +213,7 @@ export interface SystemEventPart {
 
 export type MessagePart =
   | TextPart
+  | MarkdownPart
   | MentionPart
   | MentionAllPart
   | ImagePart
@@ -255,9 +270,16 @@ export interface ImMessage {
   id: number;
   clientId: string;
   conversationId: number;
+  /** 员工发送者 ID；机器人消息为 0。 */
   senderId: number;
+  /** 消息发送主体，机器人不伪装为企业成员。 */
+  senderType?: "user" | "bot";
+  /** 机器人 ID；仅 senderType 为 bot 时存在。 */
+  senderBotId?: number | null;
   senderName: string;
   senderAvatar: string;
+  /** 机器人名称与头像在发送时的快照，删除机器人后历史仍可展示。 */
+  senderBot?: Pick<ConversationBot, "id" | "name" | "avatar"> | null;
   kind: MessageKind;
   parts: MessagePart[];
   summary: string;
@@ -270,6 +292,24 @@ export interface ImMessage {
 }
 
 export type Message = ImMessage;
+
+/** 会话级 Webhook 机器人，不属于企业通讯录成员。 */
+export interface ConversationBot {
+  id: number;
+  conversationId: number;
+  companyId: number;
+  name: string;
+  avatar: string;
+  createdBy: number;
+  createdByName?: string;
+  secretTail: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConversationBotWithWebhook extends ConversationBot {
+  webhookUrl: string;
+}
 
 export interface MessageReceiptDetails {
   messageId: number;
@@ -392,6 +432,47 @@ export interface ServerConfig {
   name: string;
   apiVersion: string;
   socketPath: string;
+}
+
+export type DesktopTheme = "light" | "dark" | "system";
+export type DesktopZoom = 0.9 | 1 | 1.1 | 1.25;
+export type ChatSendKey = "enter" | "ctrlEnter";
+export type ChatFontSize = 13 | 14 | 15 | 16;
+export type ChatDensity = "comfortable" | "compact";
+
+export interface AppearancePreferences {
+  theme: DesktopTheme;
+  zoom: DesktopZoom;
+  reducedMotion: boolean;
+}
+
+export interface GeneralPreferences {
+  launchAtLogin: boolean;
+  closeToTray: boolean;
+  downloadDirectory: string | null;
+}
+
+export interface ChatPreferences {
+  sendKey: ChatSendKey;
+  fontSize: ChatFontSize;
+  density: ChatDensity;
+}
+
+export interface DesktopPreferences {
+  appearance: AppearancePreferences;
+  general: GeneralPreferences;
+  chat: ChatPreferences;
+}
+
+export interface DesktopPreferencesUpdate {
+  appearance?: Partial<AppearancePreferences>;
+  general?: Partial<GeneralPreferences>;
+  chat?: Partial<ChatPreferences>;
+}
+
+export interface DesktopStorageStats {
+  attachmentCacheBytes: number;
+  attachmentFileCount: number;
 }
 
 export type SyncEventType =

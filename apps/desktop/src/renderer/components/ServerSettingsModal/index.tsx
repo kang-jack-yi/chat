@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Form, Input, Modal, Space, Tag, Typography, message } from "antd";
+import {
+  Alert,
+  Button,
+  Form,
+  Input,
+  Modal,
+  Space,
+  Tag,
+  Typography,
+  message,
+} from "antd";
 import { CheckCircle2, Server, Wifi } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -66,7 +76,8 @@ export default function ServerSettingsModal() {
     return new Promise<boolean>((resolve) => {
       Modal.confirm({
         title: "切换服务器并退出当前账号？",
-        content: "切换后会断开实时连接并清空当前登录状态，本地历史仍保留在原服务器的数据目录中。",
+        content:
+          "切换后会断开实时连接并清空当前登录状态，本地历史仍保留在原服务器的数据目录中。",
         okText: "确认切换",
         cancelText: "取消",
         onOk: () => resolve(true),
@@ -80,7 +91,8 @@ export default function ServerSettingsModal() {
     setSaving(true);
     setChecking();
     try {
-      const verified = checked?.config.url === normalized ? checked : await testServer();
+      const verified =
+        checked?.config.url === normalized ? checked : await testServer();
       const result = await serverService.switch(verified.config.url);
       configureHttpClient(result.config.url);
       queryClient.clear();
@@ -110,7 +122,12 @@ export default function ServerSettingsModal() {
 
   return (
     <Modal
-      title={<Space><Server size={18} />服务器设置</Space>}
+      title={
+        <Space>
+          <Server size={18} />
+          服务器设置
+        </Space>
+      }
       open={open}
       width={520}
       closable={!required}
@@ -118,17 +135,36 @@ export default function ServerSettingsModal() {
       keyboard={!required}
       onCancel={() => setOpen(false)}
       footer={[
-        <Button key="test" icon={<Wifi size={15} />} loading={testing} onClick={() => void testServer()}>
+        <Button
+          key="test"
+          icon={<Wifi size={15} />}
+          loading={testing}
+          onClick={() => void testServer()}
+        >
           检测连接
         </Button>,
-        !required && <Button key="cancel" onClick={() => setOpen(false)}>取消</Button>,
-        <Button key="save" type="primary" loading={saving} disabled={!normalized} onClick={() => void save()}>
+        !required && (
+          <Button key="cancel" onClick={() => setOpen(false)}>
+            取消
+          </Button>
+        ),
+        <Button
+          key="save"
+          type="primary"
+          loading={saving}
+          disabled={!normalized}
+          onClick={() => void save()}
+        >
           保存并切换
         </Button>,
       ]}
     >
       <Form layout="vertical" className="pt-2">
-        <Form.Item label="服务地址" required extra="正式客户端仅支持 HTTPS；本地开发可使用 127.0.0.1。">
+        <Form.Item
+          label="服务地址"
+          required
+          extra="正式客户端仅支持 HTTPS；本地开发可使用 127.0.0.1。"
+        >
           <Input
             value={url}
             placeholder="https://chat.example.com"
@@ -141,22 +177,29 @@ export default function ServerSettingsModal() {
           />
         </Form.Item>
       </Form>
-      {error && <Alert type="error" showIcon message="连接失败" description={error} />}
+      {error && (
+        <Alert type="error" showIcon message="连接失败" description={error} />
+      )}
       {health && (
-        <div className="rounded-[14px] border border-[#d5eee4] bg-[#f2faf6] p-4">
+        <div className="rounded-[14px] border border-[var(--app-line)] bg-[var(--app-surface-soft)] p-4">
           <div className="mb-3 flex items-center gap-2 font-semibold text-[#178761]">
-            <CheckCircle2 size={17} />连接正常
+            <CheckCircle2 size={17} />
+            连接正常
           </div>
           <Space direction="vertical" size={6}>
             <Typography.Text>服务：{health.name}</Typography.Text>
-            <Typography.Text type="secondary">服务器 ID：{health.serverId}</Typography.Text>
+            <Typography.Text type="secondary">
+              服务器 ID：{health.serverId}
+            </Typography.Text>
             <Typography.Text type="secondary">
               版本：<Tag color="blue">API v{health.apiVersion}</Tag>
             </Typography.Text>
           </Space>
         </div>
       )}
-      {status === "checking" && !health && <Alert type="info" showIcon message="正在检测服务器…" />}
+      {status === "checking" && !health && (
+        <Alert type="info" showIcon message="正在检测服务器…" />
+      )}
     </Modal>
   );
 }

@@ -42,7 +42,7 @@ export default function AdminMenu({
         <button
           type="button"
           onClick={() => onModeChange("members")}
-          className={`flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-sm transition-colors ${mode === "members" ? "bg-white text-[#49505a] shadow-[0_6px_18px_rgba(39,48,67,.07)] ring-1 ring-black/[.025]" : "text-[var(--app-text-secondary)] hover:bg-white/60"}`}
+          className={`flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-sm transition-colors ${mode === "members" ? "bg-[var(--app-surface)] text-[var(--app-text)] shadow-[var(--app-shadow-panel)] ring-1 ring-[var(--app-line)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)]"}`}
         >
           <span className={`grid size-8 place-items-center rounded-[10px] ${mode === "members" ? "bg-[var(--app-primary-soft)] text-[var(--app-primary)]" : "bg-[var(--app-surface-muted)] text-[#60758a]"}`}><Users size={16} /></span>
           <span className="flex-1">成员与账号</span>
@@ -51,7 +51,7 @@ export default function AdminMenu({
         <button
           type="button"
           onClick={() => onModeChange("departments")}
-          className={`flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-sm transition-colors ${mode === "departments" ? "bg-white text-[#49505a] shadow-[0_6px_18px_rgba(39,48,67,.07)] ring-1 ring-black/[.025]" : "text-[var(--app-text-secondary)] hover:bg-white/60"}`}
+          className={`flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-sm transition-colors ${mode === "departments" ? "bg-[var(--app-surface)] text-[var(--app-text)] shadow-[var(--app-shadow-panel)] ring-1 ring-[var(--app-line)]" : "text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)]"}`}
         >
           <span className={`grid size-8 place-items-center rounded-[10px] ${mode === "departments" ? "bg-[var(--app-primary-soft)] text-[var(--app-primary)]" : "bg-[var(--app-surface-muted)] text-[#60758a]"}`}><Building2 size={16} /></span>
           <span className="flex-1">部门架构</span>
@@ -63,7 +63,7 @@ export default function AdminMenu({
         </div>
       </div>
 
-      <div className="mx-4 mt-auto mb-4 flex gap-2 rounded-[12px] border border-[#e7eaf0] bg-white/70 px-3 py-2.5 text-xs leading-relaxed text-[#7c828b]">
+      <div className="mx-4 mt-auto mb-4 flex gap-2 rounded-[12px] border border-[var(--app-line)] bg-[var(--app-surface-soft)] px-3 py-2.5 text-xs leading-relaxed text-[var(--app-text-secondary)]">
         <Settings size={17} className="shrink-0 text-[#667085]" /><span>成员停用后将立即失去登录和实时连接权限</span>
       </div>
     </>

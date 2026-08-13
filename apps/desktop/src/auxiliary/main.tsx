@@ -10,13 +10,13 @@ import {
 } from "react";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
-import { ConfigProvider, Spin } from "antd";
-import zhCN from "antd/locale/zh_CN";
+import { Spin } from "antd";
 import type { AuxiliaryTask } from "@chat/shared";
 import "antd/dist/reset.css";
 import "../renderer/styles/tailwind.css";
 import "../renderer/styles/global.less";
-import { appTheme } from "../renderer/styles/theme";
+import AppThemeProvider from "../renderer/providers/AppThemeProvider";
+import PreferencesRuntime from "../renderer/providers/PreferencesRuntime";
 
 const InviteHistoryWindow = lazy(() => import("./windows/InviteHistoryWindow"));
 const ImageViewerWindow = lazy(() => import("./windows/ImageViewerWindow"));
@@ -41,7 +41,7 @@ class AuxiliaryErrorBoundary extends Component<
     if (!this.state.error) return this.props.children;
     return (
       <div className="grid h-screen place-items-center bg-[var(--app-canvas)] p-8">
-        <div className="w-full max-w-[440px] rounded-2xl border border-[var(--app-line)] bg-white p-6 text-center shadow-sm">
+        <div className="w-full max-w-[440px] rounded-2xl border border-[var(--app-line)] bg-[var(--app-surface)] p-6 text-center shadow-sm">
           <h1 className="m-0 text-base font-semibold text-[var(--app-text)]">窗口加载失败</h1>
           <p className="mt-2 break-all text-xs leading-5 text-[var(--app-text-secondary)]">
             {this.state.error.message || "辅助窗口发生未知错误"}
@@ -114,13 +114,12 @@ function AuxiliaryShell() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ConfigProvider
-      locale={zhCN}
-      theme={appTheme}
-    >
-      <AuxiliaryErrorBoundary>
-        <AuxiliaryShell />
-      </AuxiliaryErrorBoundary>
-    </ConfigProvider>
+    <PreferencesRuntime>
+      <AppThemeProvider>
+        <AuxiliaryErrorBoundary>
+          <AuxiliaryShell />
+        </AuxiliaryErrorBoundary>
+      </AppThemeProvider>
+    </PreferencesRuntime>
   </StrictMode>,
 );

@@ -12,6 +12,7 @@ import type {
   LocalMessage,
   MentionAllPart,
   MentionPart,
+  MarkdownPart,
   Message,
   MessagePart,
   QuotePart,
@@ -21,6 +22,7 @@ import { formatFileSize } from "../../../utils/format";
 
 export type MessageContentGroup =
   | { type: "text"; parts: Array<TextPart | MentionPart | MentionAllPart> }
+  | { type: "markdown"; parts: MarkdownPart[] }
   | { type: "images"; parts: ImagePart[] };
 
 export interface MessageActions {
@@ -84,6 +86,106 @@ export function displayMessageText(value: string) {
   return container.textContent || "";
 }
 
+export type MarkdownBlock =
+  | { type: "heading"; level: 1 | 2 | 3; text: string }
+  | { type: "quote"; text: string }
+  | { type: "unordered"; items: string[] }
+  | { type: "ordered"; items: string[] }
+  | { type: "paragraph"; text: string };
+
+const markdownLineBreaks = (value: string) => value.replace(/\\n/g, "\n").replace(/\r\n?/g, "\n");
+
+/** Converts the Webhook Markdown subset into safe, renderable blocks without injecting HTML. */
+export function markdownBlocks(value: string): MarkdownBlock[] {
+  const lines = markdownLineBreaks(value).split("\n");
+  const blocks: MarkdownBlock[] = [];
+  let paragraph: string[] = [];
+  const flushParagraph = () => {
+    const text = paragraph.join("\n").trim();
+    if (text) blocks.push({ type: "paragraph", text });
+    paragraph = [];
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (!line.trim()) {
+      flushParagraph();
+      continue;
+    }
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      blocks.push({ type: "heading", level: heading[1].length as 1 | 2 | 3, text: heading[2] });
+      continue;
+    }
+    if (/^>\s?/.test(line)) {
+      flushParagraph();
+      const quoteLines: string[] = [];
+      while (index < lines.length && /^>\s?/.test(lines[index])) {
+        quoteLines.push(lines[index].replace(/^>\s?/, ""));
+        index += 1;
+      }
+      index -= 1;
+      blocks.push({ type: "quote", text: quoteLines.join("\n") });
+      continue;
+    }
+    if (/^[-*+]\s+/.test(line)) {
+      flushParagraph();
+      const items: string[] = [];
+      while (index < lines.length && /^[-*+]\s+/.test(lines[index])) {
+        items.push(lines[index].replace(/^[-*+]\s+/, ""));
+        index += 1;
+      }
+      index -= 1;
+      blocks.push({ type: "unordered", items });
+      continue;
+    }
+    if (/^\d+[.)]\s+/.test(line)) {
+      flushParagraph();
+      const items: string[] = [];
+      while (index < lines.length && /^\d+[.)]\s+/.test(lines[index])) {
+        items.push(lines[index].replace(/^\d+[.)]\s+/, ""));
+        index += 1;
+      }
+      index -= 1;
+      blocks.push({ type: "ordered", items });
+      continue;
+    }
+    paragraph.push(line);
+  }
+  flushParagraph();
+  return blocks;
+}
+
+function MarkdownInline({ value }: { value: string }) {
+  const tokens = markdownLineBreaks(value).split(/(`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|\*[^*]+\*|_[^_]+_)/g);
+  return <>
+    {tokens.map((token, index) => {
+      if (!token) return null;
+      if (/^`[^`]+`$/.test(token)) return <code key={index} className="rounded bg-black/[.06] px-1 py-0.5 font-mono text-[.9em]">{token.slice(1, -1)}</code>;
+      if (/^(\*\*[^*]+\*\*|__[^_]+__)$/.test(token)) return <strong key={index} className="font-semibold">{token.slice(2, -2)}</strong>;
+      if (/^~~[^~]+~~$/.test(token)) return <del key={index}>{token.slice(2, -2)}</del>;
+      if (/^(\*[^*]+\*|_[^_]+_)$/.test(token)) return <em key={index}>{token.slice(1, -1)}</em>;
+      return <span key={index}>{token}</span>;
+    })}
+  </>;
+}
+
+export function MarkdownContent({ content }: { content: string }) {
+  return <div className="grid gap-2 break-words [overflow-wrap:anywhere]">
+    {markdownBlocks(content).map((block, index) => {
+      if (block.type === "heading") {
+        const className = block.level === 1 ? "text-base font-semibold" : block.level === 2 ? "text-[15px] font-semibold" : "text-sm font-semibold";
+        return <div key={index} className={className}><MarkdownInline value={block.text} /></div>;
+      }
+      if (block.type === "quote") return <blockquote key={index} className="border-l-2 border-[var(--chat-primary)] bg-[var(--chat-primary-soft)]/60 px-2.5 py-1.5 text-[var(--chat-text-secondary)]"><MarkdownInline value={block.text} /></blockquote>;
+      if (block.type === "unordered") return <ul key={index} className="list-disc space-y-0.5 pl-5">{block.items.map((item, itemIndex) => <li key={itemIndex}><MarkdownInline value={item} /></li>)}</ul>;
+      if (block.type === "ordered") return <ol key={index} className="list-decimal space-y-0.5 pl-5">{block.items.map((item, itemIndex) => <li key={itemIndex}><MarkdownInline value={item} /></li>)}</ol>;
+      return <p key={index} className="whitespace-pre-wrap"><MarkdownInline value={block.text} /></p>;
+    })}
+  </div>;
+}
+
 export function groupMessageContent(parts: MessagePart[]) {
   return parts.reduce<MessageContentGroup[]>((groups, part) => {
     if (part.type === "text" || part.type === "mention" || part.type === "mention_all") {
@@ -95,6 +197,11 @@ export function groupMessageContent(parts: MessagePart[]) {
       const last = groups.at(-1);
       if (last?.type === "images") last.parts.push(part);
       else groups.push({ type: "images", parts: [part] });
+    }
+    if (part.type === "markdown") {
+      const last = groups.at(-1);
+      if (last?.type === "markdown") last.parts.push(part);
+      else groups.push({ type: "markdown", parts: [part] });
     }
     return groups;
   }, []);
@@ -417,7 +524,7 @@ function ReplyPreview({
         />
       )}
       {filePart?.type === "file" && (
-        <span className="max-w-[112px] shrink-0 truncate rounded bg-white/70 px-2 py-1 text-[10px]">
+        <span className="max-w-[112px] shrink-0 truncate rounded bg-[var(--app-surface-soft)] px-2 py-1 text-[10px]">
           {filePart.attachment.originalName}
         </span>
       )}
@@ -468,7 +575,7 @@ export default function MessageContent({
     return (
       <button
         type="button"
-        className="grid w-[290px] min-w-0 max-w-full gap-2 overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--chat-attachment)] p-3 text-left transition-colors hover:bg-white"
+        className="grid w-[290px] min-w-0 max-w-full gap-2 overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--chat-attachment)] p-3 text-left transition-colors hover:bg-[var(--app-surface-muted)]"
         onClick={() => onOpenForwardRecord?.(message)}
       >
         <strong className="truncate text-sm font-medium text-[var(--chat-text)]">
@@ -519,6 +626,12 @@ export default function MessageContent({
                   <span key={partIndex}>{displayMessageText(part.text)}</span>
                 ) : (
                   <span key={partIndex} className="text-[var(--chat-primary)]">@{part.label}</span>
+                ))}
+              </div>
+            ) : group.type === "markdown" ? (
+              <div key={`markdown-${groupIndex}`} className={`${messageContentClassNames.text} leading-6`}>
+                {group.parts.map((part, partIndex) => (
+                  <MarkdownContent key={partIndex} content={part.content} />
                 ))}
               </div>
             ) : (
