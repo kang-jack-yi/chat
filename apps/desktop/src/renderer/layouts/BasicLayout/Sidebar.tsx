@@ -1,31 +1,35 @@
-import { Building2, ContactRound, FileText, MessageCircleMore, Settings } from "lucide-react";
+import { Building2, Bell, ContactRound, FileText, ListTodo, MessageCircleMore, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, Dropdown, Tooltip } from "antd";
+import { useQuery } from "@tanstack/react-query";
 import Avatar from "../../components/Avatar";
 import { ROUTES } from "../../constants/routes";
 import { authService } from "../../services/auth";
 import { useAppStore } from "../../stores/app-store";
 import { useSyncStore } from "../../stores/sync-store";
 import { useUserStore } from "../../stores/user-store";
+import { queryKeys } from "../../constants/query-keys";
+import { notificationsService } from "../../services/notifications";
 
 interface NavItemProps {
   to: string;
   icon: ReactNode;
   label: string;
+  badge?: number;
 }
 
 const railItem = "flex h-12 w-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[var(--chat-text-secondary)] no-underline transition-colors duration-150 hover:bg-[var(--chat-rail-hover)] hover:text-[var(--chat-primary)] max-md:h-12 max-md:w-11";
 
-function NavItem({ to, icon, label }: NavItemProps) {
+function NavItem({ to, icon, label, badge = 0 }: NavItemProps) {
   return (
     <Tooltip placement="right" title={label}>
       <NavLink
         to={to}
         className={({ isActive }) => `${railItem} ${isActive ? "bg-[var(--chat-rail-active)] !text-[var(--chat-primary)]" : ""}`}
       >
-        {icon}<span className="text-[11px] leading-4">{label}</span>
+        <span className="relative">{icon}{badge > 0 && <span className="absolute -right-3 -top-2 min-w-4 rounded-full bg-[var(--app-danger)] px-1 text-center text-[10px] leading-4 text-white">{badge > 99 ? "99+" : badge}</span>}</span><span className="text-[11px] leading-4">{label}</span>
       </NavLink>
     </Tooltip>
   );
@@ -40,6 +44,11 @@ export default function Sidebar() {
   const setServerSettingsOpen = useAppStore((state) => state.setServerSettingsOpen);
   const setSettingsCenterOpen = useAppStore((state) => state.setSettingsCenterOpen);
   const isAdmin = ["owner", "admin"].includes(session?.user.role || "");
+  const notifications = useQuery({
+    queryKey: queryKeys.notifications(),
+    queryFn: () => notificationsService.list(),
+    staleTime: 30_000,
+  });
 
   async function logout() {
     await authService.logout().catch(() => undefined);
@@ -74,6 +83,8 @@ export default function Sidebar() {
         <NavItem to={ROUTES.chat} icon={<MessageCircleMore size={22} />} label="消息" />
         <NavItem to={ROUTES.contacts} icon={<ContactRound size={22} />} label="通讯录" />
         <NavItem to={ROUTES.documents} icon={<FileText size={22} />} label="文档" />
+        <NavItem to={ROUTES.tasks} icon={<ListTodo size={22} />} label="任务" />
+        <NavItem to={ROUTES.notifications} icon={<Bell size={22} />} label="通知" badge={notifications.data?.unreadCount} />
         {isAdmin && <NavItem to={ROUTES.organization} icon={<Building2 size={22} />} label="组织管理" />}
       </nav>
       <div className="mt-auto grid w-full justify-items-center gap-1">

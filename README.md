@@ -1,94 +1,157 @@
-# 企业协作桌面端
+# Enterprise Chat
 
-Windows Electron 企业通讯录与即时聊天原型。客户端使用 React 19、Ant Design、Tailwind、TanStack Query、Zustand、Axios 和 Socket.IO；服务端使用 Egg.js、Sequelize 与 SQLite。
+Windows 桌面端企业协作与即时通讯原型。系统由 Electron 客户端、Egg.js 服务端、Socket.IO 实时通信服务和 SQLite 数据层组成，当前覆盖企业通讯录、单聊/群聊、消息与文件、云文档协作、组织管理以及机器人 Webhook 等能力。
 
-本仓库只提供桌面客户端，不再提供浏览器版。每个登录账号在本机保存一份可重建的 SQLite 历史副本，服务端仍永久保存完整消息。
+## 当前已有功能
 
-## 环境与启动
+### 1. 登录、企业与个人账号
 
-需要 Windows 10/11 x64、Node.js 22+、pnpm 10+。
+- 企业注册和初始化企业空间。
+- 手机号/密码登录、刷新登录态、退出登录。
+- 当前用户信息查询和修改。
+- 头像上传与头像读取。
+- 个人简介、工作邮箱、职位/部门信息展示。
+- 在线状态设置：在线、忙碌、请勿打扰、离开。
+- 状态文本和状态有效期设置。
+- 企业所有者、管理员、普通成员三类角色。
+- 服务端地址配置和服务健康检查。
 
-```powershell
-pnpm install
-pnpm dev
-```
+相关实现：`apps/desktop/src/renderer/pages/Login`、`apps/server/app/controller/auth.ts`、`apps/server/app/controller/organization.ts`。
 
-`pnpm dev` 会同时启动：
+### 2. 企业通讯录
 
-- Egg.js API 与 Socket.IO：`http://127.0.0.1:7001`
-- Electron Renderer 开发服务：`http://127.0.0.1:15173`
-- Electron 桌面窗口
+- 企业成员列表和成员搜索。
+- 按部门筛选成员。
+- 成员详情页：头像、姓名、职位、部门、联系方式和个人简介。
+- 从成员详情直接发起单聊。
+- 组织管理员可查看企业成员与部门概览。
 
-开发环境默认使用 `http://127.0.0.1:7001`，也可以在登录页通过“服务器设置”修改。正式安装包仅接受 HTTPS。
+相关实现：`apps/desktop/src/renderer/pages/Contacts`、`apps/server/app/controller/organization.ts`。
 
-演示账号：
+### 3. 组织架构与成员管理
 
-- 所有者：`13800000001`
-- 管理员：`13800000002`
-- 成员：`13800000003`
-- 统一密码：`123456`
+管理员/企业所有者可以：
 
-## 常用命令
+- 查看企业基本信息、成员数量和部门数量。
+- 创建、编辑、删除部门。
+- 设置部门层级和上级部门。
+- 新增成员账号。
+- 编辑成员姓名、邮箱、职位、部门和角色等信息。
+- 重置成员密码。
+- 启用或停用成员账号。
+- 按关键词、部门、角色、账号状态筛选成员。
+- 查看活跃成员、管理员、停用账号、未分配部门等统计。
 
-```powershell
-pnpm dev                 # 启动服务端和 Electron
-pnpm build               # 构建全部工作区
-pnpm test                # 运行服务端、Renderer 与本地 SQLite 测试
-pnpm seed                # 初始化演示数据
-pnpm build:desktop       # 构建 Electron 主进程、Preload 和 Renderer
-pnpm make:win            # 生成 Windows x64 安装程序
-```
+相关实现：`apps/desktop/src/renderer/pages/Organization`、`apps/server/app/controller/organization.ts`。
 
-安装程序输出到：
+### 4. 单聊与群聊
+
+- 发起单聊；同一企业内同一对成员复用已有单聊会话。
+- 创建群聊并选择多个企业成员。
+- 群成员列表、成员邀请和成员移除。
+- 群聊名称修改。
+- 群主转移。
+- 群主解散群聊；普通成员退出群聊。
+- 群公告发布、编辑和展示。
+- 会话置顶、消息免打扰、隐藏会话。
+- 清空当前账号可见的本地聊天记录。
+- 会话未读数、@提及状态和单聊在线状态。
+- 会话列表按置顶和最近消息排序。
+
+相关实现：`apps/desktop/src/renderer/pages/Chat`、`apps/server/app/controller/chat.ts`。
+
+### 5. 消息能力
+
+- 富文本消息编辑。
+- 文本、图片和文件消息。
+- 图片粘贴、拖拽/选择上传和发送前预览。
+- 多附件批量发送。
+- 消息引用和引用内容预览。
+- @成员和 @全体成员。
+- 消息多选、复制文本、批量保存图片。
+- 单条消息或多条消息转发到多个会话。
+- 撤回已发送消息。
+- 仅对当前账号删除消息。
+- 历史消息分页加载和向上加载更早消息。
+- 消息已读回执和群成员阅读详情。
+- 发送中、上传中、失败、重试、取消等发送状态。
+- 系统消息：建群、入群、改名、转让群主、成员变更、撤回消息等。
+
+共享消息模型定义在 `packages/shared/src/index.ts`，核心服务实现位于 `apps/server/app/lib/chat.ts` 和 `apps/server/app/controller/chat.ts`。
+
+### 6. 消息搜索与历史
+
+- 当前账号范围内的本地全文搜索。
+- 全局搜索会话和消息。
+- 支持按消息内容、发送者、会话等上下文定位结果。
+- 支持消息历史分类：全部、文件、媒体。
+- 从搜索结果定位到具体会话和消息。
+- 会话历史清空后按账号维度隐藏历史，不影响其他成员的记录。
+
+相关实现：`apps/desktop/src/renderer/pages/Chat/hooks.ts`、`ConversationList.tsx`、`apps/server/app/lib/database.ts`、`apps/server/app/lib/chat.ts`。
+
+### 7. 会话机器人与 Webhook
+
+- 在单聊或群聊中创建机器人。
+- 修改机器人名称。
+- 删除机器人。
+- 重置机器人 Webhook 密钥。
+- 复制机器人 Webhook 地址。
+- 通过 Webhook 向会话发送文本、图片和文件消息。
+- 机器人消息会显示独立的发送者身份。
+- 支持 Webhook 媒体上传接口，并对临时媒体设置过期时间。
+
+相关实现：`apps/desktop/src/renderer/pages/Chat/components/ConversationBotsModal.tsx`、`apps/server/app/controller/conversation_bot.ts`。
+
+Webhook 入口：
 
 ```text
-apps/desktop/release/make/squirrel.windows/x64/EnterpriseChat-Setup.exe
+POST /cgi-bin/webhook/send
+POST /cgi-bin/webhook/upload_media
 ```
 
-构建正式安装包时可内置默认服务器：
+### 8. 云文档与在线表格
 
-```powershell
-$env:DESKTOP_DEFAULT_SERVER_URL="https://chat.example.com"
-pnpm make:win
-```
+- 创建在线文档。
+- 创建在线表格。
+- 导入本地 Word、Excel、CSV、TSV、Markdown、RTF、TXT 等文件。
+- 最近访问、我的文档、与我共享、我的收藏四种列表视图。
+- 文档搜索。
+- 文档收藏/取消收藏。
+- 文档重命名。
+- 文档下载/导出。
+- 文档分享给企业成员。
+- 文档成员权限：所有者、可编辑、仅查看。
+- 所有者删除文档并移入回收状态。
+- 在独立 Electron 文档窗口打开文档。
+- 文档标题和内容自动保存。
 
-未设置默认服务器时，客户端首次启动会强制打开“服务器设置”弹窗。
+相关实现：`apps/desktop/src/renderer/pages/Documents`、`apps/desktop/src/document`、`apps/server/app/controller/documents.ts`。
 
-## 工程结构
+在线编辑器基于 Tiptap、Yjs 和 Hocuspocus，当前支持：
 
-```text
-apps/
-├─ desktop/
-│  └─ src/
-│     ├─ main/                 Electron 主进程、服务器配置、SQLite utilityProcess
-│     ├─ preload/              最小权限 IPC bridge
-│     └─ renderer/             React 桌面界面
-└─ server/                     Egg.js API、Socket.IO、服务端 SQLite
-packages/shared/               DTO、同步事件和公共类型
-```
+- 多人实时协同编辑。
+- 协作者光标和在线状态展示。
+- 文本、标题、列表、引用、链接、表格、文本对齐和高亮等编辑能力。
+- 表格/表单式在线表格编辑基础能力。
+- 查看模式和只读权限控制。
+- 协作状态展示：连接中、已连接、已同步、已断开。
+- 窗口关闭前刷新未同步更新。
 
-Renderer 不可直接访问 Node.js、SQLite 或真实文件路径。主进程只开放经过白名单校验的 IPC，`better-sqlite3` 在 Electron `utilityProcess` 中运行，打包时按 Electron ABI 重建并从 ASAR 解包。
+### 9. 本地缓存、离线发送与增量同步
 
-## 服务器配置与认证
+- 每个服务端/企业/用户组合拥有独立的本地 SQLite 数据库。
+- 本地保存用户、部门、会话、消息、附件和同步游标等数据。
+- 聊天消息支持先写入本地，再通过 outbox 异步发送。
+- 网络恢复后按 `clientId` 去重并重试未完成消息。
+- Socket.IO 推送实时消息和同步提示。
+- 服务端通过持久化 `sync_events` 增量补偿客户端离线期间的变更。
+- 首次登录或本地副本过期时执行 bootstrap，同步通讯录、会话、消息和快捷数据。
+- 后台分批补齐历史消息并建立本地全文索引。
+- 支持清空当前账号本地数据。
+- 退出账号默认保留本地历史；用户主动清理时才删除本地数据。
 
-- 主进程执行 `/api/health` 检测，验证 `serviceId`、API 版本、最低客户端版本和永久 `serverId`。
-- 切换服务器前先验证新地址；验证失败不会覆盖旧设置。
-- 切换成功后关闭 SQLite、清理 Cookie/access token、Socket、TanStack Query 和 Zustand 登录态。
-- Axios 在运行时设置 `baseURL`，自动加入 `Authorization: Bearer <accessToken>`。
-- access token 有效期 15 分钟；refresh token 仅存于 HttpOnly Cookie。
-- refresh token 对应服务端 `desktop_refresh_sessions`，每次刷新都会轮换，退出后立即撤销。
-
-服务端至少应配置：
-
-```text
-CHAT_JWT_SECRET=至少32位随机字符串
-CHAT_ALLOWED_ORIGINS=chat://app
-CHAT_ALLOW_COMPANY_REGISTER=true
-```
-
-## 本地数据与同步
-
-客户端数据目录：
+本地数据目录：
 
 ```text
 %APPDATA%/EnterpriseChat/
@@ -97,27 +160,151 @@ CHAT_ALLOW_COMPANY_REGISTER=true
 └─ cache/{serverId}/{companyId}/{userId}/
 ```
 
-本地 SQLite 未加密，同一 Windows 用户可直接读取数据库文件。数据库启用 WAL、外键、`synchronous=NORMAL`、5 秒 busy timeout 和 FTS5 trigram 中文索引。
+### 10. 任务/待办中心
 
-同步流程：
+- 从消息右键菜单创建任务，并保留关联会话和原消息。
+- 独立“我的任务”页面。
+- 任务负责人、截止时间、优先级和状态管理。
+- 支持待处理、进行中、已完成、已取消四种状态。
+- 支持按状态筛选任务。
+- 支持推进任务、完成任务和重新打开任务。
+- 支持编辑任务、调整负责人、优先级和截止时间。
+- 支持删除任务，并在列表中标识逾期任务。
+- 创建任务和完成任务时向关联会话写入系统消息。
+- 任务通过服务端 API 保存，并为负责人写入增量同步事件。
 
-1. 健康检查并恢复 refresh session。
-2. 根据 `serverId/companyId/userId` 打开本地数据库。
-3. 拉取通讯录、部门、会话、最近消息及快照游标。
-4. 连接 Socket.IO，并通过持久 `sync_events` 补偿增量事件。
-5. 后台按每页 100 条补齐完整历史并建立 FTS 索引。
-6. 发送消息先写本地 `messages(pending)` 与 `outbox`；网络恢复后按 `clientId` 幂等重试。
+相关实现：`apps/server/app/controller/tasks.ts`、`apps/desktop/src/renderer/pages/Tasks`、`apps/desktop/src/renderer/pages/Chat/components/CreateTaskModal.tsx`。
 
-退出账号会保留本地历史；“清除本地数据”才删除当前账号的数据目录。
+### 11. 通知中心
 
-服务端数据：
+- 任务分配时向负责人生成通知，任务完成时向创建者生成通知。
+- 群聊中 @成员 或 @所有人 时，为对应活跃成员生成通知。
+- 文档成员发表评论时，向其他文档成员生成评论通知。
+- 通知按接收人隔离，支持全部通知/未读通知筛选。
+- 支持侧栏未读数、单条标为已读和全部已读。
+- 点击消息通知可直接打开对应会话，点击任务通知可打开任务中心。
+- 通过 Socket 通知到达事件刷新未读状态。
 
-- 数据库：`apps/server/data/chat.sqlite`
-- 上传文件：`apps/server/storage/uploads/{企业ID}/{年月}/`
-- 同步事件保留 180 天，过期游标会要求客户端重新生成本地副本。
+相关实现：`apps/server/app/controller/notifications.ts`、`apps/server/app/lib/notifications.ts`、`apps/desktop/src/renderer/pages/Notifications`。
 
-## 当前范围
+当前仍待补充截止时间自动提醒和更多系统通知类型。
 
-支持通讯录、递归部门、成员管理、单聊、群聊、富文本、开源表情选择器、图片/文件消息、历史分页、本地全文搜索、已读状态、输入中、在线状态、置顶、免打扰、清空本人记录和离线发件箱。
+### 12. 文档评论
 
-当前面向单机原型。服务端横向扩容时需要迁移到 MySQL/PostgreSQL、对象存储以及 Redis Socket.IO Adapter。
+- 文档成员可以发表评论，支持可选的段落锚点标识。
+- 支持查看评论、标记解决和重新打开评论。
+- 评论通知按文档成员隔离，点击通知可打开对应文档。
+- 文档列表的操作菜单提供评论面板，可直接发布和处理评论。
+
+相关实现：`apps/server/app/controller/documents.ts`、`apps/desktop/src/renderer/pages/Documents/components/DocumentCommentsModal.tsx`。
+
+当前仍待补充编辑器选区直接绑定评论锚点，以及评论回复线程。
+
+### 13. 桌面端能力与安全边界
+
+- Electron 主进程、preload、renderer 分层。
+- renderer 不直接访问 Node.js、SQLite 或真实文件路径。
+- 通过白名单 IPC 暴露文档窗口、附件、剪贴板、截图和下载等桌面能力。
+- 支持独立文档窗口和辅助窗口。
+- 支持窗口关闭前等待协同文档更新刷出。
+- 服务端通过 Bearer access token 认证，refresh token 使用 HttpOnly Cookie。
+- access token 默认有效期 15 分钟，刷新时轮换 refresh session。
+- 会话、消息、文档、附件和组织数据均按企业/成员权限隔离。
+
+## 系统结构
+
+```text
+apps/
+├─ desktop/
+│  └─ src/
+│     ├─ main/       Electron 主进程、窗口、服务配置、SQLite utilityProcess
+│     ├─ preload/    主进程与 renderer 之间的最小 IPC bridge
+│     ├─ renderer/   React 主界面、页面、组件、状态和服务
+│     ├─ document/   独立文档窗口和在线协同编辑器
+│     └─ auxiliary/  辅助窗口
+└─ server/
+   ├─ app/controller/  HTTP API 控制器
+   ├─ app/io/          Socket.IO 实时控制器
+   ├─ app/lib/         数据库、认证、聊天、同步、文档协作与导入导出
+   └─ data/             服务端 SQLite 数据库
+
+packages/
+└─ shared/              客户端/服务端共享 DTO、事件和类型
+```
+
+### 客户端路由
+
+| 路由 | 功能 |
+|---|---|
+| `/login` | 登录与企业注册 |
+| `/chat` | 会话列表与聊天首页 |
+| `/chat/:conversationId` | 指定单聊/群聊 |
+| `/contacts` | 企业通讯录 |
+| `/contacts/:userId` | 成员详情 |
+| `/organization` | 组织架构与成员管理 |
+| `/documents` | 云文档列表 |
+
+## API 能力概览
+
+主要 API 路由集中在 `apps/server/app/router.ts`：
+
+- `/api/auth/*`：企业注册、登录、刷新、退出、个人资料和头像。
+- `/api/company`、`/api/departments`、`/api/users`、`/api/contacts`：企业与通讯录。
+- `/api/conversations/*`：会话、群管理、机器人、消息、已读和转发。
+- `/api/documents/*`：文档、导入、下载、更新、分享和删除。
+- `/api/uploads`、`/api/files/*`：附件上传、下载和删除。
+- `/api/sync/*`：健康检查、bootstrap、增量事件和同步状态。
+- `/cgi-bin/webhook/*`：机器人 Webhook。
+
+## 开发环境
+
+要求：Windows 10/11 x64、Node.js 22+、pnpm 10+。
+
+```powershell
+pnpm install
+pnpm dev
+```
+
+开发模式会启动：
+
+- Egg.js API 和 Socket.IO：`http://127.0.0.1:7001`
+- Electron renderer 开发服务：`http://127.0.0.1:15173`
+- Electron 桌面客户端窗口
+
+常用命令：
+
+```powershell
+pnpm dev                 # 启动服务端和 Electron
+pnpm build               # 构建全部 workspace
+pnpm test                # 运行全部测试
+pnpm test:desktop        # 运行桌面端测试
+pnpm seed                # 初始化演示数据
+pnpm reset:data          # 清理开发数据并重新 seed
+pnpm build:desktop       # 构建 Electron 主进程、preload 和 renderer
+pnpm make:win            # 生成 Windows x64 安装包
+```
+
+演示账号：
+
+| 角色 | 手机号 |
+|---|---|
+| 企业所有者 | `13800000001` |
+| 管理员 | `13800000002` |
+| 成员 | `13800000003` |
+
+统一密码：`123456`
+
+## 当前产品边界
+
+当前项目定位仍是桌面端协同原型，已具备即时通讯和文档协作的主要闭环，但以下能力尚未在当前代码中形成完整模块：
+
+- 日历、会议预约和视频会议。
+- 审批、项目任务拆解、任务看板和任务提醒。
+- 多维表格、表单、仪表盘和低代码工作流。
+- AI 摘要、知识问答和自动化代理。
+- 外部访客协作和跨组织权限体系。
+- 移动端、浏览器端和多端统一客户端。
+- 生产级 MySQL/PostgreSQL、对象存储和 Redis 集群部署。
+- 更完整的企业审计、数据保留、DLP 和 SSO/SCIM 管理。
+
+服务端当前使用 SQLite 和本地文件存储，适合原型和单机部署；如果进行横向扩展，应迁移关系数据库、对象存储，并为 Socket.IO 增加 Redis adapter。

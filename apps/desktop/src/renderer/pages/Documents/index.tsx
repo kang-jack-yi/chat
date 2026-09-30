@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import type { CloudDocument, CloudDocumentListView } from "@chat/shared";
 import ShareDocumentModal from "./components/ShareDocumentModal";
+import DocumentCommentsModal from "./components/DocumentCommentsModal";
 import { useDocuments } from "./hooks";
 import { writeClipboardText } from "../../services/clipboard";
 
@@ -55,6 +56,7 @@ function formatUpdatedAt(value: string) {
 export default function DocumentsPage() {
   const documents = useDocuments();
   const [sharing, setSharing] = useState<CloudDocument | null>(null);
+  const [commenting, setCommenting] = useState<CloudDocument | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
   const data = documents.documents.data ?? [];
 
@@ -98,6 +100,11 @@ export default function DocumentsPage() {
           title: document.title,
         })
           .catch((error: Error) => message.error(error.message || "下载文档失败")),
+      },
+      {
+        key: "comments",
+        label: "评论",
+        onClick: () => setCommenting(document),
       },
       {
         type: "divider",
@@ -341,6 +348,10 @@ export default function DocumentsPage() {
           document={sharing}
           onClose={() => setSharing(null)}
           onSaved={documents.refresh}
+        />
+        <DocumentCommentsModal
+          document={commenting}
+          onClose={() => setCommenting(null)}
         />
       </main>
     </div>

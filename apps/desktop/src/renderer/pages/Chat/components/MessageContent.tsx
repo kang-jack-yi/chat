@@ -95,6 +95,51 @@ export type MarkdownBlock =
 
 const markdownLineBreaks = (value: string) => value.replace(/\\n/g, "\n").replace(/\r\n?/g, "\n");
 
+const httpUrlPattern = /https?:\/\/[^\s<>"'`]+/gi;
+const trailingUrlPunctuation = /[.,!?;:，。！？；：)）\]}】}>]+$/;
+
+export type MessageTextSegment =
+  | { type: "text"; value: string }
+  | { type: "url"; value: string };
+
+export function messageTextSegments(value: string): MessageTextSegment[] {
+  const segments: MessageTextSegment[] = [];
+  let lastIndex = 0;
+  for (const match of value.matchAll(httpUrlPattern)) {
+    const start = match.index ?? 0;
+    const rawUrl = match[0];
+    const url = rawUrl.replace(trailingUrlPunctuation, "");
+    if (!url) continue;
+    if (start > lastIndex) segments.push({ type: "text", value: value.slice(lastIndex, start) });
+    segments.push({ type: "url", value: url });
+    if (url.length < rawUrl.length) {
+      segments.push({ type: "text", value: rawUrl.slice(url.length) });
+    }
+    lastIndex = start + rawUrl.length;
+  }
+  if (lastIndex < value.length) segments.push({ type: "text", value: value.slice(lastIndex) });
+  return segments;
+}
+
+function LinkifiedText({ value }: { value: string }) {
+  return <>
+    {messageTextSegments(value).map((segment, index) => segment.type === "url" ? (
+      <a
+        key={`${segment.value}-${index}`}
+        href={segment.value}
+        className="text-blue-600 underline decoration-blue-600/40 underline-offset-2 hover:text-blue-700"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void window.desktop?.external.open(segment.value);
+        }}
+      >
+        {segment.value}
+      </a>
+    ) : <span key={index}>{segment.value}</span>)}
+  </>;
+}
+
 /** Converts the Webhook Markdown subset into safe, renderable blocks without injecting HTML. */
 export function markdownBlocks(value: string): MarkdownBlock[] {
   const lines = markdownLineBreaks(value).split("\n");
@@ -166,7 +211,7 @@ function MarkdownInline({ value }: { value: string }) {
       if (/^(\*\*[^*]+\*\*|__[^_]+__)$/.test(token)) return <strong key={index} className="font-semibold">{token.slice(2, -2)}</strong>;
       if (/^~~[^~]+~~$/.test(token)) return <del key={index}>{token.slice(2, -2)}</del>;
       if (/^(\*[^*]+\*|_[^_]+_)$/.test(token)) return <em key={index}>{token.slice(1, -1)}</em>;
-      return <span key={index}>{token}</span>;
+      return <span key={index}><LinkifiedText value={token} /></span>;
     })}
   </>;
 }
@@ -623,7 +668,7 @@ export default function MessageContent({
                 className={messageContentClassNames.text}
               >
                 {group.parts.map((part, partIndex) => part.type === "text" ? (
-                  <span key={partIndex}>{displayMessageText(part.text)}</span>
+                  <span key={partIndex}><LinkifiedText value={displayMessageText(part.text)} /></span>
                 ) : (
                   <span key={partIndex} className="text-[var(--chat-primary)]">@{part.label}</span>
                 ))}

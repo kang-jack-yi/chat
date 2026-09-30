@@ -4,6 +4,7 @@ import type { Transaction } from "sequelize";
 import { Op } from "sequelize";
 import { toPlain } from "./database";
 import { appendConversationSyncEvents } from "./sync";
+import { createNotification } from "./notifications";
 
 type SystemActor = {
   userId: number;
@@ -18,7 +19,9 @@ export type SystemMessageEvent =
   | { type: "group_renamed"; actor: SystemActor; oldName: string; newName: string }
   | { type: "group_announcement_updated"; actor: SystemActor }
   | { type: "owner_transferred"; actor: SystemActor; newOwner: SystemActor }
-  | { type: "message_recalled"; actor: SystemActor; targetMessageId: number };
+  | { type: "message_recalled"; actor: SystemActor; targetMessageId: number }
+  | { type: "task_created"; actor: SystemActor; title: string; assignee: SystemActor }
+  | { type: "task_completed"; actor: SystemActor; title: string };
 
 type StoredPart =
   | { type: "text"; text: string }
@@ -234,6 +237,12 @@ export function systemMessageSummary(event: SystemMessageEvent) {
   if (event.type === "group_renamed") {
     return `${event.actor.name}将群名修改为“${event.newName}”`;
   }
+  if (event.type === "task_created") {
+    return `${event.actor.name}创建了任务“${event.title}”，负责人：${event.assignee.name}`;
+  }
+  if (event.type === "task_completed") {
+    return `${event.actor.name}完成了任务“${event.title}”`;
+  }
   return `${event.actor.name}撤回了一条消息`;
 }
 
@@ -255,6 +264,12 @@ function systemMessageSearchText(event: SystemMessageEvent) {
   }
   if (event.type === "group_renamed") {
     return `${event.actor.name} ${event.oldName} ${event.newName} 修改群名`;
+  }
+  if (event.type === "task_created") {
+    return `${event.actor.name} ${event.assignee.name} ${event.title} 创建任务`;
+  }
+  if (event.type === "task_completed") {
+    return `${event.actor.name} ${event.title} 完成任务`;
   }
   return systemMessageSummary(event);
 }
@@ -658,6 +673,10 @@ export async function createMessage(
   }
 
   const summary = buildSummary(parts, attachmentMap);
+  const mentionRecipientIds = activeMembershipIds.filter((id) =>
+    id !== Number(user.id)
+    && activeUserMap.has(id)
+    && (mentionAll || mentionIds.includes(id)));
   const searchText = parts.map((part) => {
     if (part.type === "text") return part.text;
     if (part.type === "mention") return part.label;
@@ -706,6 +725,20 @@ export async function createMessage(
           : {}),
       }, { transaction });
     }
+    for (const recipientId of mentionRecipientIds) {
+      const directMention = mentionIds.includes(recipientId);
+      await createNotification(app, {
+        companyId: user.companyId,
+        recipientUserId: recipientId,
+        type: "mention",
+        title: directMention ? "有人提到了你" : "群聊中有人@了所有人",
+        body: `${String(user.name)}在“${String(conversation.get("name") || "群聊")}”中提到了你：${summary}`,
+        entityType: "message",
+        entityId: String(messageId),
+        conversationId,
+        payload: { messageId, mentionType: directMention ? "member" : "all" },
+      }, transaction);
+    }
     const conversationSummary = kind === "announcement" ? `[群公告] ${summary}` : summary;
     await conversation.update({
       lastMessage: conversationSummary,
@@ -733,6 +766,9 @@ export async function createMessage(
       payload: { id: conversationId },
     }, transaction);
     await transaction.commit();
+    for (const recipientId of mentionRecipientIds) {
+      app.io?.of("/")?.to(`user:${recipientId}`).emit("notification:available", { conversationId, messageId });
+    }
     return withReadStatus(app, await serializeMessage(app, row));
   } catch (error) {
     await transaction.rollback();

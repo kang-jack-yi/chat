@@ -33,10 +33,22 @@ export default (app: Application) => {
   router.get("/api/sync/events", auth, controller.sync.events);
   router.get("/api/sync/status", auth, controller.sync.status);
 
+  router.get("/api/tasks", auth, controller.tasks.list);
+  router.post("/api/tasks", auth, controller.tasks.create);
+  router.patch("/api/tasks/:id", auth, controller.tasks.update);
+  router.delete("/api/tasks/:id", auth, controller.tasks.remove);
+
+  router.get("/api/notifications", auth, controller.notifications.list);
+  router.post("/api/notifications/:id/read", auth, controller.notifications.read);
+  router.post("/api/notifications/read-all", auth, controller.notifications.readAll);
+
   router.get("/api/documents", auth, controller.documents.list);
   router.post("/api/documents", auth, controller.documents.create);
   router.post("/api/documents/import", auth, controller.documents.importFile);
   router.get("/api/documents/:id/download", auth, controller.documents.download);
+  router.get("/api/documents/:id/comments", auth, controller.documents.comments);
+  router.post("/api/documents/:id/comments", auth, controller.documents.createComment);
+  router.patch("/api/documents/:id/comments/:commentId", auth, controller.documents.updateComment);
   router.get("/api/documents/:id", auth, controller.documents.detail);
   router.patch("/api/documents/:id", auth, controller.documents.update);
   router.put("/api/documents/:id/members", auth, controller.documents.share);

@@ -1,5 +1,5 @@
 import { Alert, Button, Input, Tabs } from "antd";
-import { Check, MessageCircleMore, Settings } from "lucide-react";
+import { ArrowRight, FolderLock, LockKeyhole, MessageCircleMore, Settings, Users } from "lucide-react";
 import { useAuthForm } from "./hooks";
 import { useServerStore } from "../../stores/server-store";
 import { useAppStore } from "../../stores/app-store";
@@ -15,45 +15,45 @@ export default function LoginPage() {
   );
   const registrationEnabled = health?.features.companyRegistration !== false;
   return (
-    <div className={`${styles.loginPage} grid h-full grid-cols-[minmax(420px,1.05fr)_minmax(440px,.95fr)] gap-3 bg-[var(--app-canvas)] p-3 max-md:grid-cols-1 max-md:overflow-y-auto max-md:p-0`}>
-      <section className={`${styles.storyPanel} relative overflow-hidden rounded-3xl bg-[linear-gradient(145deg,#0958b8_0%,#1677ff_52%,#69a8ff_100%)] px-[7vw] py-[54px] text-white shadow-[0_20px_55px_rgba(22,119,255,.20)] max-md:hidden`}>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_78%,rgba(255,255,255,.18),transparent_29%)]" />
-        <div className="absolute -top-24 -left-24 size-72 rounded-full border border-white/10" />
-        <div className="absolute top-12 right-8 size-24 rounded-full bg-white/8 blur-sm" />
-        <div className="relative z-10 flex items-center gap-3 text-2xl font-bold tracking-widest">
-          <span className="grid size-11 place-items-center rounded-2xl bg-white/16 shadow-lg ring-1 ring-white/20 backdrop-blur-lg">
+    <div className={styles.loginPage}>
+      <div className={styles.loginShell}>
+      <section className={styles.storyPanel}>
+        <div className={styles.brand}>
+          <span className={styles.brandIcon}>
             <MessageCircleMore size={26} />
           </span>
           同频
         </div>
-        <div className="relative z-10 mt-40 max-w-xl">
-          <span className="text-xs font-bold tracking-widest text-white/72">
+        <div className={styles.storyContent}>
+          <span className={styles.eyebrow}>
             为团队而生的协作空间
           </span>
-          <h1 className="my-4 text-5xl leading-tight tracking-tight xl:text-6xl">
+          <h1 className={styles.headline}>
             沟通更清晰，
             <br />
             协作更同频。
           </h1>
-          <p className="max-w-lg text-lg leading-relaxed text-white/70">
+          <p className={styles.description}>
             把组织通讯录、即时消息和团队文件放在一个安静、可靠的工作空间里。
           </p>
-          <div className="mt-10 grid gap-4 text-white/85">
-            <span className="flex items-center gap-2.5">
-              <Check size={16} /> 企业通讯录与部门架构
-            </span>
-            <span className="flex items-center gap-2.5">
-              <Check size={16} /> 单聊、群聊与实时状态
-            </span>
-            <span className="flex items-center gap-2.5">
-              <Check size={16} /> 文件安全保存在企业空间
-            </span>
-          </div>
+          <ul className={styles.features}>
+            <li><span><Users size={18} /></span>企业通讯录与部门架构</li>
+            <li><span><MessageCircleMore size={18} /></span>单聊、群聊与实时状态</li>
+            <li><span><FolderLock size={18} /></span>文件安全保存在企业空间</li>
+          </ul>
         </div>
+        <p className={styles.storyFooter}>连接团队，让每一次协作更简单。</p>
       </section>
 
-      <section className={`${styles.formPanel} relative flex items-center justify-center rounded-3xl border border-[var(--app-line)] bg-[var(--app-surface)] p-10 shadow-[var(--app-shadow-panel)] max-md:min-h-dvh max-md:rounded-none max-md:px-6 max-md:pt-8 max-md:pb-16`}>
-        <div className="w-full max-w-md">
+      <section className={styles.formPanel}>
+        <header className={styles.formToolbar}>
+          <div className={styles.mobileBrand}><MessageCircleMore size={22} />同频</div>
+          <Button type="text" icon={<Settings size={16} />} onClick={() => setServerSettingsOpen(true)} className={styles.serverButton}>
+            服务器设置
+          </Button>
+        </header>
+        <div className={styles.formBody}>
+        <div className={styles.formContent}>
           <Tabs
             activeKey={mode}
             onChange={(key) => changeMode(key as "login" | "register")}
@@ -63,60 +63,53 @@ export default function LoginPage() {
                 ? [{ key: "register", label: "创建企业" }]
                 : []),
             ]}
-            tabBarExtraContent={
-              <Button
-                type="text"
-                size="small"
-                icon={<Settings size={15} />}
-                onClick={() => setServerSettingsOpen(true)}
-              >
-                服务器设置
-              </Button>
-            }
-            className="mb-7"
+            className={styles.authTabs}
           />
-          <div>
-            <h2 className="mb-2 text-3xl font-semibold tracking-[-0.8px] text-[var(--app-text)]">
+          <div className={styles.formHeading}>
+            <h2>
               {mode === "login" ? "欢迎回来" : "创建你的企业空间"}
             </h2>
-            <p className="mb-8 text-sm text-[var(--app-text-secondary)]">
+            <p>
               {mode === "login"
                 ? "使用管理员为你创建的账号登录"
                 : "完成后即可邀请同事开始协作"}
             </p>
           </div>
-          <form onSubmit={submit} className="grid gap-4">
+          <form onSubmit={submit} className={styles.authForm}>
             {mode === "register" && (
               <>
-                <label className="grid gap-2 text-sm font-semibold text-[var(--app-text)]">
+                <label className={styles.field}>
                   企业名称
                   <Input
                     name="companyName"
                     placeholder="例如：星海科技"
+                    autoComplete="organization"
                     required
                   />
                 </label>
-                <label className="grid gap-2 text-sm font-semibold text-[var(--app-text)]">
+                <label className={styles.field}>
                   你的姓名
-                  <Input name="name" placeholder="请输入真实姓名" required />
+                  <Input name="name" placeholder="请输入真实姓名" autoComplete="name" required />
                 </label>
               </>
             )}
-            <label className="grid gap-2 text-sm font-semibold text-[var(--app-text)]">
+            <label className={styles.field}>
               手机号
               <Input
                 name="phone"
                 placeholder="11 位手机号"
                 inputMode="numeric"
+                autoComplete="username"
                 required
               />
             </label>
-            <label className="grid gap-2 text-sm font-semibold text-[var(--app-text)]">
+            <label className={styles.field}>
               密码
               <Input.Password
                 name="password"
                 placeholder="至少 6 位"
                 minLength={6}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
                 required
               />
             </label>
@@ -134,20 +127,26 @@ export default function LoginPage() {
               loading={pending}
               disabled={serverStatus !== "online"}
               block
+              className={styles.submitButton}
             >
               {mode === "login" ? "登录企业空间" : "创建并进入"}
+              <ArrowRight size={17} aria-hidden="true" />
             </Button>
           </form>
           {mode === "login" && (
-            <p className={`${styles.demoAccount} mt-6 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface-soft)] px-3.5 py-3 text-center text-xs text-[var(--app-text-secondary)]`}>
-              演示账号：13800000001 / 123456
-            </p>
+            <div className={styles.demoAccount}>
+              <span>演示账号</span>
+              <p>13800000001 <span>/</span> 123456</p>
+            </div>
           )}
         </div>
-        <p className="absolute bottom-6 text-xs text-[var(--app-text-tertiary)]">
-          本地企业协作原型 · 数据仅保存在当前服务器
+        </div>
+        <p className={styles.formFooter}>
+          <LockKeyhole size={13} aria-hidden="true" />
+          数据仅保存在当前服务器
         </p>
       </section>
+      </div>
     </div>
   );
 }

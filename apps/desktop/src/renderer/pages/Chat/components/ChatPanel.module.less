@@ -1,0 +1,105 @@
+.selectionBanner {
+  position: absolute;
+  inset-inline: 0;
+  top: 48px;
+  z-index: 30;
+  display: flex;
+  height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-inline: 20px;
+  border-bottom: 1px solid var(--chat-line);
+  background: var(--chat-header);
+}
+
+.rangeSelect:global(.ant-checkbox-wrapper) {
+  gap: 8px;
+  color: var(--chat-text-secondary);
+  font-size: 12px;
+  line-height: 24px;
+
+  &:hover { color: var(--chat-primary); }
+  > span:last-child { padding: 0; }
+}
+
+.rangeHint { color: var(--chat-text-secondary); font-size: 12px; }
+
+.selectionToolbar {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 96px;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--chat-line);
+  background: var(--app-surface);
+}
+
+.selectionCount {
+  color: var(--chat-text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+
+  strong {
+    display: inline-block;
+    min-width: 22px;
+    margin-inline: 3px;
+    border-radius: 6px;
+    color: var(--chat-primary);
+    background: var(--chat-primary-soft);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 24px;
+    text-align: center;
+  }
+}
+
+.selectionActions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.selectionAction:global(.ant-btn) {
+  display: flex;
+  width: 72px;
+  height: 64px;
+  flex: 0 0 72px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--chat-text-secondary);
+  background: transparent;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 400;
+
+  svg { stroke-width: 1.7; }
+  &:not(:disabled):hover { color: var(--chat-primary); background: var(--chat-primary-soft); }
+  &:disabled { color: var(--chat-text-tertiary); background: transparent; }
+  &:focus-visible { outline: 2px solid var(--chat-primary); outline-offset: -2px; }
+}
+
+.actionDivider { width: 1px; height: 28px; flex-shrink: 0; margin-inline: 8px; background: var(--chat-line); }
+.deleteAction:global(.ant-btn):not(:disabled) {
+  color: var(--app-danger);
+  &:hover { color: var(--app-danger); background: color-mix(in srgb, var(--app-danger) 9%, transparent); }
+}
+.closeSelection:global(.ant-btn) { color: var(--chat-text-secondary); }
+
+@media (max-width: 767px) {
+  .selectionBanner { padding-inline: 14px; }
+  .rangeHint { display: none; }
+  .selectionToolbar { gap: 8px; padding-inline: 14px; }
+  .selectionActions { justify-content: flex-start; }
+  .selectionAction:global(.ant-btn) { width: 64px; flex-basis: 64px; }
+  .actionDivider { margin-inline: 4px; }
+}

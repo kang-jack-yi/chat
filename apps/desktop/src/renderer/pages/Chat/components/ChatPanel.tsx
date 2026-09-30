@@ -8,13 +8,11 @@ import {
 } from "react";
 import { Button, Checkbox, Modal, message as toast } from "antd";
 import {
-  Check,
   Copy,
   Download,
   Forward,
   History,
   MessageCircleMore,
-  Minus,
   Monitor,
   Settings,
   Trash2,
@@ -43,6 +41,8 @@ import RichTextEditor from "./RichTextEditor";
 import { usePreferencesStore } from "../../../stores/preferences-store";
 import MessageView from "./MessageView";
 import MessageReadReceiptPopover from "./MessageReadReceiptPopover";
+import CreateTaskModal from "./CreateTaskModal";
+import styles from "./ChatPanel.module.less";
 import {
   COMPOSER_DEFAULT_HEIGHT,
   COMPOSER_MAX_HEIGHT,
@@ -139,6 +139,7 @@ export default function ChatPanel({
     mode: "individual" | "merged";
   }>();
   const [forwarding, setForwarding] = useState(false);
+  const [taskMessage, setTaskMessage] = useState<Message | null>(null);
   const [composerHeight, setComposerHeight] = useState(COMPOSER_DEFAULT_HEIGHT);
   const composerResize = useRef<
     | {
@@ -184,6 +185,7 @@ export default function ChatPanel({
     setSelectionAnchorId(undefined);
     setSelectedIds(new Set());
     setForwardInput(undefined);
+    setTaskMessage(null);
   }, [conversation?.id]);
 
   useEffect(() => {
@@ -537,36 +539,16 @@ export default function ChatPanel({
       </header>
 
       {selectionMode && (
-        <div className="absolute inset-x-0 top-12 z-30 h-10 bg-[var(--chat-canvas)]/95 px-5 backdrop-blur-sm max-md:px-3.5">
-          <div className="relative flex h-full items-center gap-2">
-            <span className="absolute inset-x-0 top-1/2 h-px bg-[var(--chat-primary)]" />
-            <button
-              type="button"
-              aria-label={
-                rangeAllSelected ? "取消选择以下信息" : "选择以下信息"
-              }
-              aria-pressed={rangeAllSelected}
-              onClick={toggleRange}
-              className={`relative ml-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border text-white shadow-sm transition-colors ${
-                rangeSelectedCount
-                  ? "border-[var(--chat-primary)] bg-[var(--chat-primary)]"
-                  : "border-[var(--chat-primary)] bg-[var(--app-surface)]"
-              }`}
-            >
-              {rangeAllSelected ? (
-                <Check size={13} strokeWidth={3} />
-              ) : rangePartiallySelected ? (
-                <Minus size={13} strokeWidth={3} />
-              ) : null}
-            </button>
-            <button
-              type="button"
-              onClick={toggleRange}
-              className="relative rounded-full border border-[var(--chat-primary)] bg-[var(--app-surface)] px-4 py-1 text-xs text-[var(--chat-primary)] shadow-sm transition-colors hover:bg-[var(--chat-primary-soft)]"
-            >
-              {rangeAllSelected ? "取消选择以下信息" : "选择以下信息"}
-            </button>
-          </div>
+        <div className={styles.selectionBanner}>
+          <Checkbox
+            checked={rangeAllSelected}
+            indeterminate={rangePartiallySelected}
+            onChange={toggleRange}
+            className={styles.rangeSelect}
+          >
+            {rangeAllSelected ? "取消选择以下信息" : "选择以下信息"}
+          </Checkbox>
+          <span className={styles.rangeHint}>可勾选多条消息</span>
         </div>
       )}
 
@@ -703,6 +685,7 @@ export default function ChatPanel({
                         onQuote={chat.quoteMessage}
                         onRecall={chat.recall}
                         onForward={openForward}
+                        onCreateTask={setTaskMessage}
                         onSelect={startSelecting}
                         onOpenForwardRecord={(target) => {
                           void window.desktop?.windows.openForwardRecord({
@@ -732,18 +715,20 @@ export default function ChatPanel({
       </section>
 
       {selectionMode ? (
-        <footer className="grid min-h-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-t border-[var(--chat-line)] bg-[var(--app-surface)] px-5 py-2">
-          <span className="whitespace-nowrap text-sm text-[var(--chat-text-secondary)]">
+        <footer className={styles.selectionToolbar}>
+          <span className={styles.selectionCount} aria-live="polite">
             已选择{" "}
-            <strong className="font-semibold text-[var(--chat-primary)]">
-              {selectedIds.size}
-            </strong>{" "}
+            <strong>{selectedIds.size}</strong>{" "}
             条
           </span>
-          <div className="flex min-w-0 items-center justify-center gap-2 overflow-x-auto">
+          <div
+            className={styles.selectionActions}
+            role="group"
+            aria-label="已选消息操作"
+          >
             <Button
               type="text"
-              className="!flex !h-16 !min-w-18 !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
+              className={styles.selectionAction}
               disabled={!selectedIds.size}
               onClick={() =>
                 setForwardInput({
@@ -757,7 +742,7 @@ export default function ChatPanel({
             </Button>
             <Button
               type="text"
-              className="!flex !h-16 !min-w-18 !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
+              className={styles.selectionAction}
               disabled={!selectedIds.size}
               onClick={() =>
                 setForwardInput({
@@ -771,7 +756,7 @@ export default function ChatPanel({
             </Button>
             <Button
               type="text"
-              className="!flex !h-16 !min-w-18 !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
+              className={styles.selectionAction}
               disabled={!selectedIds.size}
               onClick={() => void copySelected()}
             >
@@ -780,7 +765,7 @@ export default function ChatPanel({
             </Button>
             <Button
               type="text"
-              className="!flex !h-16 !min-w-18 !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-[var(--chat-primary-soft)]"
+              className={styles.selectionAction}
               disabled={
                 !selectedMessages.some((item) => messageImages(item).length)
               }
@@ -789,10 +774,11 @@ export default function ChatPanel({
               <Download size={18} />
               <span>保存图片</span>
             </Button>
+            <span className={styles.actionDivider} aria-hidden="true" />
             <Button
               danger
               type="text"
-              className="!flex !h-16 !min-w-18 !flex-col !gap-1 !rounded-lg !border !border-[var(--chat-line)] !bg-[var(--chat-canvas)] !px-2 !text-xs !shadow-sm hover:!bg-red-50"
+              className={`${styles.selectionAction} ${styles.deleteAction}`}
               disabled={!selectedIds.size}
               onClick={deleteSelected}
             >
@@ -805,6 +791,8 @@ export default function ChatPanel({
             shape="circle"
             icon={<X size={19} />}
             aria-label="退出多选"
+            title="退出多选（Esc）"
+            className={styles.closeSelection}
             onClick={stopSelecting}
           />
         </footer>
@@ -890,6 +878,14 @@ export default function ChatPanel({
         submitting={forwarding}
         onClose={() => setForwardInput(undefined)}
         onConfirm={confirmForward}
+      />
+      <CreateTaskModal
+        open={Boolean(taskMessage)}
+        message={taskMessage}
+        users={users}
+        currentUserId={currentUser.id}
+        onClose={() => setTaskMessage(null)}
+        onCreated={() => undefined}
       />
     </div>
   );

@@ -14,6 +14,7 @@ export function useWorkspaceEvents() {
     if (!socket) return;
     const refreshConversations = () => queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
     const refreshUsers = () => queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    const refreshNotifications = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
     const onPresence = ({ userId, online }: { userId: number; online: boolean }) => {
       queryClient.setQueryData<User[]>(queryKeys.users, (old) =>
         old?.map((user) => user.id === userId ? { ...user, online } : user));
@@ -34,6 +35,7 @@ export function useWorkspaceEvents() {
     socket.on("unread:updated", refreshConversations);
     socket.on("presence:changed", onPresence);
     socket.on("member:status-changed", refreshUsers);
+    socket.on("notification:available", refreshNotifications);
     socket.on("message:new", persistMessage);
     socket.on("sync:available", synchronize);
     const unsubscribeRetry = window.desktop?.sync.onRetry(() => {
@@ -44,6 +46,7 @@ export function useWorkspaceEvents() {
       socket.off("unread:updated", refreshConversations);
       socket.off("presence:changed", onPresence);
       socket.off("member:status-changed", refreshUsers);
+      socket.off("notification:available", refreshNotifications);
       socket.off("message:new", persistMessage);
       socket.off("sync:available", synchronize);
       unsubscribeRetry?.();

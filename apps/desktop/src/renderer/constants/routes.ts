@@ -7,4 +7,6 @@ export const ROUTES = {
   contactDetail: (userId: number | string) => `/contacts/${userId}`,
   organization: "/organization",
   documents: "/documents",
+  tasks: "/tasks",
+  notifications: "/notifications",
 } as const;

@@ -4,6 +4,7 @@ import type {
   CloudDocumentListView,
   CloudDocumentPermission,
   CloudDocumentType,
+  DocumentComment,
 } from "@chat/shared";
 import { get, patch, post, put, remove } from "./request";
 
@@ -30,4 +31,9 @@ export const documentsService = {
     members: Array<{ userId: number; permission: Exclude<CloudDocumentPermission, "owner"> }>,
   ) => put<CloudDocument>(`/api/documents/${id}/members`, { members }),
   remove: (id: number) => remove<boolean>(`/api/documents/${id}`),
+  comments: (id: number) => get<DocumentComment[]>(`/api/documents/${id}/comments`),
+  createComment: (id: number, payload: { content: string; anchor?: string | null; parentId?: number | null }) =>
+    post<DocumentComment>(`/api/documents/${id}/comments`, payload),
+  updateComment: (documentId: number, commentId: number, resolved: boolean) =>
+    patch<DocumentComment>(`/api/documents/${documentId}/comments/${commentId}`, { resolved }),
 };

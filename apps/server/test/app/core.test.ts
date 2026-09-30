@@ -3,6 +3,352 @@ import assert from "node:assert/strict";
 import { Op } from "sequelize";
 
 describe("企业聊天核心接口", () => {
+  it("通知中心返回当前用户通知列表和未读数", async () => {
+    const login = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000001", password: "123456" })
+      .expect(200);
+    const authorization = `Bearer ${login.body.data.accessToken}`;
+    const notifications = await app.httpRequest()
+      .get("/api/notifications?limit=20")
+      .set("Authorization", authorization)
+      .expect(200);
+
+    assert.ok(Array.isArray(notifications.body.data.items));
+    assert.equal(typeof notifications.body.data.unreadCount, "number");
+  });
+
+  it("任务分配和完成会产生按用户隔离的通知，并支持逐条及全部已读", async () => {
+    const ownerLogin = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000001", password: "123456" })
+      .expect(200);
+    const memberLogin = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000002", password: "123456" })
+      .expect(200);
+    const ownerAuth = `Bearer ${ownerLogin.body.data.accessToken}`;
+    const memberAuth = `Bearer ${memberLogin.body.data.accessToken}`;
+    const memberId = memberLogin.body.data.user.id;
+    const ownerId = ownerLogin.body.data.user.id;
+    const title = `通知任务-${Date.now()}`;
+
+    await app.chatDb.Notification.destroy({ where: { recipientUserId: [memberId, ownerId] } });
+    const created = await app.httpRequest()
+      .post("/api/tasks")
+      .set("Authorization", ownerAuth)
+      .send({ title, assigneeId: memberId })
+      .expect(200);
+
+    try {
+      const memberNotifications = await app.httpRequest()
+        .get("/api/notifications?unreadOnly=true")
+        .set("Authorization", memberAuth)
+        .expect(200);
+      const assigned = memberNotifications.body.data.items.find((item: any) => item.taskId === created.body.data.id);
+      assert.ok(assigned);
+      assert.equal(assigned.type, "task_assigned");
+      assert.equal(assigned.readAt, null);
+      assert.ok(memberNotifications.body.data.unreadCount >= 1);
+
+      const ownerNotificationsBeforeComplete = await app.httpRequest()
+        .get("/api/notifications")
+        .set("Authorization", ownerAuth)
+        .expect(200);
+      assert.equal(ownerNotificationsBeforeComplete.body.data.items.some((item: any) => item.taskId === created.body.data.id), false);
+
+      const read = await app.httpRequest()
+        .post(`/api/notifications/${assigned.id}/read`)
+        .set("Authorization", memberAuth)
+        .expect(200);
+      assert.ok(read.body.data.readAt);
+
+      await app.httpRequest()
+        .patch(`/api/tasks/${created.body.data.id}`)
+        .set("Authorization", memberAuth)
+        .send({ status: "done" })
+        .expect(200);
+      const ownerNotifications = await app.httpRequest()
+        .get("/api/notifications?unreadOnly=true")
+        .set("Authorization", ownerAuth)
+        .expect(200);
+      const completed = ownerNotifications.body.data.items.find((item: any) => item.taskId === created.body.data.id);
+      assert.ok(completed);
+      assert.equal(completed.type, "task_completed");
+
+      const readAll = await app.httpRequest()
+        .post("/api/notifications/read-all")
+        .set("Authorization", ownerAuth)
+        .expect(200);
+      assert.ok(readAll.body.data.updatedCount >= 1);
+      const ownerAfterReadAll = await app.httpRequest()
+        .get("/api/notifications")
+        .set("Authorization", ownerAuth)
+        .expect(200);
+      assert.equal(ownerAfterReadAll.body.data.unreadCount, 0);
+    } finally {
+      await app.chatDb.Notification.destroy({ where: { taskId: created.body.data.id } });
+      await app.chatDb.Task.destroy({ where: { id: created.body.data.id } });
+    }
+  });
+
+  it("群聊中@成员会生成通知且发送者不会收到自己的提及通知", async () => {
+    const ownerLogin = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000001", password: "123456" })
+      .expect(200);
+    const memberLogin = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000002", password: "123456" })
+      .expect(200);
+    const ownerAuth = `Bearer ${ownerLogin.body.data.accessToken}`;
+    const memberAuth = `Bearer ${memberLogin.body.data.accessToken}`;
+    const memberId = memberLogin.body.data.user.id;
+    const ownerId = ownerLogin.body.data.user.id;
+    let conversationId = 0;
+
+    await app.chatDb.Notification.destroy({ where: { recipientUserId: [memberId, ownerId] } });
+    try {
+      const created = await app.httpRequest()
+        .post("/api/conversations")
+        .set("Authorization", ownerAuth)
+        .send({ type: "group", name: `提及通知-${Date.now()}`, memberIds: [memberId] })
+        .expect(200);
+      conversationId = created.body.data.id;
+
+      const sent = await app.httpRequest()
+        .post(`/api/conversations/${conversationId}/messages`)
+        .set("Authorization", ownerAuth)
+        .send({
+          conversationId,
+          clientId: `mention-notification-${Date.now()}`,
+          schemaVersion: 1,
+          parts: [
+            { type: "text", text: "请关注这个事项" },
+            { type: "mention", userId: memberId, label: "错误标签" },
+          ],
+        })
+        .expect(200);
+      assert.equal(sent.body.data.parts[1].label, memberLogin.body.data.user.name);
+
+      const memberNotifications = await app.httpRequest()
+        .get("/api/notifications?unreadOnly=true")
+        .set("Authorization", memberAuth)
+        .expect(200);
+      const mention = memberNotifications.body.data.items.find((item: any) => item.entityId === String(sent.body.data.id));
+      assert.ok(mention);
+      assert.equal(mention.type, "mention");
+      assert.equal(mention.conversationId, conversationId);
+
+      const ownerNotifications = await app.httpRequest()
+        .get("/api/notifications")
+        .set("Authorization", ownerAuth)
+        .expect(200);
+      assert.equal(ownerNotifications.body.data.items.some((item: any) => item.entityId === String(sent.body.data.id)), false);
+    } finally {
+      if (conversationId) {
+        await app.chatDb.Notification.destroy({ where: { conversationId } });
+        await app.chatDb.SyncEvent.destroy({ where: { conversationId } });
+        await app.chatDb.Message.destroy({ where: { conversationId }, force: true });
+        await app.chatDb.ConversationMember.destroy({ where: { conversationId }, force: true });
+        await app.chatDb.Conversation.destroy({ where: { id: conversationId }, force: true });
+      }
+    }
+  });
+
+  it("群聊中@所有人会为其他活跃成员分别生成通知", async () => {
+    const ownerLogin = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000001", password: "123456" })
+      .expect(200);
+    const memberLogin = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000002", password: "123456" })
+      .expect(200);
+    const thirdLogin = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000003", password: "123456" })
+      .expect(200);
+    const ownerAuth = `Bearer ${ownerLogin.body.data.accessToken}`;
+    const memberAuth = `Bearer ${memberLogin.body.data.accessToken}`;
+    const thirdAuth = `Bearer ${thirdLogin.body.data.accessToken}`;
+    const recipientIds = [memberLogin.body.data.user.id, thirdLogin.body.data.user.id];
+    let conversationId = 0;
+
+    await app.chatDb.Notification.destroy({ where: { recipientUserId: recipientIds } });
+    try {
+      const created = await app.httpRequest()
+        .post("/api/conversations")
+        .set("Authorization", ownerAuth)
+        .send({ type: "group", name: `全员提及-${Date.now()}`, memberIds: recipientIds })
+        .expect(200);
+      conversationId = created.body.data.id;
+      const sent = await app.httpRequest()
+        .post(`/api/conversations/${conversationId}/messages`)
+        .set("Authorization", ownerAuth)
+        .send({
+          conversationId,
+          clientId: `mention-all-notification-${Date.now()}`,
+          schemaVersion: 1,
+          parts: [
+            { type: "text", text: "请所有人查看" },
+            { type: "mention_all", label: "所有人" },
+          ],
+        })
+        .expect(200);
+
+      for (const authorization of [memberAuth, thirdAuth]) {
+        const notifications = await app.httpRequest()
+          .get("/api/notifications?unreadOnly=true")
+          .set("Authorization", authorization)
+          .expect(200);
+        const mention = notifications.body.data.items.find((item: any) => item.entityId === String(sent.body.data.id));
+        assert.ok(mention);
+        assert.equal(mention.title, "群聊中有人@了所有人");
+      }
+    } finally {
+      if (conversationId) {
+        await app.chatDb.Notification.destroy({ where: { conversationId } });
+        await app.chatDb.SyncEvent.destroy({ where: { conversationId } });
+        await app.chatDb.Message.destroy({ where: { conversationId }, force: true });
+        await app.chatDb.ConversationMember.destroy({ where: { conversationId }, force: true });
+        await app.chatDb.Conversation.destroy({ where: { id: conversationId }, force: true });
+      }
+    }
+  });
+
+  it("文档成员可以发表评论、查看并解决评论，同时通知其他成员", async () => {
+    const ownerLogin = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000001", password: "123456" })
+      .expect(200);
+    const memberLogin = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000002", password: "123456" })
+      .expect(200);
+    const ownerAuth = `Bearer ${ownerLogin.body.data.accessToken}`;
+    const memberAuth = `Bearer ${memberLogin.body.data.accessToken}`;
+    let documentId = 0;
+    let commentId = 0;
+
+    try {
+      const document = await app.httpRequest()
+        .post("/api/documents")
+        .set("Authorization", ownerAuth)
+        .send({ type: "doc", title: `评论测试文档-${Date.now()}` })
+        .expect(200);
+      documentId = document.body.data.id;
+      await app.httpRequest()
+        .put(`/api/documents/${documentId}/members`)
+        .set("Authorization", ownerAuth)
+        .send({ members: [{ userId: memberLogin.body.data.user.id, permission: "editor" }] })
+        .expect(200);
+      await app.chatDb.Notification.destroy({ where: { recipientUserId: ownerLogin.body.data.user.id } });
+
+      const created = await app.httpRequest()
+        .post(`/api/documents/${documentId}/comments`)
+        .set("Authorization", memberAuth)
+        .send({ anchor: "paragraph:1", content: "请补充这一段的验收标准" })
+        .expect(200);
+      commentId = created.body.data.id;
+      assert.equal(created.body.data.content, "请补充这一段的验收标准");
+      assert.equal(created.body.data.anchor, "paragraph:1");
+      assert.equal(created.body.data.resolvedAt, null);
+
+      const listed = await app.httpRequest()
+        .get(`/api/documents/${documentId}/comments`)
+        .set("Authorization", ownerAuth)
+        .expect(200);
+      assert.ok(listed.body.data.some((item: any) => item.id === commentId && item.authorId === memberLogin.body.data.user.id));
+
+      const ownerNotifications = await app.httpRequest()
+        .get("/api/notifications?unreadOnly=true")
+        .set("Authorization", ownerAuth)
+        .expect(200);
+      const notification = ownerNotifications.body.data.items.find((item: any) => item.documentId === documentId);
+      assert.ok(notification);
+      assert.equal(notification.type, "comment");
+
+      const resolved = await app.httpRequest()
+        .patch(`/api/documents/${documentId}/comments/${commentId}`)
+        .set("Authorization", ownerAuth)
+        .send({ resolved: true })
+        .expect(200);
+      assert.ok(resolved.body.data.resolvedAt);
+      assert.equal(resolved.body.data.resolvedById, ownerLogin.body.data.user.id);
+
+      const afterResolve = await app.httpRequest()
+        .get(`/api/documents/${documentId}/comments`)
+        .set("Authorization", memberAuth)
+        .expect(200);
+      assert.equal(afterResolve.body.data.find((item: any) => item.id === commentId).resolved, true);
+    } finally {
+      const database = app.chatDb as any;
+      await database.CloudDocumentComment?.destroy({ where: { documentId }, force: true });
+      await database.Notification?.destroy({ where: { recipientUserId: ownerLogin.body.data.user.id } });
+      if (documentId) {
+        await app.httpRequest()
+          .delete(`/api/documents/${documentId}`)
+          .set("Authorization", ownerAuth)
+          .expect(200);
+      }
+    }
+  });
+
+  it("可以创建任务、按负责人查询并在完成时写入会话系统消息", async () => {
+    const login = await app.httpRequest()
+      .post("/api/auth/login")
+      .send({ phone: "13800000001", password: "123456" })
+      .expect(200);
+    const authorization = `Bearer ${login.body.data.accessToken}`;
+    const conversations = await app.httpRequest()
+      .get("/api/conversations")
+      .set("Authorization", authorization)
+      .expect(200);
+    const conversationId = conversations.body.data[0].id;
+    const title = `测试任务-${Date.now()}`;
+
+    const created = await app.httpRequest()
+      .post("/api/tasks")
+      .set("Authorization", authorization)
+      .send({
+        title,
+        conversationId,
+        priority: "high",
+        dueAt: "2030-01-02T03:04:05.000Z",
+      })
+      .expect(200);
+
+    assert.ok(created.body.success);
+    assert.equal(created.body.data.title, title);
+    assert.equal(created.body.data.status, "todo");
+    assert.equal(created.body.data.priority, "high");
+    assert.equal(created.body.data.assigneeId, login.body.data.user.id);
+
+    const listed = await app.httpRequest()
+      .get("/api/tasks?status=todo")
+      .set("Authorization", authorization)
+      .expect(200);
+    assert.ok(listed.body.data.some((task: any) => task.id === created.body.data.id));
+
+    const completed = await app.httpRequest()
+      .patch(`/api/tasks/${created.body.data.id}`)
+      .set("Authorization", authorization)
+      .send({ status: "done" })
+      .expect(200);
+    assert.equal(completed.body.data.status, "done");
+    assert.ok(completed.body.data.completedAt);
+
+    const history = await app.httpRequest()
+      .get(`/api/conversations/${conversationId}/messages?limit=20`)
+      .set("Authorization", authorization)
+      .expect(200);
+    assert.ok(history.body.data.items.some((message: any) => message.summary.includes("完成了任务")));
+
+    await app.chatDb.Message.destroy({ where: { conversationId, summary: { [Op.like]: `%${title}%` } } });
+    await app.chatDb.Task.destroy({ where: { id: created.body.data.id } });
+  });
+
   it("演示账号可以登录并读取企业会话", async () => {
     const login = await app.httpRequest()
       .post("/api/auth/login")

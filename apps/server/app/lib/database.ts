@@ -20,6 +20,9 @@ export interface ChatDatabase {
   Attachment: AnyModel;
   CloudDocument: AnyModel;
   CloudDocumentMember: AnyModel;
+  CloudDocumentComment: AnyModel;
+  Task: AnyModel;
+  Notification: AnyModel;
   SyncEvent: AnyModel;
   ServerSetting: AnyModel;
   DesktopRefreshSession: AnyModel;
@@ -207,6 +210,71 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     ],
   });
 
+  const CloudDocumentComment = sequelize.define("CloudDocumentComment", {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    companyId: { type: DataTypes.INTEGER, allowNull: false },
+    documentId: { type: DataTypes.INTEGER, allowNull: false },
+    authorId: { type: DataTypes.INTEGER, allowNull: false },
+    parentId: { type: DataTypes.INTEGER, allowNull: true },
+    anchor: { type: DataTypes.STRING(120), allowNull: true },
+    content: { type: DataTypes.TEXT, allowNull: false },
+    resolvedAt: { type: DataTypes.DATE, allowNull: true },
+    resolvedById: { type: DataTypes.INTEGER, allowNull: true },
+  }, {
+    ...common,
+    tableName: "cloud_document_comments",
+    indexes: [
+      { fields: ["document_id", "created_at"] },
+      { fields: ["document_id", "resolved_at"] },
+      { fields: ["author_id"] },
+    ],
+  });
+
+  const Task = sequelize.define("Task", {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    companyId: { type: DataTypes.INTEGER, allowNull: false },
+    creatorId: { type: DataTypes.INTEGER, allowNull: false },
+    assigneeId: { type: DataTypes.INTEGER, allowNull: false },
+    conversationId: { type: DataTypes.INTEGER, allowNull: true },
+    messageId: { type: DataTypes.INTEGER, allowNull: true },
+    title: { type: DataTypes.STRING(200), allowNull: false },
+    status: { type: DataTypes.ENUM("todo", "in_progress", "done", "cancelled"), allowNull: false, defaultValue: "todo" },
+    priority: { type: DataTypes.ENUM("low", "normal", "high", "urgent"), allowNull: false, defaultValue: "normal" },
+    dueAt: { type: DataTypes.DATE, allowNull: true },
+    completedAt: { type: DataTypes.DATE, allowNull: true },
+  }, {
+    ...common,
+    tableName: "tasks",
+    indexes: [
+      { fields: ["company_id", "assignee_id", "status"] },
+      { fields: ["company_id", "due_at"] },
+      { fields: ["conversation_id", "message_id"] },
+    ],
+  });
+
+  const Notification = sequelize.define("Notification", {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    companyId: { type: DataTypes.INTEGER, allowNull: false },
+    recipientUserId: { type: DataTypes.INTEGER, allowNull: false },
+    type: { type: DataTypes.ENUM("task_assigned", "task_completed", "mention", "comment", "system"), allowNull: false },
+    title: { type: DataTypes.STRING(120), allowNull: false },
+    body: { type: DataTypes.STRING(500), allowNull: false, defaultValue: "" },
+    entityType: { type: DataTypes.STRING(40), allowNull: false },
+    entityId: { type: DataTypes.STRING(80), allowNull: false },
+    conversationId: { type: DataTypes.INTEGER, allowNull: true },
+    taskId: { type: DataTypes.INTEGER, allowNull: true },
+    documentId: { type: DataTypes.INTEGER, allowNull: true },
+    payload: { type: DataTypes.JSON, allowNull: false, defaultValue: {} },
+    readAt: { type: DataTypes.DATE, allowNull: true },
+  }, {
+    ...common,
+    tableName: "notifications",
+    indexes: [
+      { fields: ["recipient_user_id", "read_at", "created_at"] },
+      { fields: ["company_id", "created_at"] },
+    ],
+  });
+
   const SyncEvent = sequelize.define("SyncEvent", {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     companyId: { type: DataTypes.INTEGER, allowNull: false },
@@ -260,6 +328,9 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     Attachment,
     CloudDocument,
     CloudDocumentMember,
+    CloudDocumentComment,
+    Task,
+    Notification,
     SyncEvent,
     ServerSetting,
     DesktopRefreshSession,
@@ -372,6 +443,13 @@ export async function initializeDatabase(app: Application): Promise<ChatDatabase
   if (!messageColumns.sender_avatar) {
     await queryInterface.addColumn("messages", "sender_avatar", {
       type: DataTypes.STRING(20), allowNull: false, defaultValue: "",
+    });
+  }
+  const notificationColumns = await queryInterface.describeTable("notifications");
+  if (!notificationColumns.document_id) {
+    await queryInterface.addColumn("notifications", "document_id", {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     });
   }
   app.chatDb = db;

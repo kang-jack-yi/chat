@@ -22,6 +22,7 @@ export interface MessageBubbleProps {
   onQuote?: (message: Message) => void;
   onRecall?: (message: Message) => void;
   onForward?: (message: Message) => void;
+  onCreateTask?: (message: Message) => void;
   onSelect?: (message: Message) => void;
   onOpenForwardRecord?: (message: Message) => void;
   contextMenuEnabled?: boolean;
@@ -53,6 +54,7 @@ export default function MessageBubble({
   onQuote,
   onRecall,
   onForward,
+  onCreateTask,
   onSelect,
   onOpenForwardRecord,
   contextMenuEnabled = true,
@@ -122,6 +124,12 @@ export default function MessageBubble({
         label: "回复",
         disabled: message.id < 0,
         onClick: () => onQuote?.(message),
+      },
+      {
+        key: "task",
+        label: "创建任务",
+        disabled: !canUseMessageActions,
+        onClick: () => onCreateTask?.(message),
       },
       {
         key: "select",
@@ -202,6 +210,12 @@ export default function MessageBubble({
         label: "回复",
         disabled: message.id < 0,
         onClick: () => onQuote?.(message),
+      },
+      {
+        key: "task",
+        label: "创建任务",
+        disabled: !canUseMessageActions,
+        onClick: () => onCreateTask?.(message),
       },
       {
         key: "select",

@@ -43,6 +43,12 @@ export function systemMessageText(
   if (event.type === "group_renamed") {
     return `${actor}将群名修改为“${event.newName}”`;
   }
+  if (event.type === "task_created") {
+    return `${actor}创建了任务“${event.title}”，负责人：${actorName(event.assignee, currentUserId)}`;
+  }
+  if (event.type === "task_completed") {
+    return `${actor}完成了任务“${event.title}”`;
+  }
   return `${actor}撤回了一条消息`;
 }
 

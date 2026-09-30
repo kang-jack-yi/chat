@@ -13,6 +13,8 @@ const ContactsPage = lazy(() => import("./pages/Contacts"));
 const LoginPage = lazy(() => import("./pages/Login"));
 const OrganizationPage = lazy(() => import("./pages/Organization"));
 const DocumentsPage = lazy(() => import("./pages/Documents"));
+const TasksPage = lazy(() => import("./pages/Tasks"));
+const NotificationsPage = lazy(() => import("./pages/Notifications"));
 
 export function defaultRoute(session: SessionData | null) {
   return session ? ROUTES.chat : ROUTES.login;
@@ -54,6 +56,8 @@ export default function App() {
           <Route path="/contacts/:userId" element={<ContactsPage />} />
           <Route path={ROUTES.organization} element={<OrganizationGuard session={session} />} />
           <Route path={ROUTES.documents} element={<DocumentsPage />} />
+          <Route path={ROUTES.tasks} element={<TasksPage />} />
+          <Route path={ROUTES.notifications} element={<NotificationsPage />} />
         </Route>
         <Route path="*" element={<Navigate to={defaultRoute(session)} replace />} />
       </Routes>

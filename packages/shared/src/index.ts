@@ -73,6 +73,75 @@ export interface CloudDocumentEditorConfig {
   collaborationUrl: string;
 }
 
+export interface DocumentCommentAuthor {
+  id: number;
+  name: string;
+  avatar: string;
+}
+
+export interface DocumentComment {
+  id: number;
+  documentId: number;
+  parentId: number | null;
+  anchor: string | null;
+  content: string;
+  authorId: number;
+  author: DocumentCommentAuthor;
+  resolved: boolean;
+  resolvedAt: string | null;
+  resolvedById: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TaskStatus = "todo" | "in_progress" | "done" | "cancelled";
+export type TaskPriority = "low" | "normal" | "high" | "urgent";
+
+export interface TaskActor {
+  id: number;
+  name: string;
+  avatar: string;
+}
+
+export interface Task {
+  id: number;
+  companyId: number;
+  creatorId: number;
+  assigneeId: number;
+  conversationId: number | null;
+  messageId: number | null;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueAt: string | null;
+  completedAt: string | null;
+  creator: TaskActor;
+  assignee: TaskActor;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NotificationType = "task_assigned" | "task_completed" | "mention" | "comment" | "system";
+
+export interface Notification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  body: string;
+  entityType: "task" | "message" | "document" | "system";
+  entityId: string;
+  conversationId: number | null;
+  taskId: number | null;
+  documentId: number | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationPage {
+  items: Notification[];
+  unreadCount: number;
+}
+
 export interface Attachment {
   id: number;
   draftId?: string;
@@ -204,6 +273,17 @@ export type SystemMessageEvent =
       type: "message_recalled";
       actor: SystemActor;
       targetMessageId: number;
+    }
+  | {
+      type: "task_created";
+      actor: SystemActor;
+      title: string;
+      assignee: SystemActor;
+    }
+  | {
+      type: "task_completed";
+      actor: SystemActor;
+      title: string;
     };
 
 export interface SystemEventPart {
