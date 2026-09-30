@@ -121,7 +121,42 @@ export interface Task {
   updatedAt: string;
 }
 
-export type NotificationType = "task_assigned" | "task_completed" | "mention" | "comment" | "system";
+export type NotificationType = "task_assigned" | "task_completed" | "task_due" | "mention" | "comment" | "system";
+
+export type WorkspaceSearchType = "message" | "document" | "member" | "task" | "notification";
+
+export interface WorkspaceSearchHit {
+  type: WorkspaceSearchType;
+  id: number;
+  title: string;
+  snippet: string;
+  updatedAt: string;
+  conversationId?: number;
+  messageId?: number;
+  documentId?: number;
+  userId?: number;
+  taskId?: number;
+  notificationId?: number;
+}
+
+export interface WorkspaceSearchPage {
+  items: WorkspaceSearchHit[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface DocumentVersion {
+  id: number;
+  documentId: number;
+  title: string;
+  label: string;
+  author: DocumentCommentAuthor;
+  createdAt: string;
+}
+
+export interface DocumentVersionPreview extends DocumentVersion {
+  text: string;
+}
 
 export interface Notification {
   id: number;

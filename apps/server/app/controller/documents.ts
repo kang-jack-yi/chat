@@ -2,6 +2,47 @@ import { Controller } from "egg";
 import { ok } from "../lib/auth";
 
 export default class DocumentsController extends Controller {
+  /** 返回可访问文档的版本历史。 */
+  async versions() {
+    ok(
+      this.ctx,
+      await this.service.documentVersions.list(Number(this.ctx.params.id)),
+    );
+  }
+
+  /** 为可编辑文档创建命名快照。 */
+  async createVersion() {
+    ok(
+      this.ctx,
+      await this.service.documentVersions.create(
+        Number(this.ctx.params.id),
+        this.ctx.request.body || {},
+      ),
+    );
+  }
+
+  /** 返回指定文档版本的纯文本预览。 */
+  async previewVersion() {
+    ok(
+      this.ctx,
+      await this.service.documentVersions.preview(
+        Number(this.ctx.params.id),
+        Number(this.ctx.params.versionId),
+      ),
+    );
+  }
+
+  /** 恢复指定版本，由业务层执行权限、协作状态校验和备份。 */
+  async restoreVersion() {
+    ok(
+      this.ctx,
+      await this.service.documentVersions.restore(
+        Number(this.ctx.params.id),
+        Number(this.ctx.params.versionId),
+      ),
+    );
+  }
+
   /** 接收请求并返回结果；校验文档访问权限后按时间读取评论。 */
   async comments() {
     const data = await this.service.documents.comments(

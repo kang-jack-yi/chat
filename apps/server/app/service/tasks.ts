@@ -1,5 +1,5 @@
 import { Service } from "egg";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import { publicUser } from "../lib/auth";
 import { toPlain } from "../lib/database";
 import { createSystemMessage } from "../lib/chat";
@@ -14,6 +14,11 @@ type TaskPriority = "low" | "normal" | "high" | "urgent";
 const statuses: TaskStatus[] = ["todo", "in_progress", "done", "cancelled"];
 
 const priorities: TaskPriority[] = ["low", "normal", "high", "urgent"];
+
+/** 与 Sequelize SQLite 模型统一使用 UTC 字符串，避免宿主时区影响 SQL 日期比较。 */
+function databaseDate(date: Date): string {
+  return date.toISOString().replace("T", " ").replace("Z", " +00:00");
+}
 
 /** 生成任务创建者或负责人的公开身份数据。 */
 function actor(row: any) {
@@ -58,6 +63,88 @@ async function serializeTask(app: any, row: any) {
 }
 
 export default class TasksService extends Service {
+  /** 扫描已到期的未完成任务，校验负责人并持久化去重后推送通知，返回新增提醒数。 */
+  public async sendDueReminders(now = new Date()) {
+    const rows = await this.app.chatDb.Task.findAll({
+      where: {
+        status: { [Op.in]: ["todo", "in_progress"] },
+        dueAt: { [Op.lte]: now },
+      },
+      order: [["id", "ASC"]],
+    });
+    let sent = 0;
+    for (const candidate of rows) {
+      // 扫描期间任务可能已完成、延期或转交，发送前重新读取当前状态。
+      const row = await this.app.chatDb.Task.findOne({
+        where: {
+          id: candidate.get("id"),
+          status: { [Op.in]: ["todo", "in_progress"] },
+          dueAt: { [Op.lte]: now },
+        },
+      });
+      if (!row) continue;
+      const companyId = Number(row.get("companyId"));
+      const assigneeId = Number(row.get("assigneeId"));
+      const assignee = await this.app.chatDb.User.findOne({
+        where: { id: assigneeId, companyId, status: "active" },
+      });
+      if (!assignee) continue;
+      const id = Number(row.get("id"));
+      const dueAtISO = new Date(row.get("dueAt") as Date).toISOString();
+      const reminderKey = `task:${id}:${dueAtISO}:${assigneeId}`;
+      if (
+        await this.app.chatDb.Notification.findOne({ where: { reminderKey } })
+      )
+        continue;
+      // 状态校验和写入使用同一条 SQLite 语句，关闭重新读取后到插入前的竞态窗口。
+      // 唯一键冲突不写入也不推送；任务完成、延期、转交或停用负责人同样不写入。
+      const inserted = await this.app.chatDb.sequelize.query<{ id: number }>(
+        `
+        WITH due_task AS (
+          SELECT tasks.* FROM tasks
+          JOIN users ON users.id = tasks.assignee_id AND users.company_id = tasks.company_id
+          WHERE tasks.id = :id AND tasks.company_id = :companyId AND tasks.assignee_id = :assigneeId
+            AND tasks.status IN ('todo', 'in_progress') AND tasks.due_at = :dueAt AND tasks.due_at <= :now
+            AND users.status = 'active'
+        )
+        INSERT INTO notifications (
+          company_id, recipient_user_id, type, title, body, entity_type, entity_id,
+          conversation_id, task_id, document_id, reminder_key, payload, read_at, created_at, updated_at
+        )
+        SELECT tasks.company_id, tasks.assignee_id, 'task_due', '任务已到期',
+          '“' || tasks.title || '”已到截止时间，请及时处理', 'task', :entityId,
+          tasks.conversation_id, tasks.id, NULL, :reminderKey, :payload, NULL, :createdAt, :createdAt
+        FROM due_task AS tasks WHERE 1
+        ON CONFLICT(reminder_key) DO NOTHING RETURNING id
+      `,
+        {
+          type: QueryTypes.SELECT,
+          raw: true,
+          replacements: {
+            id,
+            companyId,
+            assigneeId,
+            entityId: String(id),
+            reminderKey,
+            payload: JSON.stringify({ dueAt: dueAtISO }),
+            dueAt: databaseDate(new Date(dueAtISO)),
+            now: databaseDate(now),
+            createdAt: databaseDate(new Date()),
+          },
+        },
+      );
+      if (!inserted.length) continue;
+      sent += 1;
+      this.app.io
+        ?.of("/")
+        ?.to(`user:${assigneeId}`)
+        .emit("notification:available", {
+          notificationId: Number(inserted[0].id),
+        });
+    }
+    return sent;
+  }
+
   /** 仅查找当前企业内的指定任务。 */
   private async findTask(id: number) {
     return this.app.chatDb.Task.findOne({

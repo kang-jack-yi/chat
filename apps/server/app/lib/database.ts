@@ -21,6 +21,7 @@ export interface ChatDatabase {
   CloudDocument: AnyModel;
   CloudDocumentMember: AnyModel;
   CloudDocumentComment: AnyModel;
+  CloudDocumentVersion: AnyModel;
   Task: AnyModel;
   Notification: AnyModel;
   SyncEvent: AnyModel;
@@ -190,6 +191,17 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     ],
   });
 
+  const CloudDocumentVersion = sequelize.define("CloudDocumentVersion", {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    documentId: { type: DataTypes.INTEGER, allowNull: false },
+    companyId: { type: DataTypes.INTEGER, allowNull: false },
+    authorId: { type: DataTypes.INTEGER, allowNull: false },
+    title: { type: DataTypes.STRING(120), allowNull: false },
+    label: { type: DataTypes.STRING(120), allowNull: false },
+    yjsState: { type: DataTypes.BLOB("long"), allowNull: true },
+    contentHash: { type: DataTypes.STRING(64), allowNull: false },
+  }, { ...common, tableName: "cloud_document_versions", indexes: [{ fields: ["document_id", "id"] }] });
+
   const CloudDocumentMember = sequelize.define("CloudDocumentMember", {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     documentId: { type: DataTypes.INTEGER, allowNull: false },
@@ -256,7 +268,8 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     companyId: { type: DataTypes.INTEGER, allowNull: false },
     recipientUserId: { type: DataTypes.INTEGER, allowNull: false },
-    type: { type: DataTypes.ENUM("task_assigned", "task_completed", "mention", "comment", "system"), allowNull: false },
+    type: { type: DataTypes.ENUM("task_assigned", "task_completed", "task_due", "mention", "comment", "system"), allowNull: false },
+    reminderKey: { type: DataTypes.STRING(160), allowNull: true },
     title: { type: DataTypes.STRING(120), allowNull: false },
     body: { type: DataTypes.STRING(500), allowNull: false, defaultValue: "" },
     entityType: { type: DataTypes.STRING(40), allowNull: false },
@@ -270,6 +283,7 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     ...common,
     tableName: "notifications",
     indexes: [
+      { unique: true, fields: ["reminder_key"] },
       { fields: ["recipient_user_id", "read_at", "created_at"] },
       { fields: ["company_id", "created_at"] },
     ],
@@ -329,6 +343,7 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     CloudDocument,
     CloudDocumentMember,
     CloudDocumentComment,
+    CloudDocumentVersion,
     Task,
     Notification,
     SyncEvent,
@@ -337,6 +352,7 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
   };
 }
 
+/** 初始化数据库，并以非破坏式增量升级保留已有用户和业务数据。 */
 export async function initializeDatabase(app: Application): Promise<ChatDatabase> {
   const dataDir = path.join(app.baseDir, "data");
   const databasePath = process.env.CHAT_DATABASE_PATH
@@ -351,6 +367,16 @@ export async function initializeDatabase(app: Application): Promise<ChatDatabase
     logging: false,
   });
   const db = defineModels(sequelize);
+  // 先补旧库字段，再执行 sync 创建唯一索引，避免旧 notifications 表缺列。
+  const existingTables = await sequelize.getQueryInterface().showAllTables();
+  if (existingTables.includes("notifications")) {
+    const columns = await sequelize.getQueryInterface().describeTable("notifications");
+    if (!columns.reminder_key) {
+      await sequelize.getQueryInterface().addColumn("notifications", "reminder_key", {
+        type: DataTypes.STRING(160), allowNull: true,
+      });
+    }
+  }
   await sequelize.sync();
   await db.ServerSetting.findOrCreate({
     where: { id: 1 },

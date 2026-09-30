@@ -1,4 +1,4 @@
-import { Building2, Bell, ContactRound, FileText, ListTodo, MessageCircleMore, Settings } from "lucide-react";
+import { Building2, Bell, ContactRound, FileText, ListTodo, MessageCircleMore, Search, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -81,6 +81,7 @@ export default function Sidebar() {
       </Dropdown>
       <nav className="mt-2 grid w-full justify-items-center gap-1">
         <NavItem to={ROUTES.chat} icon={<MessageCircleMore size={22} />} label="消息" />
+        <NavItem to={ROUTES.search} icon={<Search size={22} />} label="搜索" />
         <NavItem to={ROUTES.contacts} icon={<ContactRound size={22} />} label="通讯录" />
         <NavItem to={ROUTES.documents} icon={<FileText size={22} />} label="文档" />
         <NavItem to={ROUTES.tasks} icon={<ListTodo size={22} />} label="任务" />

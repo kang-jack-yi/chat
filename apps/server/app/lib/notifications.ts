@@ -1,8 +1,9 @@
 import type { Application } from "egg";
 import type { Transaction } from "sequelize";
 
-export type NotificationType = "task_assigned" | "task_completed" | "mention" | "comment" | "system";
+export type NotificationType = "task_assigned" | "task_completed" | "task_due" | "mention" | "comment" | "system";
 
+/** 在指定事务中创建用户通知，返回持久化记录供业务层在提交后推送。 */
 export async function createNotification(
   app: Application,
   input: {

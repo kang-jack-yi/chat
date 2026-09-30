@@ -9,6 +9,8 @@ import type OrganizationService from "../app/service/organization";
 import type SyncService from "../app/service/sync";
 import type TasksService from "../app/service/tasks";
 import type UploadService from "../app/service/upload";
+import type SearchService from "../app/service/search";
+import type DocumentVersionsService from "../app/service/document_versions";
 
 declare module "egg" {
   interface IService {
@@ -21,10 +23,13 @@ declare module "egg" {
     sync: SyncService;
     tasks: TasksService;
     upload: UploadService;
+    search: SearchService;
+    documentVersions: DocumentVersionsService;
   }
   interface Application {
     chatDb: ChatDatabase;
     collaborationServer?: Server;
+    documentRestores?: Set<number>;
     io: any;
   }
   interface Context {

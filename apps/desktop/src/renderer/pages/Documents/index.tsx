@@ -29,6 +29,7 @@ import {
 import type { CloudDocument, CloudDocumentListView } from "@chat/shared";
 import ShareDocumentModal from "./components/ShareDocumentModal";
 import DocumentCommentsModal from "./components/DocumentCommentsModal";
+import DocumentVersionsModal from "./components/DocumentVersionsModal";
 import { useDocuments } from "./hooks";
 import { writeClipboardText } from "../../services/clipboard";
 
@@ -61,6 +62,7 @@ export default function DocumentsPage() {
   const documents = useDocuments();
   const [sharing, setSharing] = useState<CloudDocument | null>(null);
   const [commenting, setCommenting] = useState<CloudDocument | null>(null);
+  const [versioning, setVersioning] = useState<CloudDocument | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
   const data = documents.documents.data ?? [];
 
@@ -81,6 +83,11 @@ export default function DocumentsPage() {
 
   function actionItems(document: CloudDocument): MenuProps["items"] {
     return [
+      {
+        key: "versions",
+        label: "版本历史",
+        onClick: () => setVersioning(document),
+      },
       {
         key: "open-new-tab",
         label: "新标签页打开",
@@ -454,6 +461,10 @@ export default function DocumentsPage() {
         <DocumentCommentsModal
           document={commenting}
           onClose={() => setCommenting(null)}
+        />
+        <DocumentVersionsModal
+          document={versioning}
+          onClose={() => setVersioning(null)}
         />
       </main>
     </div>

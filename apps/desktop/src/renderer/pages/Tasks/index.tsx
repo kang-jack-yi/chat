@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
@@ -25,6 +26,7 @@ import { queryKeys } from "../../constants/query-keys";
 import { tasksService } from "../../services/tasks";
 import { organizationService } from "../../services/organization";
 import { useUserStore } from "../../stores/user-store";
+import { searchTargetId } from "../Search/helpers";
 
 const priorityLabels: Record<TaskPriority, string> = {
   low: "低",
@@ -47,6 +49,9 @@ function dueText(value: string | null) {
 
 export default function TasksPage() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const targetTaskId = searchTargetId(searchParams.get("taskId"));
+  const targetTaskRef = useRef<HTMLElement | null>(null);
   const currentUserId = useUserStore((state) => state.session?.user.id);
   const [status, setStatus] = useState<TaskStatus | "">("");
   const [title, setTitle] = useState("");
@@ -58,8 +63,8 @@ export default function TasksPage() {
   const [editPriority, setEditPriority] = useState<TaskPriority>("normal");
   const [editDueAt, setEditDueAt] = useState<Dayjs | null>(null);
   const tasks = useQuery({
-    queryKey: queryKeys.tasks(status),
-    queryFn: () => tasksService.list(status || undefined),
+    queryKey: queryKeys.tasks(targetTaskId ? "" : status),
+    queryFn: () => tasksService.list(targetTaskId ? undefined : status || undefined),
   });
   const users = useQuery({
     queryKey: queryKeys.users,
@@ -103,6 +108,16 @@ export default function TasksPage() {
   });
   const items = useMemo(() => tasks.data || [], [tasks.data]);
 
+  // 搜索定位时显示全部状态，避免已完成任务被既有筛选隐藏。
+  useEffect(() => {
+    if (targetTaskId) setStatus("");
+  }, [targetTaskId]);
+
+  // 数据到达后将目标滚动到可见区域，卡片高亮由 URL 标识维持。
+  useEffect(() => {
+    if (targetTaskId) targetTaskRef.current?.scrollIntoView({ block: "center" });
+  }, [targetTaskId, tasks.data]);
+
   function openEdit(task: Task) {
     setEditing(task);
     setEditTitle(task.title);
@@ -141,8 +156,15 @@ export default function TasksPage() {
             </p>
           </div>
           <Select
-            value={status}
-            onChange={setStatus}
+            value={targetTaskId ? "" : status}
+            onChange={(value) => {
+              setStatus(value);
+              if (targetTaskId) {
+                const next = new URLSearchParams(searchParams);
+                next.delete("taskId");
+                setSearchParams(next, { replace: true });
+              }
+            }}
             options={[
               { value: "", label: "全部状态" },
               ...Object.entries(statusLabels).map(([value, label]) => ({
@@ -201,7 +223,9 @@ export default function TasksPage() {
             return (
               <article
                 key={task.id}
-                className="flex items-center gap-3 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4 shadow-sm"
+                ref={task.id === targetTaskId ? targetTaskRef : undefined}
+                data-search-highlighted={task.id === targetTaskId || undefined}
+                className={`flex items-center gap-3 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4 shadow-sm ${task.id === targetTaskId ? "ring-2 ring-[var(--app-primary)]" : ""}`}
               >
                 <button
                   type="button"

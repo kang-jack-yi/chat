@@ -1,6 +1,6 @@
 import { Service } from "egg";
 import path from "node:path";
-import { Op } from "sequelize";
+import { Op, Transaction } from "sequelize";
 import { toPlain } from "../lib/database";
 import { exportCloudDocument } from "../lib/document-export";
 import { importCloudDocument } from "../lib/document-import";
@@ -57,6 +57,13 @@ export default class DocumentsService extends Service {
           lastOpenedAt: new Date(),
         },
         { transaction },
+      );
+      await this.service.documentVersions.saveSnapshot(
+        document,
+        yjsState || null,
+        this.ctx.currentUser.id,
+        "创建文档",
+        transaction,
       );
       await transaction.commit();
       const [payload] = await this.serializeDocuments([document], [member]);
@@ -245,7 +252,7 @@ export default class DocumentsService extends Service {
       ? String(input.anchor).trim().slice(0, 120)
       : null;
     const rawParentId = input?.parentId;
-    const parentId =
+    let parentId =
       rawParentId === undefined || rawParentId === null || rawParentId === ""
         ? null
         : Number(rawParentId);
@@ -256,7 +263,7 @@ export default class DocumentsService extends Service {
       throw new ServiceError(400, "INVALID_COMMENT_PARENT", "回复目标不正确");
     }
     if (parentId !== null) {
-      const parent = await this.app.chatDb.CloudDocumentComment.findOne({
+      let parent = await this.app.chatDb.CloudDocumentComment.findOne({
         where: {
           id: parentId,
           documentId: access.document.get("id"),
@@ -265,10 +272,59 @@ export default class DocumentsService extends Service {
       });
       if (!parent)
         throw new ServiceError(400, "INVALID_COMMENT_PARENT", "回复目标不存在");
+      const visited = new Set<number>();
+      while (parent.get("parentId")) {
+        if (visited.has(Number(parent.get("id"))))
+          throw new ServiceError(
+            400,
+            "INVALID_COMMENT_PARENT",
+            "评论线程关系无效",
+          );
+        visited.add(Number(parent.get("id")));
+        parent = await this.app.chatDb.CloudDocumentComment.findOne({
+          where: {
+            id: parent.get("parentId"),
+            documentId: resourceId,
+            companyId: this.ctx.currentUser.companyId,
+          },
+        });
+        if (!parent)
+          throw new ServiceError(
+            400,
+            "INVALID_COMMENT_PARENT",
+            "评论线程不存在",
+          );
+      }
+      if (parent.get("resolvedAt"))
+        throw new ServiceError(
+          409,
+          "COMMENT_THREAD_RESOLVED",
+          "请先重新打开该评论线程再回复",
+        );
+      parentId = Number(parent.get("id"));
     }
-    const transaction = await this.app.chatDb.sequelize.transaction();
+    // 回复读取根状态前取得写锁，避免 DEFERRED 事务从读锁升级时与解决操作互相阻塞。
+    const transaction = await this.app.chatDb.sequelize.transaction({
+      type: Transaction.TYPES.IMMEDIATE,
+    });
     const recipientIds: number[] = [];
     try {
+      if (parentId !== null) {
+        const parent = await this.app.chatDb.CloudDocumentComment.findOne({
+          where: {
+            id: parentId,
+            documentId: resourceId,
+            companyId: this.ctx.currentUser.companyId,
+          },
+          transaction,
+        });
+        if (!parent || parent.get("resolvedAt"))
+          throw new ServiceError(
+            409,
+            "COMMENT_THREAD_RESOLVED",
+            "请先重新打开该评论线程再回复",
+          );
+      }
       const comment = await this.app.chatDb.CloudDocumentComment.create(
         {
           companyId: this.ctx.currentUser.companyId,
@@ -365,20 +421,63 @@ export default class DocumentsService extends Service {
       );
     }
     const permission = String(access.member.get("permission"));
-    const canResolve =
-      Number(comment.get("authorId")) === Number(this.ctx.currentUser.id) ||
-      ["owner", "editor"].includes(permission);
-    if (!canResolve)
+    const threadRows = await this.app.chatDb.CloudDocumentComment.findAll({
+      where: {
+        documentId: resourceId,
+        companyId: this.ctx.currentUser.companyId,
+      },
+    });
+    const byId = new Map<number, any>(
+      threadRows.map((row: any) => [Number(row.get("id")), row]),
+    );
+    let root = comment;
+    const visited = new Set<number>();
+    while (root.get("parentId") && !visited.has(Number(root.get("id")))) {
+      visited.add(Number(root.get("id")));
+      const parent = byId.get(Number(root.get("parentId")));
+      if (!parent) break;
+      root = parent;
+    }
+    if (
+      Number(root.get("authorId")) !== Number(this.ctx.currentUser.id) &&
+      !["owner", "editor"].includes(permission)
+    )
       throw new ServiceError(
         403,
         "COMMENT_RESOLVE_FORBIDDEN",
-        "无权解决该评论",
+        "只有线程作者或文档编辑者可以解决线程",
       );
+    const ids = new Set<number>([Number(root.get("id"))]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const row of threadRows) {
+        const id = Number(row.get("id"));
+        if (!ids.has(id) && ids.has(Number(row.get("parentId")))) {
+          ids.add(id);
+          changed = true;
+        }
+      }
+    }
     const resolved = input.resolved;
-    await comment.update({
-      resolvedAt: resolved ? new Date() : null,
-      resolvedById: resolved ? this.ctx.currentUser.id : null,
-    });
+    await this.app.chatDb.CloudDocumentComment.update(
+      {
+        resolvedAt: resolved ? new Date() : null,
+        resolvedById: resolved ? this.ctx.currentUser.id : null,
+      },
+      {
+        where: {
+          // 新回复一律归根；写入时一并匹配根下回复，避免漏掉读取集合后刚提交的回复。
+          [Op.or]: [
+            { id: { [Op.in]: [...ids] } },
+            { parentId: Number(root.get("id")) },
+          ],
+          documentId: resourceId,
+          companyId: this.ctx.currentUser.companyId,
+        },
+      },
+    );
+    await comment.reload();
     const [serialized] = await this.serializeComments([comment]);
     return serialized;
   }

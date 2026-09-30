@@ -34,6 +34,7 @@ export default (app: Application) => {
   router.get("/api/sync/status", auth, controller.sync.status);
 
   router.get("/api/tasks", auth, controller.tasks.list);
+  router.get("/api/search", auth, controller.search.search);
   router.post("/api/tasks", auth, controller.tasks.create);
   router.patch("/api/tasks/:id", auth, controller.tasks.update);
   router.delete("/api/tasks/:id", auth, controller.tasks.remove);
@@ -46,6 +47,10 @@ export default (app: Application) => {
   router.post("/api/documents", auth, controller.documents.create);
   router.post("/api/documents/import", auth, controller.documents.importFile);
   router.get("/api/documents/:id/download", auth, controller.documents.download);
+  router.get("/api/documents/:id/versions", auth, controller.documents.versions);
+  router.post("/api/documents/:id/versions", auth, controller.documents.createVersion);
+  router.get("/api/documents/:id/versions/:versionId", auth, controller.documents.previewVersion);
+  router.post("/api/documents/:id/versions/:versionId/restore", auth, controller.documents.restoreVersion);
   router.get("/api/documents/:id/comments", auth, controller.documents.comments);
   router.post("/api/documents/:id/comments", auth, controller.documents.createComment);
   router.patch("/api/documents/:id/comments/:commentId", auth, controller.documents.updateComment);
