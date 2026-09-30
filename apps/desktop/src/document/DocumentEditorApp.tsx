@@ -34,7 +34,8 @@ import EditorToolbar from "./EditorToolbar";
 import ShareModal from "./ShareModal";
 import { documentApi, type DocumentHostContext } from "./api";
 
-type CollaborationStatus = "connecting" | "connected" | "disconnected" | "synced";
+type CollaborationStatus =
+  "connecting" | "connected" | "disconnected" | "synced";
 
 interface CollaborationBundle {
   ydoc: Y.Doc;
@@ -42,7 +43,14 @@ interface CollaborationBundle {
 }
 
 function userColor(userId: number) {
-  const colors = ["#1677ff", "#13a36f", "#8b5cf6", "#e67e22", "#e85d75", "#0f91a6"];
+  const colors = [
+    "#1677ff",
+    "#13a36f",
+    "#8b5cf6",
+    "#e67e22",
+    "#e85d75",
+    "#0f91a6",
+  ];
   return colors[Math.abs(userId) % colors.length];
 }
 
@@ -57,38 +65,46 @@ function CollaborativeEditor({
   currentUserId: number;
   synced: boolean;
 }) {
-  const currentMember = document.members.find((member) => member.userId === currentUserId);
+  const currentMember = document.members.find(
+    (member) => member.userId === currentUserId,
+  );
   const readOnly = document.permission === "viewer";
-  const editor = useEditor({
-    immediatelyRender: false,
-    editable: !readOnly,
-    extensions: [
-      StarterKit.configure({ undoRedo: false }),
-      Highlight.configure({ multicolor: true }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      TableKit.configure({
-        table: {
-          resizable: true,
-          allowTableNodeSelection: true,
-          cellMinWidth: 120,
+  const editor = useEditor(
+    {
+      immediatelyRender: false,
+      editable: !readOnly,
+      extensions: [
+        StarterKit.configure({ undoRedo: false }),
+        Highlight.configure({ multicolor: true }),
+        TextAlign.configure({ types: ["heading", "paragraph"] }),
+        TableKit.configure({
+          table: {
+            resizable: true,
+            allowTableNodeSelection: true,
+            cellMinWidth: 120,
+          },
+        }),
+        Collaboration.configure({ document: bundle.ydoc }),
+        CollaborationCaret.configure({
+          provider: bundle.provider,
+          user: {
+            id: currentUserId,
+            name: currentMember?.name || "协作者",
+            color: userColor(currentUserId),
+          },
+        }),
+      ],
+      editorProps: {
+        attributes: {
+          class:
+            document.type === "sheet"
+              ? "cloudEditor cloudEditorSheet"
+              : "cloudEditor cloudEditorDoc",
         },
-      }),
-      Collaboration.configure({ document: bundle.ydoc }),
-      CollaborationCaret.configure({
-        provider: bundle.provider,
-        user: {
-          id: currentUserId,
-          name: currentMember?.name || "协作者",
-          color: userColor(currentUserId),
-        },
-      }),
-    ],
-    editorProps: {
-      attributes: {
-        class: document.type === "sheet" ? "cloudEditor cloudEditorSheet" : "cloudEditor cloudEditorDoc",
       },
     },
-  }, [bundle, document.id]);
+    [bundle, document.id],
+  );
 
   const initializedRef = useRef(false);
   useEffect(() => {
@@ -101,7 +117,11 @@ function CollaborativeEditor({
         type: "doc",
         content: [{ type: "paragraph" }],
       });
-      editor.chain().focus().insertTable({ rows: 20, cols: 8, withHeaderRow: true }).run();
+      editor
+        .chain()
+        .focus()
+        .insertTable({ rows: 20, cols: 8, withHeaderRow: true })
+        .run();
       return;
     }
     editor.commands.setContent({
@@ -114,7 +134,12 @@ function CollaborativeEditor({
         },
         {
           type: "paragraph",
-          content: [{ type: "text", text: "在这里开始编写内容。所有修改都会实时保存，并同步给当前在线的协作者。" }],
+          content: [
+            {
+              type: "text",
+              text: "在这里开始编写内容。所有修改都会实时保存，并同步给当前在线的协作者。",
+            },
+          ],
         },
         {
           type: "heading",
@@ -123,7 +148,12 @@ function CollaborativeEditor({
         },
         {
           type: "paragraph",
-          content: [{ type: "text", text: "使用标题、列表、引用、链接和表格组织你的内容。" }],
+          content: [
+            {
+              type: "text",
+              text: "使用标题、列表、引用、链接和表格组织你的内容。",
+            },
+          ],
         },
       ],
     });
@@ -132,7 +162,11 @@ function CollaborativeEditor({
   if (!editor) return <Skeleton active paragraph={{ rows: 10 }} />;
   return (
     <div className="documentEditorWorkspace">
-      <EditorToolbar editor={editor} documentType={document.type} readOnly={readOnly} />
+      <EditorToolbar
+        editor={editor}
+        documentType={document.type}
+        readOnly={readOnly}
+      />
       {readOnly && (
         <Alert
           banner
@@ -143,8 +177,14 @@ function CollaborativeEditor({
           className="documentReadOnly"
         />
       )}
-      <div className={document.type === "sheet" ? "sheetCanvas" : "documentCanvas"}>
-        <div className={document.type === "sheet" ? "sheetEditorPage" : "documentEditorPage"}>
+      <div
+        className={document.type === "sheet" ? "sheetCanvas" : "documentCanvas"}
+      >
+        <div
+          className={
+            document.type === "sheet" ? "sheetEditorPage" : "documentEditorPage"
+          }
+        >
           <EditorContent editor={editor} className="documentEditorContent" />
         </div>
       </div>
@@ -158,7 +198,9 @@ export default function DocumentEditorApp() {
   const [bundle, setBundle] = useState<CollaborationBundle | null>(null);
   const [status, setStatus] = useState<CollaborationStatus>("connecting");
   const [synced, setSynced] = useState(false);
-  const [presence, setPresence] = useState<Array<{ id?: number; name: string; color: string }>>([]);
+  const [presence, setPresence] = useState<
+    Array<{ id?: number; name: string; color: string }>
+  >([]);
   const [shareOpen, setShareOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
@@ -196,68 +238,75 @@ export default function DocumentEditorApp() {
         }
         provider?.disconnect();
         await new Promise((resolve) => setTimeout(resolve, 120));
-        if (documentRef.current?.id) await bridge.window.notifyChanged(documentRef.current.id);
+        if (documentRef.current?.id)
+          await bridge.window.notifyChanged(documentRef.current.id);
         await bridge.window.readyToClose();
       })();
     });
-    void bridge.context.get().then(async (hostContext) => {
-      if (disposed) return;
-      documentApi.configure(hostContext);
-      setContext(hostContext);
-      const config = await documentApi.detail(hostContext.documentId);
-      if (disposed) return;
-      setDocument(config.document);
-      window.document.title = config.document.title;
-      ydoc = new Y.Doc();
-      const notifyAfterStored = () => {
-        clearTimeout(changeTimer.current);
-        changeTimer.current = setTimeout(() => {
-          void bridge.window.notifyChanged(hostContext.documentId);
-        }, 1_800);
-      };
-      ydoc.on("update", notifyAfterStored);
-      provider = new HocuspocusProvider({
-        url: config.collaborationUrl,
-        name: `document:${hostContext.documentId}`,
-        document: ydoc,
-        token: () => hostContext.accessToken,
-        sessionAwareness: true,
-        flushDelay: false,
-        onStatus: ({ status: nextStatus }) => {
-          if (disposed) return;
-          setStatus(nextStatus === "connected" ? "connected" : nextStatus);
-        },
-        onSynced: ({ state }) => {
-          if (!disposed && state) {
-            setSynced(true);
-            setStatus("synced");
-          }
-        },
-        onAwarenessChange: ({ states }) => {
-          if (disposed) return;
-          const users = states
-            .map((state: any) => state.user)
-            .filter(Boolean)
-            .map((user: any) => ({
-              id: user.id,
-              name: String(user.name || "协作者"),
-              color: String(user.color || "#1677ff"),
-            }));
-          setPresence(users);
-        },
-        onAuthenticationFailed: () => {
-          void bridge.context.refreshToken()
-            .then((accessToken) => {
-              hostContext.accessToken = accessToken;
-              documentApi.updateToken(accessToken);
-              provider?.setConfiguration({ token: accessToken });
-              return provider?.connect();
-            })
-            .catch((reason: Error) => setError(reason.message || "登录状态已失效"));
-        },
-      });
-      setBundle({ ydoc, provider });
-    }).catch((reason: Error) => setError(reason.message || "文档加载失败"));
+    void bridge.context
+      .get()
+      .then(async (hostContext) => {
+        if (disposed) return;
+        documentApi.configure(hostContext);
+        setContext(hostContext);
+        const config = await documentApi.detail(hostContext.documentId);
+        if (disposed) return;
+        setDocument(config.document);
+        window.document.title = config.document.title;
+        ydoc = new Y.Doc();
+        const notifyAfterStored = () => {
+          clearTimeout(changeTimer.current);
+          changeTimer.current = setTimeout(() => {
+            void bridge.window.notifyChanged(hostContext.documentId);
+          }, 1_800);
+        };
+        ydoc.on("update", notifyAfterStored);
+        provider = new HocuspocusProvider({
+          url: config.collaborationUrl,
+          name: `document:${hostContext.documentId}`,
+          document: ydoc,
+          token: () => hostContext.accessToken,
+          sessionAwareness: true,
+          flushDelay: false,
+          onStatus: ({ status: nextStatus }) => {
+            if (disposed) return;
+            setStatus(nextStatus === "connected" ? "connected" : nextStatus);
+          },
+          onSynced: ({ state }) => {
+            if (!disposed && state) {
+              setSynced(true);
+              setStatus("synced");
+            }
+          },
+          onAwarenessChange: ({ states }) => {
+            if (disposed) return;
+            const users = states
+              .map((state: any) => state.user)
+              .filter(Boolean)
+              .map((user: any) => ({
+                id: user.id,
+                name: String(user.name || "协作者"),
+                color: String(user.color || "#1677ff"),
+              }));
+            setPresence(users);
+          },
+          onAuthenticationFailed: () => {
+            void bridge.context
+              .refreshToken()
+              .then((accessToken) => {
+                hostContext.accessToken = accessToken;
+                documentApi.updateToken(accessToken);
+                provider?.setConfiguration({ token: accessToken });
+                return provider?.connect();
+              })
+              .catch((reason: Error) =>
+                setError(reason.message || "登录状态已失效"),
+              );
+          },
+        });
+        setBundle({ ydoc, provider });
+      })
+      .catch((reason: Error) => setError(reason.message || "文档加载失败"));
 
     return () => {
       disposed = true;
@@ -271,9 +320,16 @@ export default function DocumentEditorApp() {
   }, []);
 
   const statusView = useMemo(() => {
-    if (status === "synced") return { text: "已保存到云端", color: "#13a36f", icon: <Cloud size={15} /> };
-    if (status === "connected") return { text: "正在同步", color: "#1677ff", icon: <Cloud size={15} /> };
-    if (status === "connecting") return { text: "正在连接", color: "#d28a22", icon: <Cloud size={15} /> };
+    if (status === "synced")
+      return {
+        text: "已保存到云端",
+        color: "#13a36f",
+        icon: <Cloud size={15} />,
+      };
+    if (status === "connected")
+      return { text: "正在同步", color: "#1677ff", icon: <Cloud size={15} /> };
+    if (status === "connecting")
+      return { text: "正在连接", color: "#d28a22", icon: <Cloud size={15} /> };
     return { text: "离线编辑", color: "#8a96a5", icon: <CloudOff size={15} /> };
   }, [status]);
 
@@ -284,10 +340,13 @@ export default function DocumentEditorApp() {
     clearTimeout(titleTimer.current);
     titleTimer.current = setTimeout(() => {
       if (!title.trim()) return;
-      void documentApi.update(document.id, { title: title.trim() })
+      void documentApi
+        .update(document.id, { title: title.trim() })
         .then((updatedDocument) => {
           setDocument(updatedDocument);
-          return window.documentDesktop?.window.notifyChanged(updatedDocument.id);
+          return window.documentDesktop?.window.notifyChanged(
+            updatedDocument.id,
+          );
         })
         .catch((reason: Error) => message.error(reason.message));
     }, 600);
@@ -323,8 +382,14 @@ export default function DocumentEditorApp() {
   return (
     <div className="documentWindow">
       <header className="documentHeader">
-        <span className={`documentTypeIcon ${document.type === "sheet" ? "isSheet" : ""}`}>
-          {document.type === "sheet" ? <FileSpreadsheet size={20} /> : <FileText size={20} />}
+        <span
+          className={`documentTypeIcon ${document.type === "sheet" ? "isSheet" : ""}`}
+        >
+          {document.type === "sheet" ? (
+            <FileSpreadsheet size={20} />
+          ) : (
+            <FileText size={20} />
+          )}
         </span>
         <div className="documentTitleBlock">
           <Input
@@ -335,22 +400,41 @@ export default function DocumentEditorApp() {
             className="documentTitleInput"
           />
           <div className="documentMeta">
-            <span style={{ color: statusView.color }} className="documentSyncStatus">
-              {statusView.icon}{statusView.text}
+            <span
+              style={{ color: statusView.color }}
+              className="documentSyncStatus"
+            >
+              {statusView.icon}
+              {statusView.text}
             </span>
             <span>最近编辑：{document.lastEditor?.name || "我"}</span>
-            {document.permission === "viewer" && <span className="flex items-center gap-1"><Lock size={12} />只读</span>}
+            {document.permission === "viewer" && (
+              <span className="flex items-center gap-1">
+                <Lock size={12} />
+                只读
+              </span>
+            )}
           </div>
         </div>
         <div className="documentHeaderActions">
-          <Tooltip title={presence.length ? `${presence.length} 人在线` : "当前仅你在线"}>
+          <Tooltip
+            title={
+              presence.length ? `${presence.length} 人在线` : "当前仅你在线"
+            }
+          >
             <span className="flex items-center gap-2 text-xs text-[var(--app-text-secondary)]">
               <UsersRound size={15} />
               <Avatar.Group size={28} max={{ count: 4 }}>
-                {(presence.length ? presence : document.members.slice(0, 1)).map((user, index) => (
+                {(presence.length
+                  ? presence
+                  : document.members.slice(0, 1)
+                ).map((user, index) => (
                   <Avatar
                     key={`${user.id || index}-${user.name}`}
-                    style={{ background: "color" in user ? user.color : userColor(user.userId) }}
+                    style={{
+                      background:
+                        "color" in user ? user.color : userColor(user.userId),
+                    }}
                   >
                     {user.name.slice(0, 1)}
                   </Avatar>
@@ -358,14 +442,25 @@ export default function DocumentEditorApp() {
               </Avatar.Group>
             </span>
           </Tooltip>
-          <Tag bordered={false} color={document.type === "sheet" ? "green" : "blue"}>
+          <Tag
+            bordered={false}
+            color={document.type === "sheet" ? "green" : "blue"}
+          >
             {document.type === "sheet" ? "在线表格" : "在线文档"}
           </Tag>
-          <Button icon={<Download size={16} />} loading={downloading} onClick={downloadDocument}>
+          <Button
+            icon={<Download size={16} />}
+            loading={downloading}
+            onClick={downloadDocument}
+          >
             下载
           </Button>
           {document.permission === "owner" && (
-            <Button type="primary" icon={<Share2 size={16} />} onClick={() => setShareOpen(true)}>
+            <Button
+              type="primary"
+              icon={<Share2 size={16} />}
+              onClick={() => setShareOpen(true)}
+            >
               分享
             </Button>
           )}

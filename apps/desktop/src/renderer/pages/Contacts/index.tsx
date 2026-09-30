@@ -17,12 +17,17 @@ export default function ContactsPage() {
   const setMobileDetailOpen = useAppStore((state) => state.setMobileDetailOpen);
   const contacts = useContacts();
   const selectedId = Number(userId) || undefined;
-  const selectedUser = contacts.users.data?.find((user) => user.id === selectedId) ?? null;
-  const startChat = useStartDirectChat((conversationId) => navigate(ROUTES.chatDetail(conversationId)));
+  const selectedUser =
+    contacts.users.data?.find((user) => user.id === selectedId) ?? null;
+  const startChat = useStartDirectChat((conversationId) =>
+    navigate(ROUTES.chatDetail(conversationId)),
+  );
 
   useEffect(() => {
     if (!selectedId && contacts.users.data?.length) {
-      const first = contacts.users.data.find((user) => user.id !== session.user.id) ?? contacts.users.data[0];
+      const first =
+        contacts.users.data.find((user) => user.id !== session.user.id) ??
+        contacts.users.data[0];
       navigate(ROUTES.contactDetail(first.id), { replace: true });
     }
   }, [contacts.users.data, navigate, selectedId, session.user.id]);
@@ -44,7 +49,9 @@ export default function ContactsPage() {
           onSelect={selectUser}
         />
       </section>
-      <main className={`relative min-h-0 min-w-0 overflow-hidden bg-[var(--app-canvas)] transition-transform duration-200 max-md:absolute max-md:inset-0 max-md:z-10 ${mobileDetailOpen ? "max-md:translate-x-0" : "max-md:translate-x-full"}`}>
+      <main
+        className={`relative min-h-0 min-w-0 overflow-hidden bg-[var(--app-canvas)] transition-transform duration-200 max-md:absolute max-md:inset-0 max-md:z-10 ${mobileDetailOpen ? "max-md:translate-x-0" : "max-md:translate-x-full"}`}
+      >
         <Button
           type="text"
           icon={<ChevronLeft size={20} />}

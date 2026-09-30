@@ -27,15 +27,22 @@ export default function ShareDocumentModal({
     queryFn: organizationService.users,
     enabled: Boolean(document),
   });
-  const [permissions, setPermissions] = useState<Record<number, EditablePermission>>({});
+  const [permissions, setPermissions] = useState<
+    Record<number, EditablePermission>
+  >({});
 
   useEffect(() => {
     if (!document) return;
-    setPermissions(Object.fromEntries(
-      document.members
-        .filter((member) => member.permission !== "owner")
-        .map((member) => [member.userId, member.permission as EditablePermission]),
-    ));
+    setPermissions(
+      Object.fromEntries(
+        document.members
+          .filter((member) => member.permission !== "owner")
+          .map((member) => [
+            member.userId,
+            member.permission as EditablePermission,
+          ]),
+      ),
+    );
   }, [document]);
 
   const selectedUsers = useMemo(
@@ -43,13 +50,14 @@ export default function ShareDocumentModal({
     [permissions, users.data],
   );
   const save = useMutation({
-    mutationFn: () => documentsService.share(
-      document!.id,
-      Object.entries(permissions).map(([userId, permission]) => ({
-        userId: Number(userId),
-        permission,
-      })),
-    ),
+    mutationFn: () =>
+      documentsService.share(
+        document!.id,
+        Object.entries(permissions).map(([userId, permission]) => ({
+          userId: Number(userId),
+          permission,
+        })),
+      ),
     onSuccess: () => {
       message.success("共享设置已更新");
       onSaved();
@@ -57,7 +65,9 @@ export default function ShareDocumentModal({
     },
     onError: (error: Error) => message.error(error.message),
   });
-  const owner = document?.members.find((member) => member.permission === "owner");
+  const owner = document?.members.find(
+    (member) => member.permission === "owner",
+  );
 
   return (
     <Modal
@@ -71,7 +81,9 @@ export default function ShareDocumentModal({
       destroyOnHidden
     >
       <div className="mb-4 rounded-xl bg-[var(--app-surface-soft)] p-3">
-        <div className="mb-1 text-sm font-medium text-[var(--app-text)]">{document?.title}</div>
+        <div className="mb-1 text-sm font-medium text-[var(--app-text)]">
+          {document?.title}
+        </div>
         <div className="text-xs text-[var(--app-text-secondary)]">
           所有者：{owner?.name || "我"} · 可邀请企业成员共同编辑或只读查看
         </div>
@@ -83,12 +95,14 @@ export default function ShareDocumentModal({
         value={Object.keys(permissions).map(Number)}
         optionFilterProp="label"
         onChange={(ids: number[]) => {
-          setPermissions((current) => Object.fromEntries(
-            ids.map((id) => [id, current[id] || "editor"]),
-          ));
+          setPermissions((current) =>
+            Object.fromEntries(ids.map((id) => [id, current[id] || "editor"])),
+          );
         }}
         options={(users.data ?? [])
-          .filter((user) => user.id !== document?.ownerId && user.status === "active")
+          .filter(
+            (user) => user.id !== document?.ownerId && user.status === "active",
+          )
           .map((user) => ({
             value: user.id,
             label: `${user.name} · ${user.departmentName || "未分配部门"}`,
@@ -106,10 +120,14 @@ export default function ShareDocumentModal({
             title: "成员",
             render: (_, user) => (
               <span className="flex items-center gap-2">
-                <Avatar size={28}>{user.avatar || user.name.slice(0, 1)}</Avatar>
+                <Avatar size={28}>
+                  {user.avatar || user.name.slice(0, 1)}
+                </Avatar>
                 <span>
                   <span className="block text-sm">{user.name}</span>
-                  <small className="text-[var(--app-text-secondary)]">{user.title || "成员"}</small>
+                  <small className="text-[var(--app-text-secondary)]">
+                    {user.title || "成员"}
+                  </small>
                 </span>
               </span>
             ),
@@ -121,10 +139,12 @@ export default function ShareDocumentModal({
               <Select
                 size="small"
                 value={permissions[user.id]}
-                onChange={(permission: EditablePermission) => setPermissions((current) => ({
-                  ...current,
-                  [user.id]: permission,
-                }))}
+                onChange={(permission: EditablePermission) =>
+                  setPermissions((current) => ({
+                    ...current,
+                    [user.id]: permission,
+                  }))
+                }
                 options={[
                   { value: "editor", label: "可编辑" },
                   { value: "viewer", label: "仅查看" },
@@ -135,7 +155,9 @@ export default function ShareDocumentModal({
         ]}
       />
       <div className="mt-3 text-xs text-[var(--app-text-secondary)]">
-        <Tag bordered={false} color="blue">实时协作</Tag>
+        <Tag bordered={false} color="blue">
+          实时协作
+        </Tag>
         成员进入文档后可看到在线光标与编辑状态。
       </div>
     </Modal>

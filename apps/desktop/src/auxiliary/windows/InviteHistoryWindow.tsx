@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Checkbox, Empty, Spin } from "antd";
 import { RefreshCw } from "lucide-react";
-import type {
-  Attachment,
-  InviteHistoryTask,
-  Message,
-} from "@chat/shared";
+import type { Attachment, InviteHistoryTask, Message } from "@chat/shared";
 import MessageView from "../../renderer/pages/Chat/components/MessageView";
 import { initialInviteHistorySelection } from "../invite-history-selection";
 
@@ -16,10 +12,11 @@ export interface InviteHistoryWindowProps {
 function messageTime(value: string, previous?: string) {
   const current = new Date(value);
   const previousDate = previous ? new Date(previous) : null;
-  const sameDay = previousDate
-    && current.getFullYear() === previousDate.getFullYear()
-    && current.getMonth() === previousDate.getMonth()
-    && current.getDate() === previousDate.getDate();
+  const sameDay =
+    previousDate &&
+    current.getFullYear() === previousDate.getFullYear() &&
+    current.getMonth() === previousDate.getMonth() &&
+    current.getDate() === previousDate.getDate();
   return current.toLocaleString("zh-CN", {
     ...(sameDay ? {} : { month: "numeric", day: "numeric" }),
     hour: "2-digit",
@@ -28,7 +25,9 @@ function messageTime(value: string, previous?: string) {
   });
 }
 
-export default function InviteHistoryWindow({ task }: InviteHistoryWindowProps) {
+export default function InviteHistoryWindow({
+  task,
+}: InviteHistoryWindowProps) {
   const bridge = window.auxiliary;
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -40,23 +39,29 @@ export default function InviteHistoryWindow({ task }: InviteHistoryWindowProps) 
     let active = true;
     setLoading(true);
     setError("");
-    void bridge?.messages.getRecent({
-      taskId: task.taskId,
-      conversationId: task.conversationId,
-      limit: 30,
-    }).then((items) => {
-      if (!active) return;
-      setMessages(items);
-      setSelectedIds(initialInviteHistorySelection(
-        items.map((message) => message.id),
-        task.selectedMessageIds,
-        task.defaultSelectAll,
-      ));
-    }).catch((reason: Error) => {
-      if (active) setError(reason.message || "读取本地聊天记录失败");
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
+    void bridge?.messages
+      .getRecent({
+        taskId: task.taskId,
+        conversationId: task.conversationId,
+        limit: 30,
+      })
+      .then((items) => {
+        if (!active) return;
+        setMessages(items);
+        setSelectedIds(
+          initialInviteHistorySelection(
+            items.map((message) => message.id),
+            task.selectedMessageIds,
+            task.defaultSelectAll,
+          ),
+        );
+      })
+      .catch((reason: Error) => {
+        if (active) setError(reason.message || "读取本地聊天记录失败");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     return () => {
       active = false;
     };
@@ -64,17 +69,22 @@ export default function InviteHistoryWindow({ task }: InviteHistoryWindowProps) 
 
   const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
   const resolveAttachmentUrl = useCallback(
-    (attachment: Attachment) => bridge!.attachments.resolve({
-      taskId: task.taskId,
-      attachmentId: attachment.id,
-    }).then((result) => result.url),
+    (attachment: Attachment) =>
+      bridge!.attachments
+        .resolve({
+          taskId: task.taskId,
+          attachmentId: attachment.id,
+        })
+        .then((result) => result.url),
     [bridge, task.taskId],
   );
 
   function toggleMessage(messageId: number, checked: boolean) {
-    setSelectedIds((current) => checked
-      ? [...new Set([...current, messageId])]
-      : current.filter((id) => id !== messageId));
+    setSelectedIds((current) =>
+      checked
+        ? [...new Set([...current, messageId])]
+        : current.filter((id) => id !== messageId),
+    );
   }
 
   return (
@@ -108,7 +118,7 @@ export default function InviteHistoryWindow({ task }: InviteHistoryWindowProps) 
           <div className="grid h-full place-items-center">
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={(
+              description={
                 <span className="grid gap-1 text-center">
                   <strong className="font-medium text-[#647284]">
                     当前群聊暂无可附带的普通消息
@@ -117,49 +127,58 @@ export default function InviteHistoryWindow({ task }: InviteHistoryWindowProps) 
                     入群、退群、撤回等系统通知不会作为聊天附录
                   </small>
                 </span>
-              )}
+              }
             />
           </div>
         )}
 
-        {!loading && !error && messages.map((message, index) => {
-          const checked = selected.has(message.id);
-          return (
-            <div
-              key={message.clientId}
-              className="group rounded-xl px-1 py-2 transition-colors hover:bg-[var(--app-surface-soft)]"
-            >
-              <time className="mb-2 block text-center text-[10px] text-[var(--app-text-tertiary)]">
-                {messageTime(message.createdAt, messages[index - 1]?.createdAt)}
-              </time>
-              <label className="flex cursor-pointer items-start gap-3">
-                <Checkbox
-                  className="mt-[22px]"
-                  checked={checked}
-                  onChange={(event) => toggleMessage(message.id, event.target.checked)}
-                />
-                <span className="grid min-w-0 flex-1 gap-1">
-                  <span className="text-[11px] text-[var(--app-text-secondary)]">{message.senderName}</span>
-                  <span className="w-fit max-w-[460px] min-w-0 text-xs leading-5 text-[var(--app-text)]">
-                    <MessageView
-                      message={message}
-                      contextMenuEnabled={false}
-                      resolveAttachmentUrl={resolveAttachmentUrl}
-                      onPreviewImage={(targetMessage, part) => {
-                        void bridge?.images.openViewer({
-                          taskId: task.taskId,
-                          conversationId: task.conversationId,
-                          messageId: targetMessage.id,
-                          attachmentId: part.attachment.id,
-                        });
-                      }}
-                    />
+        {!loading &&
+          !error &&
+          messages.map((message, index) => {
+            const checked = selected.has(message.id);
+            return (
+              <div
+                key={message.clientId}
+                className="group rounded-xl px-1 py-2 transition-colors hover:bg-[var(--app-surface-soft)]"
+              >
+                <time className="mb-2 block text-center text-[10px] text-[var(--app-text-tertiary)]">
+                  {messageTime(
+                    message.createdAt,
+                    messages[index - 1]?.createdAt,
+                  )}
+                </time>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <Checkbox
+                    className="mt-[22px]"
+                    checked={checked}
+                    onChange={(event) =>
+                      toggleMessage(message.id, event.target.checked)
+                    }
+                  />
+                  <span className="grid min-w-0 flex-1 gap-1">
+                    <span className="text-[11px] text-[var(--app-text-secondary)]">
+                      {message.senderName}
+                    </span>
+                    <span className="w-fit max-w-[460px] min-w-0 text-xs leading-5 text-[var(--app-text)]">
+                      <MessageView
+                        message={message}
+                        contextMenuEnabled={false}
+                        resolveAttachmentUrl={resolveAttachmentUrl}
+                        onPreviewImage={(targetMessage, part) => {
+                          void bridge?.images.openViewer({
+                            taskId: task.taskId,
+                            conversationId: task.conversationId,
+                            messageId: targetMessage.id,
+                            attachmentId: part.attachment.id,
+                          });
+                        }}
+                      />
+                    </span>
                   </span>
-                </span>
-              </label>
-            </div>
-          );
-        })}
+                </label>
+              </div>
+            );
+          })}
       </section>
 
       <footer className="flex items-center justify-between gap-4 border-t border-[var(--app-line)] bg-[var(--app-surface-soft)] px-5">
@@ -173,18 +192,22 @@ export default function InviteHistoryWindow({ task }: InviteHistoryWindowProps) 
           >
             取消选中
           </Button>
-          <span className="text-[var(--app-text-secondary)]">已选择 {selectedIds.length} 条聊天记录</span>
+          <span className="text-[var(--app-text-secondary)]">
+            已选择 {selectedIds.length} 条聊天记录
+          </span>
         </span>
         <span className="flex shrink-0 gap-2">
           <Button
             type="primary"
             className="!min-w-[112px]"
             disabled={!selectedIds.length}
-            onClick={() => void bridge?.task.complete(task.taskId, {
-              confirmed: true,
-              selectedMessageIds: selectedIds,
-              selectedCount: selectedIds.length,
-            })}
+            onClick={() =>
+              void bridge?.task.complete(task.taskId, {
+                confirmed: true,
+                selectedMessageIds: selectedIds,
+                selectedCount: selectedIds.length,
+              })
+            }
           >
             确定
           </Button>

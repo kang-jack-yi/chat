@@ -16,7 +16,10 @@ export function useOrganization() {
   const [mode, setMode] = useState<OrganizationMode>("members");
   const [modal, setModal] = useState<OrganizationModalState>(null);
   const [error, setError] = useState("");
-  const users = useQuery({ queryKey: queryKeys.users, queryFn: organizationService.users });
+  const users = useQuery({
+    queryKey: queryKeys.users,
+    queryFn: organizationService.users,
+  });
   const departments = useQuery({
     queryKey: queryKeys.departments,
     queryFn: organizationService.departments,
@@ -40,8 +43,13 @@ export function useOrganization() {
     onError: (reason: Error) => setError(reason.message),
   });
   const updateDepartment = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: { name: string; parentId: number | null } }) =>
-      organizationService.updateDepartment(id, payload),
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: { name: string; parentId: number | null };
+    }) => organizationService.updateDepartment(id, payload),
     onSuccess: async () => {
       closeModal();
       await queryClient.invalidateQueries({ queryKey: queryKeys.departments });
@@ -49,8 +57,13 @@ export function useOrganization() {
     onError: (reason: Error) => setError(reason.message),
   });
   const setStatus = useMutation({
-    mutationFn: ({ userId, status }: { userId: number; status: User["status"] }) =>
-      organizationService.setUserStatus(userId, status),
+    mutationFn: ({
+      userId,
+      status,
+    }: {
+      userId: number;
+      status: User["status"];
+    }) => organizationService.setUserStatus(userId, status),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.users });
     },
@@ -109,7 +122,10 @@ export function useOrganization() {
     openChildDepartment,
     openCreateModal,
     openEditDepartment,
-    pending: createUser.isPending || createDepartment.isPending || updateDepartment.isPending,
+    pending:
+      createUser.isPending ||
+      createDepartment.isPending ||
+      updateDepartment.isPending,
     setMode,
     setStatus,
     submit,
@@ -118,5 +134,7 @@ export function useOrganization() {
 }
 
 export function rootDepartmentId(departments: Department[]) {
-  return departments.find((item) => item.parentId === null)?.id ?? departments[0]?.id;
+  return (
+    departments.find((item) => item.parentId === null)?.id ?? departments[0]?.id
+  );
 }

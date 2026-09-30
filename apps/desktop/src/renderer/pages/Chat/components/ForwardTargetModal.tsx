@@ -30,9 +30,11 @@ export default function ForwardTargetModal({
 
   const filtered = conversations.filter((conversation) => {
     const query = keyword.trim().toLowerCase();
-    return !query
-      || conversation.name.toLowerCase().includes(query)
-      || conversation.lastMessage.toLowerCase().includes(query);
+    return (
+      !query ||
+      conversation.name.toLowerCase().includes(query) ||
+      conversation.lastMessage.toLowerCase().includes(query)
+    );
   });
 
   function toggle(id: number, checked: boolean) {
@@ -41,7 +43,8 @@ export default function ForwardTargetModal({
       return;
     }
     setSelectedIds((items) =>
-      checked ? [...items, id] : items.filter((item) => item !== id));
+      checked ? [...items, id] : items.filter((item) => item !== id),
+    );
   }
 
   return (
@@ -53,7 +56,9 @@ export default function ForwardTargetModal({
       destroyOnHidden
       onCancel={onClose}
       footer={[
-        <Button key="cancel" onClick={onClose}>取消</Button>,
+        <Button key="cancel" onClick={onClose}>
+          取消
+        </Button>,
         <Button
           key="confirm"
           type="primary"
@@ -82,7 +87,9 @@ export default function ForwardTargetModal({
             >
               <Checkbox
                 checked={checked}
-                onChange={(event) => toggle(conversation.id, event.target.checked)}
+                onChange={(event) =>
+                  toggle(conversation.id, event.target.checked)
+                }
               />
               <Avatar size={36} className="!bg-[var(--chat-primary)]">
                 {conversation.avatar || conversation.name.slice(0, 1)}

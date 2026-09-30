@@ -12,7 +12,9 @@ export interface ForwardRecordWindowProps {
   task: ForwardRecordTask;
 }
 
-export default function ForwardRecordWindow({ task }: ForwardRecordWindowProps) {
+export default function ForwardRecordWindow({
+  task,
+}: ForwardRecordWindowProps) {
   const [message, setMessage] = useState<Message | null>(null);
   const [error, setError] = useState("");
 
@@ -20,12 +22,16 @@ export default function ForwardRecordWindow({ task }: ForwardRecordWindowProps) 
     let active = true;
     setMessage(null);
     setError("");
-    window.auxiliary?.forwardRecord.get(task.taskId)
+    window.auxiliary?.forwardRecord
+      .get(task.taskId)
       .then((result) => {
         if (active) setMessage(result);
       })
       .catch((reason: unknown) => {
-        if (active) setError(reason instanceof Error ? reason.message : "聊天记录加载失败");
+        if (active)
+          setError(
+            reason instanceof Error ? reason.message : "聊天记录加载失败",
+          );
       });
     return () => {
       active = false;
@@ -58,7 +64,12 @@ export default function ForwardRecordWindow({ task }: ForwardRecordWindowProps) 
   if (error) {
     return (
       <div className="grid h-screen place-items-center bg-[var(--app-canvas)] p-6">
-        <Alert type="error" showIcon message="聊天记录加载失败" description={error} />
+        <Alert
+          type="error"
+          showIcon
+          message="聊天记录加载失败"
+          description={error}
+        />
       </div>
     );
   }
@@ -91,13 +102,18 @@ export default function ForwardRecordWindow({ task }: ForwardRecordWindowProps) 
             deletedAt: null,
           };
           return (
-            <article key={`${snapshot.originalMessageId}:${index}`} className="border-b border-[var(--chat-line)] py-3 last:border-0">
+            <article
+              key={`${snapshot.originalMessageId}:${index}`}
+              className="border-b border-[var(--chat-line)] py-3 last:border-0"
+            >
               <div className="mb-2 flex items-center justify-between gap-3">
                 <strong className="truncate text-sm font-medium text-[var(--chat-text)]">
                   {snapshot.senderName}
                 </strong>
                 <time className="shrink-0 text-[11px] text-[var(--chat-text-tertiary)]">
-                  {new Date(snapshot.createdAt).toLocaleString("zh-CN", { hour12: false })}
+                  {new Date(snapshot.createdAt).toLocaleString("zh-CN", {
+                    hour12: false,
+                  })}
                 </time>
               </div>
               <div className="text-sm text-[var(--chat-text)]">

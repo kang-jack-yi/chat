@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { Avatar, Button, Input, Tooltip } from "antd";
-import { Crown, History, Megaphone, Search, Settings, UserPlus } from "lucide-react";
+import {
+  Crown,
+  History,
+  Megaphone,
+  Search,
+  Settings,
+  UserPlus,
+} from "lucide-react";
 import type { Conversation, User } from "@chat/shared";
 import MemberProfilePopover from "./MemberProfilePopover";
 
@@ -29,10 +36,12 @@ export default function GroupMembersPanel({
 }: GroupMembersPanelProps) {
   const [keyword, setKeyword] = useState("");
   const announcementSummary = (
-    conversation.announcement
-    || conversation.announcementMessage?.summary
-    || ""
-  ).replace(/^\[群公告\]\s*/, "").trim();
+    conversation.announcement ||
+    conversation.announcementMessage?.summary ||
+    ""
+  )
+    .replace(/^\[群公告\]\s*/, "")
+    .trim();
   const members = useMemo(() => {
     const normalized = keyword.trim().toLocaleLowerCase();
     const directoryUsers = new Map(users.map((user) => [user.id, user]));
@@ -42,14 +51,17 @@ export default function GroupMembersPanel({
         ...directoryUsers.get(member.id),
         online: member.online,
       }))
-      .filter((member) =>
-        !normalized ||
-        member.name.toLocaleLowerCase().includes(normalized) ||
-        member.title.toLocaleLowerCase().includes(normalized))
+      .filter(
+        (member) =>
+          !normalized ||
+          member.name.toLocaleLowerCase().includes(normalized) ||
+          member.title.toLocaleLowerCase().includes(normalized),
+      )
       .sort((left, right) => {
         if (left.id === conversation.createdBy) return -1;
         if (right.id === conversation.createdBy) return 1;
-        if (Boolean(left.online) !== Boolean(right.online)) return left.online ? -1 : 1;
+        if (Boolean(left.online) !== Boolean(right.online))
+          return left.online ? -1 : 1;
         return left.name.localeCompare(right.name, "zh-CN");
       });
   }, [conversation.createdBy, conversation.members, keyword, users]);

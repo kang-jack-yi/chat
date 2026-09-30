@@ -2,10 +2,12 @@ import type { LocalMessage, Message } from "@chat/shared";
 
 export function isSelectableMessage(message: Message) {
   const status = (message as Partial<LocalMessage>).status || "sent";
-  return message.id > 0
-    && !message.deletedAt
-    && status === "sent"
-    && (message.kind === "user" || message.kind === "announcement");
+  return (
+    message.id > 0 &&
+    !message.deletedAt &&
+    status === "sent" &&
+    (message.kind === "user" || message.kind === "announcement")
+  );
 }
 
 export function getSelectableRange(
@@ -28,7 +30,8 @@ export function toggleRangeSelection(
   limit = 30,
 ) {
   const selected = new Set(current);
-  const allSelected = rangeIds.length > 0 && rangeIds.every((id) => selected.has(id));
+  const allSelected =
+    rangeIds.length > 0 && rangeIds.every((id) => selected.has(id));
   if (allSelected) {
     rangeIds.forEach((id) => selected.delete(id));
     return { selected, cleared: true, truncated: false };

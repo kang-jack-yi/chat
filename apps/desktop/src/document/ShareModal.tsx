@@ -16,19 +16,31 @@ interface ShareModalProps {
 
 type Permission = Exclude<CloudDocumentPermission, "owner">;
 
-export default function ShareModal({ document, open, onClose, onChange }: ShareModalProps) {
+export default function ShareModal({
+  document,
+  open,
+  onClose,
+  onChange,
+}: ShareModalProps) {
   const [users, setUsers] = useState<User[]>([]);
-  const [permissions, setPermissions] = useState<Record<number, Permission>>({});
+  const [permissions, setPermissions] = useState<Record<number, Permission>>(
+    {},
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setPermissions(Object.fromEntries(
-      document.members
-        .filter((member) => member.permission !== "owner")
-        .map((member) => [member.userId, member.permission as Permission]),
-    ));
-    void documentApi.users().then(setUsers).catch((error: Error) => message.error(error.message));
+    setPermissions(
+      Object.fromEntries(
+        document.members
+          .filter((member) => member.permission !== "owner")
+          .map((member) => [member.userId, member.permission as Permission]),
+      ),
+    );
+    void documentApi
+      .users()
+      .then(setUsers)
+      .catch((error: Error) => message.error(error.message));
   }, [document, open]);
 
   const selected = users.filter((user) => permissions[user.id]);
@@ -67,12 +79,19 @@ export default function ShareModal({ document, open, onClose, onChange }: ShareM
         className="w-full"
         placeholder="添加企业协作成员"
         value={Object.keys(permissions).map(Number)}
-        onChange={(ids: number[]) => setPermissions((current) => Object.fromEntries(
-          ids.map((id) => [id, current[id] || "editor"]),
-        ))}
+        onChange={(ids: number[]) =>
+          setPermissions((current) =>
+            Object.fromEntries(ids.map((id) => [id, current[id] || "editor"])),
+          )
+        }
         options={users
-          .filter((user) => user.id !== document.ownerId && user.status === "active")
-          .map((user) => ({ value: user.id, label: `${user.name} · ${user.title || "成员"}` }))}
+          .filter(
+            (user) => user.id !== document.ownerId && user.status === "active",
+          )
+          .map((user) => ({
+            value: user.id,
+            label: `${user.name} · ${user.title || "成员"}`,
+          }))}
       />
       <Table<User>
         rowKey="id"
@@ -86,7 +105,9 @@ export default function ShareModal({ document, open, onClose, onChange }: ShareM
             title: "协作者",
             render: (_, user) => (
               <span className="flex items-center gap-2">
-                <Avatar size={28}>{user.avatar || user.name.slice(0, 1)}</Avatar>
+                <Avatar size={28}>
+                  {user.avatar || user.name.slice(0, 1)}
+                </Avatar>
                 <span>{user.name}</span>
               </span>
             ),
@@ -98,10 +119,12 @@ export default function ShareModal({ document, open, onClose, onChange }: ShareM
               <Select
                 size="small"
                 value={permissions[user.id]}
-                onChange={(permission: Permission) => setPermissions((current) => ({
-                  ...current,
-                  [user.id]: permission,
-                }))}
+                onChange={(permission: Permission) =>
+                  setPermissions((current) => ({
+                    ...current,
+                    [user.id]: permission,
+                  }))
+                }
                 options={[
                   { value: "editor", label: "可编辑" },
                   { value: "viewer", label: "仅查看" },

@@ -1,8 +1,4 @@
-import type {
-  Message,
-  SystemActor,
-  SystemMessageEvent,
-} from "@chat/shared";
+import type { Message, SystemActor, SystemMessageEvent } from "@chat/shared";
 
 function actorName(actor: SystemActor, currentUserId?: number) {
   return actor.userId === currentUserId ? "你" : actor.name;
@@ -69,7 +65,9 @@ export default function SystemMessage({
   compact = false,
 }: SystemMessageProps) {
   const event = messageSystemEvent(message);
-  const text = event ? systemMessageText(event, currentUserId) : message.summary;
+  const text = event
+    ? systemMessageText(event, currentUserId)
+    : message.summary;
   return (
     <span
       className={

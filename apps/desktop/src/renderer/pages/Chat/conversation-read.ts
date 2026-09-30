@@ -14,5 +14,6 @@ export function clearConversationUnread(
           mentionMessageId: null,
           mentionType: null,
         }
-      : conversation);
+      : conversation,
+  );
 }

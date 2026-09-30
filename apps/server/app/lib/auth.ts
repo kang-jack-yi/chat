@@ -40,14 +40,15 @@ function hashRefreshToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-export async function issueRefreshSession(app: Application, ctx: Context, user: any) {
+/** 创建刷新会话；设备标识由调用方提供，不读取 HTTP 请求。 */
+export async function issueRefreshSession(app: Application, deviceId: string, user: any) {
   const sessionId = crypto.randomUUID();
   const token = signToken(app, user, "refresh", "7d", sessionId);
   await app.chatDb.DesktopRefreshSession.create({
     id: sessionId,
     userId: user.id,
     companyId: user.companyId,
-    deviceId: String(ctx.get("x-desktop-device-id") || ctx.get("user-agent") || "desktop").slice(0, 80),
+    deviceId: String(deviceId || "desktop").slice(0, 80),
     tokenHash: hashRefreshToken(token),
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     lastUsedAt: new Date(),
@@ -165,12 +166,4 @@ export function ok(ctx: Context, data: any) {
 export function fail(ctx: Context, status: number, code: string, message: string) {
   ctx.status = status;
   ctx.body = { success: false, error: { code, message } };
-}
-
-export function requireAdmin(ctx: Context) {
-  if (!ctx.currentUser || !["owner", "admin"].includes(ctx.currentUser.role)) {
-    fail(ctx, 403, "FORBIDDEN", "仅企业所有者或管理员可以执行此操作");
-    return false;
-  }
-  return true;
 }

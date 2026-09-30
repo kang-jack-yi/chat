@@ -35,9 +35,13 @@ export default function ChatPage() {
   const setMobileDetailOpen = useAppStore((state) => state.setMobileDetailOpen);
   const setGroupDialogOpen = useAppStore((state) => state.setGroupDialogOpen);
   const conversations = useConversations();
-  const users = useQuery({ queryKey: queryKeys.users, queryFn: organizationService.users });
+  const users = useQuery({
+    queryKey: queryKeys.users,
+    queryFn: organizationService.users,
+  });
   const selectedId = Number(conversationId) || undefined;
-  const selectedConversation = conversations.data?.find((item) => item.id === selectedId) ?? null;
+  const selectedConversation =
+    conversations.data?.find((item) => item.id === selectedId) ?? null;
   const showMembers = selectedConversation?.type === "group";
   const [focusedMessageId, setFocusedMessageId] = useState<number>();
   const [pendingSearchTarget, setPendingSearchTarget] = useState<{
@@ -58,7 +62,9 @@ export default function ChatPage() {
   useEffect(() => {
     if (selectedId && conversations.data && !selectedConversation) {
       const fallback = conversations.data[0];
-      navigate(fallback ? ROUTES.chatDetail(fallback.id) : ROUTES.chat, { replace: true });
+      navigate(fallback ? ROUTES.chatDetail(fallback.id) : ROUTES.chat, {
+        replace: true,
+      });
     }
   }, [conversations.data, navigate, selectedConversation, selectedId]);
 
@@ -69,18 +75,28 @@ export default function ChatPage() {
   }, [selectedConversation?.id, selectedConversation?.type]);
 
   useEffect(() => {
-    void window.desktop?.screenshot.setActiveConversation(selectedConversation?.id);
+    void window.desktop?.screenshot.setActiveConversation(
+      selectedConversation?.id,
+    );
     return () => {
       void window.desktop?.screenshot.setActiveConversation();
     };
   }, [selectedConversation?.id]);
 
-  useEffect(() => window.desktop?.screenshot.onUnavailable(() => {
-    message.warning("请先打开一个会话");
-  }), []);
+  useEffect(
+    () =>
+      window.desktop?.screenshot.onUnavailable(() => {
+        message.warning("请先打开一个会话");
+      }),
+    [],
+  );
 
   useEffect(() => {
-    if (!pendingSearchTarget || pendingSearchTarget.conversationId !== selectedId) return;
+    if (
+      !pendingSearchTarget ||
+      pendingSearchTarget.conversationId !== selectedId
+    )
+      return;
     setFocusedMessageId(pendingSearchTarget.messageId);
     setPendingSearchTarget(undefined);
   }, [pendingSearchTarget, selectedId]);
@@ -93,7 +109,9 @@ export default function ChatPage() {
   async function startDirectChat(userId: number) {
     try {
       const conversation = await chatService.createDirect(userId);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations,
+      });
       selectConversation(conversation.id);
     } catch (error) {
       message.error(error instanceof Error ? error.message : "无法发起会话");
@@ -107,67 +125,89 @@ export default function ChatPage() {
   ) {
     try {
       await chatService.settings(conversation.id, payload);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations,
+      });
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "会话设置更新失败");
+      message.error(
+        error instanceof Error ? error.message : "会话设置更新失败",
+      );
     }
   }
 
-  async function locateSearchResult(conversation: Conversation, messageId?: number) {
+  async function locateSearchResult(
+    conversation: Conversation,
+    messageId?: number,
+  ) {
     try {
       if (conversation.hidden) {
         await chatService.settings(conversation.id, { hidden: false });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.conversations,
+        });
       }
       if (messageId) {
         setPendingSearchTarget({ conversationId: conversation.id, messageId });
       }
       selectConversation(conversation.id);
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "无法打开搜索结果");
+      message.error(
+        error instanceof Error ? error.message : "无法打开搜索结果",
+      );
     }
   }
 
-  useEffect(() => window.desktop?.windows.onLocateHistoryMessage(
-    ({ conversationId: targetConversationId, messageId }) => {
-      const conversation = conversations.data?.find(
-        (item) => item.id === targetConversationId,
-      );
-      if (!conversation) return;
-      void locateSearchResult(conversation, messageId);
-    },
-  ), [conversations.data]);
+  useEffect(
+    () =>
+      window.desktop?.windows.onLocateHistoryMessage(
+        ({ conversationId: targetConversationId, messageId }) => {
+          const conversation = conversations.data?.find(
+            (item) => item.id === targetConversationId,
+          );
+          if (!conversation) return;
+          void locateSearchResult(conversation, messageId);
+        },
+      ),
+    [conversations.data],
+  );
 
   function openChatHistory() {
     if (!selectedConversation) return;
-    void window.desktop?.windows.openChatHistory({
-      conversationId: selectedConversation.id,
-    }).catch((error: unknown) => {
-      message.error(error instanceof Error ? error.message : "无法打开聊天记录");
-    });
+    void window.desktop?.windows
+      .openChatHistory({
+        conversationId: selectedConversation.id,
+      })
+      .catch((error: unknown) => {
+        message.error(
+          error instanceof Error ? error.message : "无法打开聊天记录",
+        );
+      });
   }
 
   async function deleteConversationHistory(conversation: Conversation) {
-    const cachedMessages = queryClient.getQueryData<InfiniteData<MessagePage<Message>>>(
-      queryKeys.messages(conversation.id),
-    );
-    const hasActiveMessage = cachedMessages?.pages.some((page) =>
-      page.items.some((item) =>
-        ["queued", "uploading", "sending"].includes(
-          String((item as Partial<LocalMessage>).status || ""),
-        ))) ?? false;
+    const cachedMessages = queryClient.getQueryData<
+      InfiniteData<MessagePage<Message>>
+    >(queryKeys.messages(conversation.id));
+    const hasActiveMessage =
+      cachedMessages?.pages.some((page) =>
+        page.items.some((item) =>
+          ["queued", "uploading", "sending"].includes(
+            String((item as Partial<LocalMessage>).status || ""),
+          ),
+        ),
+      ) ?? false;
     if (
-      hasActiveMessage
-      ||
-      localDatabase.available()
-      && await localDatabase.hasPendingConversation(conversation.id)
+      hasActiveMessage ||
+      (localDatabase.available() &&
+        (await localDatabase.hasPendingConversation(conversation.id)))
     ) {
       message.warning("该会话仍有等待发送的消息，请先完成或取消发送");
       return;
     }
     Modal.confirm({
       title: "删除聊天记录",
-      content: "将清除当前账号中的聊天记录和草稿，并隐藏该会话。此操作不会影响其他成员。",
+      content:
+        "将清除当前账号中的聊天记录和草稿，并隐藏该会话。此操作不会影响其他成员。",
       okText: "删除",
       okButtonProps: { danger: true },
       cancelText: "取消",
@@ -178,12 +218,21 @@ export default function ChatPage() {
             clearHistory: true,
             hidden: true,
           });
-          await Promise.all((draft?.attachments ?? []).map((item) =>
-            window.desktop?.attachment.removeDraft(item.meta.id).catch(() => undefined)));
+          await Promise.all(
+            (draft?.attachments ?? []).map((item) =>
+              window.desktop?.attachment
+                .removeDraft(item.meta.id)
+                .catch(() => undefined),
+            ),
+          );
           removeDraft(conversation.id);
-          await queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.conversations,
+          });
         } catch (error) {
-          message.error(error instanceof Error ? error.message : "删除聊天记录失败");
+          message.error(
+            error instanceof Error ? error.message : "删除聊天记录失败",
+          );
           throw error;
         }
       },
@@ -256,11 +305,15 @@ export default function ChatPage() {
       </main>
       <GroupDialog
         open={groupDialogOpen}
-        users={(users.data ?? []).filter((user) => user.id !== session.user.id && user.status === "active")}
+        users={(users.data ?? []).filter(
+          (user) => user.id !== session.user.id && user.status === "active",
+        )}
         onClose={() => setGroupDialogOpen(false)}
         onCreated={async (conversation) => {
           setGroupDialogOpen(false);
-          await queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.conversations,
+          });
           selectConversation(conversation.id);
         }}
       />

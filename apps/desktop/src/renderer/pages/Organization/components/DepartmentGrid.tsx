@@ -26,7 +26,10 @@ export default function DepartmentGrid({
 
   useEffect(() => {
     if (selectedId && departmentIds.has(selectedId)) return;
-    setSelectedId(departments.find((department) => department.parentId === null)?.id ?? departments[0]?.id);
+    setSelectedId(
+      departments.find((department) => department.parentId === null)?.id ??
+        departments[0]?.id,
+    );
   }, [departmentIds, departments, selectedId]);
 
   function buildNodes(parentId: number | null): TreeDataNode[] {
@@ -53,14 +56,19 @@ export default function DepartmentGrid({
 
   const rootNodes = buildNodes(null);
   const orphanNodes = departments
-    .filter((department) => department.parentId !== null && !departmentIds.has(department.parentId))
+    .filter(
+      (department) =>
+        department.parentId !== null && !departmentIds.has(department.parentId),
+    )
     .map((department) => ({
       key: department.id,
       title: department.name,
       children: buildNodes(department.id),
     }));
   const treeData = [...rootNodes, ...orphanNodes];
-  const selected = departments.find((department) => department.id === selectedId);
+  const selected = departments.find(
+    (department) => department.id === selectedId,
+  );
   const parent = selected?.parentId
     ? departments.find((department) => department.id === selected.parentId)
     : undefined;
@@ -72,7 +80,11 @@ export default function DepartmentGrid({
     : [];
 
   if (!departments.length) {
-    return <div className="grid min-h-96 place-items-center"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无部门" /></div>;
+    return (
+      <div className="grid min-h-96 place-items-center">
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无部门" />
+      </div>
+    );
   }
 
   return (
@@ -80,7 +92,9 @@ export default function DepartmentGrid({
       <section className="min-w-0 border-r border-[var(--app-line)] bg-[var(--app-surface)] p-4">
         <div className="mb-3 flex items-center justify-between px-1">
           <strong className="text-sm text-[var(--app-text)]">部门列表</strong>
-          <span className="text-xs text-[var(--app-text-tertiary)]">{departments.length} 个部门</span>
+          <span className="text-xs text-[var(--app-text-tertiary)]">
+            {departments.length} 个部门
+          </span>
         </div>
         <Tree
           blockNode
@@ -103,8 +117,13 @@ export default function DepartmentGrid({
                 </span>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="m-0 truncate text-lg font-semibold text-[var(--app-text)]">{selected.name}</h2>
-                    <Tag bordered={false} color={selected.parentId === null ? "blue" : "default"}>
+                    <h2 className="m-0 truncate text-lg font-semibold text-[var(--app-text)]">
+                      {selected.name}
+                    </h2>
+                    <Tag
+                      bordered={false}
+                      color={selected.parentId === null ? "blue" : "default"}
+                    >
                       {selected.parentId === null ? "根部门" : "子部门"}
                     </Tag>
                   </div>
@@ -114,53 +133,98 @@ export default function DepartmentGrid({
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">
-                <Button icon={<Pencil size={14} />} onClick={() => onEdit(selected)}>编辑</Button>
-                <Button type="primary" icon={<Plus size={14} />} onClick={() => onAddChild(selected)}>添加子部门</Button>
+                <Button
+                  icon={<Pencil size={14} />}
+                  onClick={() => onEdit(selected)}
+                >
+                  编辑
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<Plus size={14} />}
+                  onClick={() => onAddChild(selected)}
+                >
+                  添加子部门
+                </Button>
               </div>
             </div>
 
             <div className="my-4 grid grid-cols-3 overflow-hidden rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)]">
               <div className="px-4 py-3">
-                <span className="block text-xs text-[var(--app-text-tertiary)]">直属成员</span>
-                <strong className="mt-1 block text-lg text-[var(--app-text)]">{directMembers.length}</strong>
+                <span className="block text-xs text-[var(--app-text-tertiary)]">
+                  直属成员
+                </span>
+                <strong className="mt-1 block text-lg text-[var(--app-text)]">
+                  {directMembers.length}
+                </strong>
               </div>
               <div className="border-l border-[var(--app-line)] px-4 py-3">
-                <span className="block text-xs text-[var(--app-text-tertiary)]">下级部门</span>
-                <strong className="mt-1 block text-lg text-[var(--app-text)]">{children.length}</strong>
+                <span className="block text-xs text-[var(--app-text-tertiary)]">
+                  下级部门
+                </span>
+                <strong className="mt-1 block text-lg text-[var(--app-text)]">
+                  {children.length}
+                </strong>
               </div>
               <div className="border-l border-[var(--app-line)] px-4 py-3">
-                <span className="block text-xs text-[var(--app-text-tertiary)]">上级部门</span>
-                <strong className="mt-1 block truncate text-sm leading-7 text-[var(--app-text)]">{parent?.name || "无"}</strong>
+                <span className="block text-xs text-[var(--app-text-tertiary)]">
+                  上级部门
+                </span>
+                <strong className="mt-1 block truncate text-sm leading-7 text-[var(--app-text)]">
+                  {parent?.name || "无"}
+                </strong>
               </div>
             </div>
 
             <div className="grid gap-4">
               <div className="rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <strong className="flex items-center gap-2 text-sm text-[var(--app-text)]"><Users size={15} className="text-[var(--app-primary)]" />直属成员</strong>
-                  <span className="text-xs text-[var(--app-text-tertiary)]">{directMembers.length} 人</span>
+                  <strong className="flex items-center gap-2 text-sm text-[var(--app-text)]">
+                    <Users size={15} className="text-[var(--app-primary)]" />
+                    直属成员
+                  </strong>
+                  <span className="text-xs text-[var(--app-text-tertiary)]">
+                    {directMembers.length} 人
+                  </span>
                 </div>
                 {directMembers.length ? (
                   <div className="grid grid-cols-2 gap-2 max-lg:grid-cols-1">
                     {directMembers.map((user) => (
-                      <div key={user.id} className="flex min-w-0 items-center gap-2.5 rounded-lg bg-[var(--app-surface-soft)] px-3 py-2">
-                        <Avatar text={user.avatar} src={user.avatarUrl} online={user.online} />
+                      <div
+                        key={user.id}
+                        className="flex min-w-0 items-center gap-2.5 rounded-lg bg-[var(--app-surface-soft)] px-3 py-2"
+                      >
+                        <Avatar
+                          text={user.avatar}
+                          src={user.avatarUrl}
+                          online={user.online}
+                        />
                         <span className="min-w-0">
-                          <strong className="block truncate text-xs font-medium text-[var(--app-text)]">{user.name}</strong>
-                          <small className="block truncate text-xs text-[var(--app-text-tertiary)]">{user.title || "未设置职位"}</small>
+                          <strong className="block truncate text-xs font-medium text-[var(--app-text)]">
+                            {user.name}
+                          </strong>
+                          <small className="block truncate text-xs text-[var(--app-text-tertiary)]">
+                            {user.title || "未设置职位"}
+                          </small>
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="m-0 py-3 text-center text-xs text-[var(--app-text-tertiary)]">该部门暂无直属成员</p>
+                  <p className="m-0 py-3 text-center text-xs text-[var(--app-text-tertiary)]">
+                    该部门暂无直属成员
+                  </p>
                 )}
               </div>
 
               <div className="rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <strong className="text-sm text-[var(--app-text)]">下级部门</strong>
-                  <span className="text-xs text-[var(--app-text-tertiary)]">{children.length} 个</span>
+                  <strong className="text-sm text-[var(--app-text)]">
+                    下级部门
+                  </strong>
+                  <span className="text-xs text-[var(--app-text-tertiary)]">
+                    {children.length} 个
+                  </span>
                 </div>
                 {children.length ? (
                   <div className="flex flex-wrap gap-2">
@@ -171,13 +235,18 @@ export default function DepartmentGrid({
                         onClick={() => setSelectedId(department.id)}
                         className="flex items-center gap-2 rounded-lg border border-[var(--app-line)] bg-[var(--app-surface)] px-3 py-2 text-xs text-[var(--app-text-secondary)] hover:border-[var(--app-primary)] hover:bg-[var(--app-primary-soft)] hover:text-[var(--app-primary)]"
                       >
-                        <Building2 size={14} />{department.name}
-                        <span className="text-[var(--app-text-tertiary)]">{department.memberCount || 0} 人</span>
+                        <Building2 size={14} />
+                        {department.name}
+                        <span className="text-[var(--app-text-tertiary)]">
+                          {department.memberCount || 0} 人
+                        </span>
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <p className="m-0 py-2 text-xs text-[var(--app-text-tertiary)]">暂无下级部门，可点击右上角添加。</p>
+                  <p className="m-0 py-2 text-xs text-[var(--app-text-tertiary)]">
+                    暂无下级部门，可点击右上角添加。
+                  </p>
                 )}
               </div>
             </div>

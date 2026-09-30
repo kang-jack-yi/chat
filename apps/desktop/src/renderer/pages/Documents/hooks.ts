@@ -18,11 +18,16 @@ export function useDocuments() {
     queryKey: queryKeys.documents(view, deferredQuery),
     queryFn: () => documentsService.list(view, deferredQuery),
   });
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["documents"] });
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: ["documents"] });
 
-  useEffect(() => window.desktop?.windows.onDocumentChanged(() => {
-    void queryClient.invalidateQueries({ queryKey: ["documents"] });
-  }), [queryClient]);
+  useEffect(
+    () =>
+      window.desktop?.windows.onDocumentChanged(() => {
+        void queryClient.invalidateQueries({ queryKey: ["documents"] });
+      }),
+    [queryClient],
+  );
 
   const createDocument = useMutation({
     mutationFn: (type: CloudDocumentType) => documentsService.create(type),
@@ -42,7 +47,10 @@ export function useDocuments() {
     onError: (error: Error) => message.error(error.message),
   });
   const updateDocument = useMutation({
-    mutationFn: ({ id, payload }: {
+    mutationFn: ({
+      id,
+      payload,
+    }: {
       id: number;
       payload: Parameters<typeof documentsService.update>[1];
     }) => documentsService.update(id, payload),
@@ -50,7 +58,8 @@ export function useDocuments() {
     onError: (error: Error) => message.error(error.message),
   });
   const deleteDocument = useMutation({
-    mutationFn: (document: CloudDocument) => documentsService.remove(document.id),
+    mutationFn: (document: CloudDocument) =>
+      documentsService.remove(document.id),
     onSuccess: refresh,
     onError: (error: Error) => message.error(error.message),
   });

@@ -606,7 +606,10 @@ export default function ChatPanel({
                       })}
                     </div>
                   )}
-                  <div data-message-row className="chat-message-row text-center">
+                  <div
+                    data-message-row
+                    className="chat-message-row text-center"
+                  >
                     <MessageView
                       message={message}
                       currentUserId={currentUser.id}
@@ -632,7 +635,10 @@ export default function ChatPanel({
                     })}
                   </div>
                 )}
-                <div data-message-row className="chat-message-row flex min-w-0 max-w-full items-start gap-2 overflow-hidden">
+                <div
+                  data-message-row
+                  className="chat-message-row flex min-w-0 max-w-full items-start gap-2 overflow-hidden"
+                >
                   {selectionMode && (
                     <Checkbox
                       className="!mt-3 shrink-0"
@@ -717,9 +723,7 @@ export default function ChatPanel({
       {selectionMode ? (
         <footer className={styles.selectionToolbar}>
           <span className={styles.selectionCount} aria-live="polite">
-            已选择{" "}
-            <strong>{selectedIds.size}</strong>{" "}
-            条
+            已选择 <strong>{selectedIds.size}</strong> 条
           </span>
           <div
             className={styles.selectionActions}

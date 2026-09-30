@@ -1,74 +1,24 @@
 import { Controller } from "egg";
-import { Op } from "sequelize";
-import { fail, ok } from "../lib/auth";
-import { toPlain } from "../lib/database";
-
-function serializeNotification(row: any) {
-  const notification = toPlain(row);
-  return {
-    id: Number(notification.id),
-    type: notification.type,
-    title: String(notification.title),
-    body: String(notification.body || ""),
-    entityType: notification.entityType,
-    entityId: String(notification.entityId),
-    conversationId: notification.conversationId ? Number(notification.conversationId) : null,
-    taskId: notification.taskId ? Number(notification.taskId) : null,
-    documentId: notification.documentId ? Number(notification.documentId) : null,
-    readAt: notification.readAt ? new Date(notification.readAt).toISOString() : null,
-    createdAt: new Date(notification.createdAt).toISOString(),
-  };
-}
+import { ok } from "../lib/auth";
 
 export default class NotificationsController extends Controller {
-  private findForUser(id: number) {
-    return this.app.chatDb.Notification.findOne({
-      where: {
-        id,
-        companyId: this.ctx.currentUser.companyId,
-        recipientUserId: this.ctx.currentUser.id,
-      },
-    });
-  }
-
+  /** 接收请求并返回结果；分页查询当前用户通知并统计总未读数。 */
   async list() {
-    const limit = Math.min(Math.max(Number(this.ctx.query.limit) || 50, 1), 100);
-    const where: any = {
-      companyId: this.ctx.currentUser.companyId,
-      recipientUserId: this.ctx.currentUser.id,
-    };
-    if (String(this.ctx.query.unreadOnly || "") === "true") where.readAt = { [Op.is]: null };
-    const [rows, unreadCount] = await Promise.all([
-      this.app.chatDb.Notification.findAll({ where, order: [["createdAt", "DESC"]], limit }),
-      this.app.chatDb.Notification.count({
-        where: {
-          companyId: this.ctx.currentUser.companyId,
-          recipientUserId: this.ctx.currentUser.id,
-          readAt: { [Op.is]: null },
-        },
-      }),
-    ]);
-    ok(this.ctx, { items: rows.map(serializeNotification), unreadCount });
+    const data = await this.service.notifications.list(this.ctx.query);
+    ok(this.ctx, data);
   }
 
+  /** 接收请求并返回结果；将当前用户的指定通知幂等地标记为已读。 */
   async read() {
-    const row = await this.findForUser(Number(this.ctx.params.id));
-    if (!row) return fail(this.ctx, 404, "NOT_FOUND", "通知不存在");
-    if (!row.get("readAt")) await row.update({ readAt: new Date() });
-    ok(this.ctx, serializeNotification(row));
+    const data = await this.service.notifications.read(
+      Number(this.ctx.params.id),
+    );
+    ok(this.ctx, data);
   }
 
+  /** 接收请求并返回结果；批量将当前用户尚未读取的通知标记为已读。 */
   async readAll() {
-    const [updatedCount] = await this.app.chatDb.Notification.update(
-      { readAt: new Date() },
-      {
-        where: {
-          companyId: this.ctx.currentUser.companyId,
-          recipientUserId: this.ctx.currentUser.id,
-          readAt: { [Op.is]: null },
-        },
-      },
-    );
-    ok(this.ctx, { updatedCount });
+    const data = await this.service.notifications.readAll();
+    ok(this.ctx, data);
   }
 }

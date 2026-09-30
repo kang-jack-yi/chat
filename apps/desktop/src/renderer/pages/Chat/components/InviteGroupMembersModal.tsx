@@ -41,25 +41,30 @@ function createDepartmentTree(
 ): DataNode[] {
   const normalized = keyword.trim().toLocaleLowerCase();
   const visibleUsers = users.filter((user) => {
-    if (user.status !== "active" && !existingMemberIds.has(user.id)) return false;
+    if (user.status !== "active" && !existingMemberIds.has(user.id))
+      return false;
     if (!normalized) return true;
-    return [user.name, user.phone, user.title, user.departmentName]
-      .some((value) => String(value || "").toLocaleLowerCase().includes(normalized));
+    return [user.name, user.phone, user.title, user.departmentName].some(
+      (value) =>
+        String(value || "")
+          .toLocaleLowerCase()
+          .includes(normalized),
+    );
   });
   const usersByDepartment = new Map<number | null, User[]>();
   for (const user of visibleUsers) {
     const departmentId = user.departmentId ?? null;
-    usersByDepartment.set(
-      departmentId,
-      [...(usersByDepartment.get(departmentId) ?? []), user],
-    );
+    usersByDepartment.set(departmentId, [
+      ...(usersByDepartment.get(departmentId) ?? []),
+      user,
+    ]);
   }
   const childrenByParent = new Map<number | null, Department[]>();
   for (const department of departments) {
-    childrenByParent.set(
-      department.parentId,
-      [...(childrenByParent.get(department.parentId) ?? []), department],
-    );
+    childrenByParent.set(department.parentId, [
+      ...(childrenByParent.get(department.parentId) ?? []),
+      department,
+    ]);
   }
 
   const userNode = (user: User): DataNode => ({
@@ -73,9 +78,13 @@ function createDepartmentTree(
         >
           {user.avatar || user.name.slice(0, 1)}
         </Avatar>
-        <span className="min-w-0 truncate text-sm text-[var(--app-text)]">{user.name}</span>
+        <span className="min-w-0 truncate text-sm text-[var(--app-text)]">
+          {user.name}
+        </span>
         {existingMemberIds.has(user.id) && (
-          <small className="shrink-0 text-xs text-[var(--app-text-tertiary)]">已在群聊</small>
+          <small className="shrink-0 text-xs text-[var(--app-text-tertiary)]">
+            已在群聊
+          </small>
         )}
       </span>
     ),
@@ -85,7 +94,9 @@ function createDepartmentTree(
 
   const buildDepartments = (parentId: number | null): DataNode[] =>
     (childrenByParent.get(parentId) ?? [])
-      .sort((left, right) => left.sortOrder - right.sortOrder || left.id - right.id)
+      .sort(
+        (left, right) => left.sortOrder - right.sortOrder || left.id - right.id,
+      )
       .map((department) => {
         const children = [
           ...buildDepartments(department.id),
@@ -95,7 +106,11 @@ function createDepartmentTree(
         ];
         return {
           key: departmentKey(department.id),
-          title: <span className="text-sm font-medium text-[var(--app-text)]">{department.name}</span>,
+          title: (
+            <span className="text-sm font-medium text-[var(--app-text)]">
+              {department.name}
+            </span>
+          ),
           children,
         };
       })
@@ -148,12 +163,13 @@ export default function InviteGroupMembersModal({
   }, [conversation.id, open]);
 
   const treeData = useMemo(
-    () => createDepartmentTree(
-      departments.data ?? [],
-      users,
-      existingMemberIds,
-      keyword,
-    ),
+    () =>
+      createDepartmentTree(
+        departments.data ?? [],
+        users,
+        existingMemberIds,
+        keyword,
+      ),
     [departments.data, existingMemberIds, keyword, users],
   );
   const selectedUsers = useMemo(() => {
@@ -161,23 +177,23 @@ export default function InviteGroupMembersModal({
     return users.filter((user) => selected.has(user.id));
   }, [selectedIds, users]);
   const checkedKeys = useMemo(
-    () => [
-      ...[...existingMemberIds].map(userKey),
-      ...selectedIds.map(userKey),
-    ],
+    () => [...[...existingMemberIds].map(userKey), ...selectedIds.map(userKey)],
     [existingMemberIds, selectedIds],
   );
 
   const invite = useMutation({
-    mutationFn: () => chatService.addMembers(
-      conversation.id,
-      selectedIds,
-      includeHistory ? selectedHistoryIds : [],
-    ),
+    mutationFn: () =>
+      chatService.addMembers(
+        conversation.id,
+        selectedIds,
+        includeHistory ? selectedHistoryIds : [],
+      ),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.conversations }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.messages(conversation.id) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.messages(conversation.id),
+        }),
       ]);
       onSuccess?.();
       onClose();
@@ -211,7 +227,9 @@ export default function InviteGroupMembersModal({
       if (defaultSelectAll && selectedHistoryIds.length === 0) {
         setIncludeHistory(false);
       }
-      setError(reason instanceof Error ? reason.message : "打开聊天记录选择窗口失败");
+      setError(
+        reason instanceof Error ? reason.message : "打开聊天记录选择窗口失败",
+      );
     } finally {
       setHistoryOpening(false);
     }
@@ -227,12 +245,15 @@ export default function InviteGroupMembersModal({
     setError("");
     try {
       const getRecentIds = window.desktop.windows.getRecentInviteHistoryIds;
-      const messageIds = typeof getRecentIds === "function"
-        ? await getRecentIds(conversation.id)
-        : await window.desktop.im.call<Message[]>("getRecentUserMessages", {
-            conversationId: conversation.id,
-            limit: 30,
-          }).then((messages) => messages.map((message) => message.id));
+      const messageIds =
+        typeof getRecentIds === "function"
+          ? await getRecentIds(conversation.id)
+          : await window.desktop.im
+              .call<Message[]>("getRecentUserMessages", {
+                conversationId: conversation.id,
+                limit: 30,
+              })
+              .then((messages) => messages.map((message) => message.id));
       setSelectedHistoryIds(messageIds);
       setIncludeHistory(messageIds.length > 0);
       if (!messageIds.length) {
@@ -241,7 +262,9 @@ export default function InviteGroupMembersModal({
     } catch (reason) {
       setIncludeHistory(false);
       setSelectedHistoryIds([]);
-      setError(reason instanceof Error ? reason.message : "读取本地聊天记录失败");
+      setError(
+        reason instanceof Error ? reason.message : "读取本地聊天记录失败",
+      );
     } finally {
       setHistoryOpening(false);
     }
@@ -262,24 +285,26 @@ export default function InviteGroupMembersModal({
     <Modal
       open={open}
       className="invite-members-modal"
-      title={(
+      title={
         <span className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]">
             <UsersRound size={20} strokeWidth={1.8} />
           </span>
           <span className="grid gap-0.5">
-            <strong className="text-sm font-semibold text-[var(--app-text)]">添加群成员</strong>
+            <strong className="text-sm font-semibold text-[var(--app-text)]">
+              添加群成员
+            </strong>
             <small className="text-xs font-normal text-slate-400">
               从企业通讯录中选择要邀请的新成员
             </small>
           </span>
         </span>
-      )}
+      }
       width={840}
       centered
       destroyOnHidden
       onCancel={onClose}
-      footer={(
+      footer={
         <div className="flex items-center justify-between gap-4 px-1">
           <span className="flex min-w-0 items-center gap-1.5">
             <Checkbox
@@ -298,9 +323,13 @@ export default function InviteGroupMembersModal({
               type="button"
               className="flex min-w-0 items-center gap-1.5 rounded-lg px-1 py-1.5 text-left text-sm text-[var(--app-text-secondary)] transition-colors hover:text-[var(--app-primary)] disabled:text-[var(--app-text-tertiary)]"
               disabled={historyOpening}
-              onClick={() => void openHistorySelection(selectedHistoryIds.length === 0)}
+              onClick={() =>
+                void openHistorySelection(selectedHistoryIds.length === 0)
+              }
             >
-              <span>{historyOpening ? "正在读取聊天记录…" : "附带最近聊天记录"}</span>
+              <span>
+                {historyOpening ? "正在读取聊天记录…" : "附带最近聊天记录"}
+              </span>
               <ChevronRight size={14} />
             </button>
             {includeHistory && selectedHistoryIds.length > 0 && (
@@ -321,7 +350,7 @@ export default function InviteGroupMembersModal({
             </Button>
           </span>
         </div>
-      )}
+      }
     >
       {error && (
         <Alert
@@ -365,7 +394,9 @@ export default function InviteGroupMembersModal({
                 checkedKeys={checkedKeys}
                 treeData={treeData}
                 className="invite-member-tree !bg-transparent"
-                onCheck={(keys) => handleTreeCheck(keys as Key[] | { checked: Key[] })}
+                onCheck={(keys) =>
+                  handleTreeCheck(keys as Key[] | { checked: Key[] })
+                }
               />
             )}
           </div>
@@ -375,7 +406,9 @@ export default function InviteGroupMembersModal({
             <h3 className="m-0 flex w-full items-center justify-between text-sm font-medium text-[var(--app-text)]">
               <span className="grid gap-0.5">
                 <span>已选择成员</span>
-                <small className="text-xs font-normal text-[var(--app-text-tertiary)]">确认后将邀请加入当前群聊</small>
+                <small className="text-xs font-normal text-[var(--app-text-tertiary)]">
+                  确认后将邀请加入当前群聊
+                </small>
               </span>
               <span className="rounded-full bg-[var(--app-primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--app-primary)]">
                 {selectedUsers.length}
@@ -395,7 +428,11 @@ export default function InviteGroupMembersModal({
                 key={user.id}
                 className="mb-2 flex items-center gap-2 rounded-lg border border-[var(--app-line)] bg-[var(--app-surface)] px-3 py-2 shadow-[var(--app-shadow-panel)]"
               >
-                <Avatar shape="square" size={32} className="!rounded-lg !bg-[var(--app-primary)]">
+                <Avatar
+                  shape="square"
+                  size={32}
+                  className="!rounded-lg !bg-[var(--app-primary)]"
+                >
                   {user.avatar || user.name.slice(0, 1)}
                 </Avatar>
                 <span className="min-w-0 flex-1 truncate text-xs text-[var(--app-text)]">
@@ -407,8 +444,11 @@ export default function InviteGroupMembersModal({
                   aria-label={`移除${user.name}`}
                   icon={<X size={14} />}
                   className="!text-[var(--app-text-tertiary)] hover:!bg-[var(--app-surface-muted)]"
-                  onClick={() => setSelectedIds((current) =>
-                    current.filter((id) => id !== user.id))}
+                  onClick={() =>
+                    setSelectedIds((current) =>
+                      current.filter((id) => id !== user.id),
+                    )
+                  }
                 />
               </div>
             ))}

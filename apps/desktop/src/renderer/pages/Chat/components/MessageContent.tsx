@@ -1,11 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Dropdown, Image, Progress, Spin } from "antd";
-import {
-  Download,
-  FileText,
-  RotateCcw,
-  XCircle,
-} from "lucide-react";
+import { Download, FileText, RotateCcw, XCircle } from "lucide-react";
 import type {
   Attachment,
   ImagePart,
@@ -48,14 +43,16 @@ export interface MessageContentProps extends MessageActions {
 
 export const messageContentClassNames = {
   file: "w-64 max-w-full overflow-hidden text-left",
-  fileIcon: "grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--chat-attachment-icon)] text-[var(--chat-primary)]",
-  image: "relative cursor-zoom-in overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--chat-attachment)]",
+  fileIcon:
+    "grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--chat-attachment-icon)] text-[var(--chat-primary)]",
+  image:
+    "relative cursor-zoom-in overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--chat-attachment)]",
   imageElement: "block max-h-80 max-w-full object-contain",
   text: "min-w-0 break-words whitespace-pre-wrap [overflow-wrap:anywhere]",
 } as const;
 
 export const popupContainer = (trigger: HTMLElement) =>
-  trigger.closest("[data-chat-root]") as HTMLElement || document.body;
+  (trigger.closest("[data-chat-root]") as HTMLElement) || document.body;
 
 export function messageStatus(message: Message) {
   return (message as Partial<LocalMessage>).status || "sent";
@@ -93,14 +90,14 @@ export type MarkdownBlock =
   | { type: "ordered"; items: string[] }
   | { type: "paragraph"; text: string };
 
-const markdownLineBreaks = (value: string) => value.replace(/\\n/g, "\n").replace(/\r\n?/g, "\n");
+const markdownLineBreaks = (value: string) =>
+  value.replace(/\\n/g, "\n").replace(/\r\n?/g, "\n");
 
 const httpUrlPattern = /https?:\/\/[^\s<>"'`]+/gi;
 const trailingUrlPunctuation = /[.,!?;:，。！？；：)）\]}】}>]+$/;
 
 export type MessageTextSegment =
-  | { type: "text"; value: string }
-  | { type: "url"; value: string };
+  { type: "text"; value: string } | { type: "url"; value: string };
 
 export function messageTextSegments(value: string): MessageTextSegment[] {
   const segments: MessageTextSegment[] = [];
@@ -110,34 +107,42 @@ export function messageTextSegments(value: string): MessageTextSegment[] {
     const rawUrl = match[0];
     const url = rawUrl.replace(trailingUrlPunctuation, "");
     if (!url) continue;
-    if (start > lastIndex) segments.push({ type: "text", value: value.slice(lastIndex, start) });
+    if (start > lastIndex)
+      segments.push({ type: "text", value: value.slice(lastIndex, start) });
     segments.push({ type: "url", value: url });
     if (url.length < rawUrl.length) {
       segments.push({ type: "text", value: rawUrl.slice(url.length) });
     }
     lastIndex = start + rawUrl.length;
   }
-  if (lastIndex < value.length) segments.push({ type: "text", value: value.slice(lastIndex) });
+  if (lastIndex < value.length)
+    segments.push({ type: "text", value: value.slice(lastIndex) });
   return segments;
 }
 
 function LinkifiedText({ value }: { value: string }) {
-  return <>
-    {messageTextSegments(value).map((segment, index) => segment.type === "url" ? (
-      <a
-        key={`${segment.value}-${index}`}
-        href={segment.value}
-        className="text-blue-600 underline decoration-blue-600/40 underline-offset-2 hover:text-blue-700"
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          void window.desktop?.external.open(segment.value);
-        }}
-      >
-        {segment.value}
-      </a>
-    ) : <span key={index}>{segment.value}</span>)}
-  </>;
+  return (
+    <>
+      {messageTextSegments(value).map((segment, index) =>
+        segment.type === "url" ? (
+          <a
+            key={`${segment.value}-${index}`}
+            href={segment.value}
+            className="text-blue-600 underline decoration-blue-600/40 underline-offset-2 hover:text-blue-700"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              void window.desktop?.external.open(segment.value);
+            }}
+          >
+            {segment.value}
+          </a>
+        ) : (
+          <span key={index}>{segment.value}</span>
+        ),
+      )}
+    </>
+  );
 }
 
 /** Converts the Webhook Markdown subset into safe, renderable blocks without injecting HTML. */
@@ -160,7 +165,11 @@ export function markdownBlocks(value: string): MarkdownBlock[] {
     const heading = line.match(/^(#{1,3})\s+(.+)$/);
     if (heading) {
       flushParagraph();
-      blocks.push({ type: "heading", level: heading[1].length as 1 | 2 | 3, text: heading[2] });
+      blocks.push({
+        type: "heading",
+        level: heading[1].length as 1 | 2 | 3,
+        text: heading[2],
+      });
       continue;
     }
     if (/^>\s?/.test(line)) {
@@ -203,37 +212,103 @@ export function markdownBlocks(value: string): MarkdownBlock[] {
 }
 
 function MarkdownInline({ value }: { value: string }) {
-  const tokens = markdownLineBreaks(value).split(/(`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|\*[^*]+\*|_[^_]+_)/g);
-  return <>
-    {tokens.map((token, index) => {
-      if (!token) return null;
-      if (/^`[^`]+`$/.test(token)) return <code key={index} className="rounded bg-black/[.06] px-1 py-0.5 font-mono text-sm">{token.slice(1, -1)}</code>;
-      if (/^(\*\*[^*]+\*\*|__[^_]+__)$/.test(token)) return <strong key={index} className="font-semibold">{token.slice(2, -2)}</strong>;
-      if (/^~~[^~]+~~$/.test(token)) return <del key={index}>{token.slice(2, -2)}</del>;
-      if (/^(\*[^*]+\*|_[^_]+_)$/.test(token)) return <em key={index}>{token.slice(1, -1)}</em>;
-      return <span key={index}><LinkifiedText value={token} /></span>;
-    })}
-  </>;
+  const tokens = markdownLineBreaks(value).split(
+    /(`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|\*[^*]+\*|_[^_]+_)/g,
+  );
+  return (
+    <>
+      {tokens.map((token, index) => {
+        if (!token) return null;
+        if (/^`[^`]+`$/.test(token))
+          return (
+            <code
+              key={index}
+              className="rounded bg-black/[.06] px-1 py-0.5 font-mono text-sm"
+            >
+              {token.slice(1, -1)}
+            </code>
+          );
+        if (/^(\*\*[^*]+\*\*|__[^_]+__)$/.test(token))
+          return (
+            <strong key={index} className="font-semibold">
+              {token.slice(2, -2)}
+            </strong>
+          );
+        if (/^~~[^~]+~~$/.test(token))
+          return <del key={index}>{token.slice(2, -2)}</del>;
+        if (/^(\*[^*]+\*|_[^_]+_)$/.test(token))
+          return <em key={index}>{token.slice(1, -1)}</em>;
+        return (
+          <span key={index}>
+            <LinkifiedText value={token} />
+          </span>
+        );
+      })}
+    </>
+  );
 }
 
 export function MarkdownContent({ content }: { content: string }) {
-  return <div className="grid gap-2 break-words [overflow-wrap:anywhere]">
-    {markdownBlocks(content).map((block, index) => {
-      if (block.type === "heading") {
-        const className = block.level === 1 ? "text-base font-semibold" : "text-sm font-semibold";
-        return <div key={index} className={className}><MarkdownInline value={block.text} /></div>;
-      }
-      if (block.type === "quote") return <blockquote key={index} className="border-l-2 border-[var(--chat-primary)] bg-[var(--chat-primary-soft)]/60 px-2.5 py-1.5 text-[var(--chat-text-secondary)]"><MarkdownInline value={block.text} /></blockquote>;
-      if (block.type === "unordered") return <ul key={index} className="list-disc space-y-0.5 pl-5">{block.items.map((item, itemIndex) => <li key={itemIndex}><MarkdownInline value={item} /></li>)}</ul>;
-      if (block.type === "ordered") return <ol key={index} className="list-decimal space-y-0.5 pl-5">{block.items.map((item, itemIndex) => <li key={itemIndex}><MarkdownInline value={item} /></li>)}</ol>;
-      return <p key={index} className="whitespace-pre-wrap"><MarkdownInline value={block.text} /></p>;
-    })}
-  </div>;
+  return (
+    <div className="grid gap-2 break-words [overflow-wrap:anywhere]">
+      {markdownBlocks(content).map((block, index) => {
+        if (block.type === "heading") {
+          const className =
+            block.level === 1
+              ? "text-base font-semibold"
+              : "text-sm font-semibold";
+          return (
+            <div key={index} className={className}>
+              <MarkdownInline value={block.text} />
+            </div>
+          );
+        }
+        if (block.type === "quote")
+          return (
+            <blockquote
+              key={index}
+              className="border-l-2 border-[var(--chat-primary)] bg-[var(--chat-primary-soft)]/60 px-2.5 py-1.5 text-[var(--chat-text-secondary)]"
+            >
+              <MarkdownInline value={block.text} />
+            </blockquote>
+          );
+        if (block.type === "unordered")
+          return (
+            <ul key={index} className="list-disc space-y-0.5 pl-5">
+              {block.items.map((item, itemIndex) => (
+                <li key={itemIndex}>
+                  <MarkdownInline value={item} />
+                </li>
+              ))}
+            </ul>
+          );
+        if (block.type === "ordered")
+          return (
+            <ol key={index} className="list-decimal space-y-0.5 pl-5">
+              {block.items.map((item, itemIndex) => (
+                <li key={itemIndex}>
+                  <MarkdownInline value={item} />
+                </li>
+              ))}
+            </ol>
+          );
+        return (
+          <p key={index} className="whitespace-pre-wrap">
+            <MarkdownInline value={block.text} />
+          </p>
+        );
+      })}
+    </div>
+  );
 }
 
 export function groupMessageContent(parts: MessagePart[]) {
   return parts.reduce<MessageContentGroup[]>((groups, part) => {
-    if (part.type === "text" || part.type === "mention" || part.type === "mention_all") {
+    if (
+      part.type === "text" ||
+      part.type === "mention" ||
+      part.type === "mention_all"
+    ) {
       const last = groups.at(-1);
       if (last?.type === "text") last.parts.push(part);
       else groups.push({ type: "text", parts: [part] });
@@ -319,13 +394,15 @@ export function stateItems(
 ) {
   const status = messageStatus(message);
   if (status === "uploading" || status === "queued") {
-    return [{
-      key: "cancel",
-      label: "取消发送",
-      danger: true,
-      icon: <XCircle size={14} />,
-      onClick: () => onCancel?.(message.clientId),
-    }];
+    return [
+      {
+        key: "cancel",
+        label: "取消发送",
+        danger: true,
+        icon: <XCircle size={14} />,
+        onClick: () => onCancel?.(message.clientId),
+      },
+    ];
   }
   if (status === "failed") {
     return [
@@ -357,7 +434,11 @@ function WithContextMenu({
 }) {
   if (!enabled) return children;
   return (
-    <Dropdown trigger={["contextMenu"]} menu={menu} getPopupContainer={popupContainer}>
+    <Dropdown
+      trigger={["contextMenu"]}
+      menu={menu}
+      getPopupContainer={popupContainer}
+    >
       {children}
     </Dropdown>
   );
@@ -408,50 +489,59 @@ function MessageImage({
     });
   }
 
-  const statusMenuItems = stateItems(message, onRetry, onCancel, onRemoveFailed);
+  const statusMenuItems = stateItems(
+    message,
+    onRetry,
+    onCancel,
+    onRemoveFailed,
+  );
   const normalMenuItems = [
-      {
-        key: "preview",
-        label: "查看图片",
-        disabled: !url,
-        onClick: previewImage,
-      },
-      {
-        key: "copy",
-        label: "复制图片",
-        disabled: !url,
-        onClick: () => void copyImage(),
-      },
-      {
-        key: "save",
-        label: "另存为",
-        disabled: !url,
-        onClick: () => void saveAttachment(part.attachment),
-      },
-      {
-        key: "forward",
-        label: "转发",
-        disabled: message.id < 0 || status !== "sent",
-        onClick: () => onForward?.(message),
-      },
-      {
-        key: "quote",
-        label: "回复",
-        disabled: message.id < 0,
-        onClick: () => onQuote?.(message),
-      },
-      {
-        key: "select",
-        label: "多选",
-        disabled: message.id < 0 || status !== "sent",
-        onClick: () => onSelect?.(message),
-      },
-      ...(canRecall ? [{
-        key: "recall",
-        label: "撤回",
-        onClick: () => onRecall?.(message),
-      }] : []),
-    ];
+    {
+      key: "preview",
+      label: "查看图片",
+      disabled: !url,
+      onClick: previewImage,
+    },
+    {
+      key: "copy",
+      label: "复制图片",
+      disabled: !url,
+      onClick: () => void copyImage(),
+    },
+    {
+      key: "save",
+      label: "另存为",
+      disabled: !url,
+      onClick: () => void saveAttachment(part.attachment),
+    },
+    {
+      key: "forward",
+      label: "转发",
+      disabled: message.id < 0 || status !== "sent",
+      onClick: () => onForward?.(message),
+    },
+    {
+      key: "quote",
+      label: "回复",
+      disabled: message.id < 0,
+      onClick: () => onQuote?.(message),
+    },
+    {
+      key: "select",
+      label: "多选",
+      disabled: message.id < 0 || status !== "sent",
+      onClick: () => onSelect?.(message),
+    },
+    ...(canRecall
+      ? [
+          {
+            key: "recall",
+            label: "撤回",
+            onClick: () => onRecall?.(message),
+          },
+        ]
+      : []),
+  ];
   const menu = {
     items: statusMenuItems.length ? statusMenuItems : normalMenuItems,
   };
@@ -527,15 +617,15 @@ function MessageFile({
             {formatFileSize(part.attachment.size)}
           </small>
         </span>
-        {(
-          status === "sending" ? <Spin size="small" /> : <Download size={18} />
-        )}
+        {status === "sending" ? <Spin size="small" /> : <Download size={18} />}
       </div>
       {status === "uploading" && (
         <Progress className="!mb-0 !mt-2" percent={progress} size="small" />
       )}
       {status === "queued" && (
-        <div className="mt-1 text-xs text-[var(--chat-text-secondary)]">等待上传</div>
+        <div className="mt-1 text-xs text-[var(--chat-text-secondary)]">
+          等待上传
+        </div>
       )}
     </div>
   );
@@ -552,9 +642,14 @@ function ReplyPreview({
   onLocateMessage?: (messageId: number) => void;
   resolveAttachmentUrl?: (attachment: Attachment) => Promise<string>;
 }) {
-  const imagePart = source?.parts.find((part): part is ImagePart => part.type === "image");
+  const imagePart = source?.parts.find(
+    (part): part is ImagePart => part.type === "image",
+  );
   const filePart = source?.parts.find((part) => part.type === "file");
-  const imageUrl = useAttachmentUrl(imagePart?.attachment, resolveAttachmentUrl);
+  const imageUrl = useAttachmentUrl(
+    imagePart?.attachment,
+    resolveAttachmentUrl,
+  );
   const content = (
     <>
       <span className="grid min-w-0 flex-1 gap-0.5">
@@ -607,13 +702,18 @@ export default function MessageContent({
   onPreviewImage,
   onOpenForwardRecord,
 }: MessageContentProps) {
-  const forwarded = message.parts.find((part) => part.type === "forwarded_message");
+  const forwarded = message.parts.find(
+    (part) => part.type === "forwarded_message",
+  );
   const chatRecord = message.parts.find((part) => part.type === "chat_record");
-  const contentParts = forwarded?.type === "forwarded_message"
-    ? forwarded.snapshot.parts
-    : message.parts;
+  const contentParts =
+    forwarded?.type === "forwarded_message"
+      ? forwarded.snapshot.parts
+      : message.parts;
   const quote = contentParts.find((part) => part.type === "quote");
-  const quoteSnapshot = contentParts.find((part) => part.type === "quote_snapshot");
+  const quoteSnapshot = contentParts.find(
+    (part) => part.type === "quote_snapshot",
+  );
   const filePart = contentParts.find((part) => part.type === "file");
   const groups = groupMessageContent(contentParts as MessagePart[]);
   if (chatRecord?.type === "chat_record") {
@@ -643,7 +743,10 @@ export default function MessageContent({
     );
   }
   return (
-    <div data-message-content className="grid min-w-0 max-w-full gap-2 overflow-hidden">
+    <div
+      data-message-content
+      className="grid min-w-0 max-w-full gap-2 overflow-hidden"
+    >
       {quote?.type === "quote" && (
         <ReplyPreview
           quote={quote}
@@ -654,7 +757,9 @@ export default function MessageContent({
       )}
       {quoteSnapshot?.type === "quote_snapshot" && (
         <div className="min-w-0 break-words border-l-2 border-[var(--chat-primary)] bg-black/[.035] px-2 py-1.5 text-xs text-[var(--chat-text-secondary)] [overflow-wrap:anywhere]">
-          <strong className="mr-1 font-medium">{quoteSnapshot.senderName}</strong>
+          <strong className="mr-1 font-medium">
+            {quoteSnapshot.senderName}
+          </strong>
           {quoteSnapshot.summary}
         </div>
       )}
@@ -662,19 +767,32 @@ export default function MessageContent({
         <MessageFile part={filePart} message={message} />
       ) : (
         <div className="grid min-w-0 max-w-full gap-2 overflow-hidden">
-            {groups.map((group, groupIndex) => group.type === "text" ? (
+          {groups.map((group, groupIndex) =>
+            group.type === "text" ? (
               <div
                 key={`text-${groupIndex}`}
                 className={messageContentClassNames.text}
               >
-                {group.parts.map((part, partIndex) => part.type === "text" ? (
-                  <span key={partIndex}><LinkifiedText value={displayMessageText(part.text)} /></span>
-                ) : (
-                  <span key={partIndex} className="text-[var(--chat-primary)]">@{part.label}</span>
-                ))}
+                {group.parts.map((part, partIndex) =>
+                  part.type === "text" ? (
+                    <span key={partIndex}>
+                      <LinkifiedText value={displayMessageText(part.text)} />
+                    </span>
+                  ) : (
+                    <span
+                      key={partIndex}
+                      className="text-[var(--chat-primary)]"
+                    >
+                      @{part.label}
+                    </span>
+                  ),
+                )}
               </div>
             ) : group.type === "markdown" ? (
-              <div key={`markdown-${groupIndex}`} className={`${messageContentClassNames.text} leading-6`}>
+              <div
+                key={`markdown-${groupIndex}`}
+                className={`${messageContentClassNames.text} leading-6`}
+              >
                 {group.parts.map((part, partIndex) => (
                   <MarkdownContent key={partIndex} content={part.content} />
                 ))}
@@ -705,7 +823,8 @@ export default function MessageContent({
                   />
                 ))}
               </div>
-            ))}
+            ),
+          )}
         </div>
       )}
     </div>

@@ -28,7 +28,11 @@ class DocumentApi {
     if (this.context) this.context.accessToken = accessToken;
   }
 
-  private async request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+  private async request<T>(
+    path: string,
+    init: RequestInit = {},
+    retry = true,
+  ): Promise<T> {
     if (!this.context) throw new Error("文档窗口尚未初始化");
     const response = await fetch(`${this.context.serverUrl}${path}`, {
       ...init,
@@ -45,16 +49,21 @@ class DocumentApi {
       this.updateToken(accessToken);
       return this.request<T>(path, init, false);
     }
-    const payload = await response.json() as ApiResponse<T>;
+    const payload = (await response.json()) as ApiResponse<T>;
     if (!payload.success) throw new Error(payload.error.message);
     return payload.data;
   }
 
   detail(documentId: number) {
-    return this.request<CloudDocumentEditorConfig>(`/api/documents/${documentId}`);
+    return this.request<CloudDocumentEditorConfig>(
+      `/api/documents/${documentId}`,
+    );
   }
 
-  update(documentId: number, payload: Partial<Pick<CloudDocument, "title" | "color" | "icon">>) {
+  update(
+    documentId: number,
+    payload: Partial<Pick<CloudDocument, "title" | "color" | "icon">>,
+  ) {
     return this.request<CloudDocument>(`/api/documents/${documentId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),

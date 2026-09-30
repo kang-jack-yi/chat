@@ -1,5 +1,17 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { message as toast } from "antd";
 import type {
   Attachment,
@@ -18,7 +30,10 @@ import { chatService } from "../../services/chat";
 import { uploadService } from "../../services/upload";
 import { useSocket } from "../../hooks/useSocket";
 import type { MessagePage } from "../../types/api";
-import { composerContentParts, richTextToPlainText } from "../../utils/rich-text";
+import {
+  composerContentParts,
+  richTextToPlainText,
+} from "../../utils/rich-text";
 import { localDatabase } from "../../services/local-database";
 import { syncService } from "../../services/sync";
 import {
@@ -51,7 +66,10 @@ function imageSize(file: File) {
     const url = URL.createObjectURL(file);
     const image = new window.Image();
     image.onload = () => {
-      resolve({ width: image.naturalWidth || 1, height: image.naturalHeight || 1 });
+      resolve({
+        width: image.naturalWidth || 1,
+        height: image.naturalHeight || 1,
+      });
       URL.revokeObjectURL(url);
     };
     image.onerror = () => {
@@ -65,27 +83,39 @@ function imageSize(file: File) {
 function inferredMimeType(file: File) {
   if (file.type) return file.type;
   const extension = file.name.split(".").pop()?.toLowerCase();
-  return {
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    webp: "image/webp",
-    bmp: "image/bmp",
-  }[extension || ""] || "application/octet-stream";
+  return (
+    {
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      gif: "image/gif",
+      webp: "image/webp",
+      bmp: "image/bmp",
+    }[extension || ""] || "application/octet-stream"
+  );
 }
 
-function normalizedDraftFile(file: File, source: DraftFileSource, index: number) {
+function normalizedDraftFile(
+  file: File,
+  source: DraftFileSource,
+  index: number,
+) {
   const mimeType = inferredMimeType(file);
   const basename = file.name.replace(/\.[^.]+$/, "");
   const clipboardTemporaryName =
     !file.name ||
     /^image(\.[a-z0-9]+)?$/i.test(file.name) ||
     /^[a-f0-9-]{12,}$/i.test(basename);
-  if (source !== "clipboard" || !mimeType.startsWith("image/") || !clipboardTemporaryName) {
+  if (
+    source !== "clipboard" ||
+    !mimeType.startsWith("image/") ||
+    !clipboardTemporaryName
+  ) {
     return file.type === mimeType
       ? file
-      : new File([file], file.name || `文件-${Date.now()}-${index + 1}`, { type: mimeType });
+      : new File([file], file.name || `文件-${Date.now()}-${index + 1}`, {
+          type: mimeType,
+        });
   }
   const extension = mimeType.split("/")[1]?.replace("jpeg", "jpg") || "png";
   return new File(
@@ -99,7 +129,8 @@ function imagePreview(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error || new Error("图片预览读取失败"));
+    reader.onerror = () =>
+      reject(reader.error || new Error("图片预览读取失败"));
     reader.readAsDataURL(file);
   });
 }
@@ -123,8 +154,12 @@ export function useChat(
   const typingTimer = useRef<number | null>(null);
   const lastReportedRead = useRef(0);
   const appliedReadReceipts = useRef(new Set<string>());
-  const initialScrollPendingConversation = useRef<number | undefined>(undefined);
-  const initialScrollStartedConversation = useRef<number | undefined>(undefined);
+  const initialScrollPendingConversation = useRef<number | undefined>(
+    undefined,
+  );
+  const initialScrollStartedConversation = useRef<number | undefined>(
+    undefined,
+  );
   const initialScrollFrame = useRef<number | undefined>(undefined);
   const initialScrollObserver = useRef<ResizeObserver | undefined>(undefined);
   const initialScrollTimeout = useRef<number | undefined>(undefined);
@@ -132,11 +167,16 @@ export function useChat(
   const messageContentRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
-  const activeUploads = useRef(new Map<string, {
-    controller: AbortController;
-    uploadedIds: number[];
-    draftIds: string[];
-  }>());
+  const activeUploads = useRef(
+    new Map<
+      string,
+      {
+        controller: AbortController;
+        uploadedIds: number[];
+        draftIds: string[];
+      }
+    >(),
+  );
   const uploadRetries = useRef(new Map<string, () => Promise<boolean>>());
 
   const draftState = conversationId
@@ -144,25 +184,33 @@ export function useChat(
     : emptyConversationDraft();
   const messages = useInfiniteQuery({
     queryKey: queryKeys.messages(conversationId),
-    queryFn: ({ pageParam }) => chatService.messages(conversationId!, pageParam),
+    queryFn: ({ pageParam }) =>
+      chatService.messages(conversationId!, pageParam),
     initialPageParam: undefined as number | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: Boolean(conversationId),
   });
   const latestMessageItems = useMemo(
-    () => messages.data?.pages.slice().reverse().flatMap((page) => page.items) ?? [],
+    () =>
+      messages.data?.pages
+        .slice()
+        .reverse()
+        .flatMap((page) => page.items) ?? [],
     [messages.data?.pages],
   );
   const messageContext = useQuery({
     queryKey: queryKeys.messageContext(conversationId, focusedMessageId),
-    queryFn: () => localDatabase.messageContext(conversationId!, focusedMessageId!),
+    queryFn: () =>
+      localDatabase.messageContext(conversationId!, focusedMessageId!),
     enabled: Boolean(conversationId && focusedMessageId),
   });
   const messageItems = focusedMessageId
-    ? messageContext.data?.items ?? []
+    ? (messageContext.data?.items ?? [])
     : latestMessageItems;
 
-  function setConversationDraft(updater: (draft: ConversationDraft) => ConversationDraft) {
+  function setConversationDraft(
+    updater: (draft: ConversationDraft) => ConversationDraft,
+  ) {
     if (!conversationId) return;
     updateDraft(conversationId, updater);
   }
@@ -173,7 +221,10 @@ export function useChat(
       queryKeys.messages(conversationId),
       (old) => {
         if (!old) {
-          return { pages: [{ items: updater([]), nextCursor: null }], pageParams: [undefined] };
+          return {
+            pages: [{ items: updater([]), nextCursor: null }],
+            pageParams: [undefined],
+          };
         }
         const pages = [...old.pages];
         pages[0] = { ...pages[0], items: updater(pages[0].items) };
@@ -191,7 +242,8 @@ export function useChat(
       if (container) container.scrollTop = container.scrollHeight;
       sendScrollFrame.current = window.requestAnimationFrame(() => {
         const latestContainer = messageListRef.current;
-        if (latestContainer) latestContainer.scrollTop = latestContainer.scrollHeight;
+        if (latestContainer)
+          latestContainer.scrollTop = latestContainer.scrollHeight;
         sendScrollFrame.current = undefined;
       });
     });
@@ -212,8 +264,11 @@ export function useChat(
   }
 
   function patchMessage(clientId: string, patch: Partial<LocalMessage>) {
-    updateMessages((items) => items.map((item) =>
-      item.clientId === clientId ? { ...item, ...patch } as Message : item));
+    updateMessages((items) =>
+      items.map((item) =>
+        item.clientId === clientId ? ({ ...item, ...patch } as Message) : item,
+      ),
+    );
   }
 
   function applyRecall(event: MessageRecalledEvent) {
@@ -221,11 +276,14 @@ export function useChat(
     setConversationDraft((draft) =>
       draft.quote?.id === event.recalledMessageId
         ? { ...draft, quote: undefined }
-        : draft);
+        : draft,
+    );
     updateMessages((items) => [
-      ...items.filter((item) =>
-        item.id !== event.recalledMessageId
-        && item.clientId !== event.systemMessage.clientId),
+      ...items.filter(
+        (item) =>
+          item.id !== event.recalledMessageId &&
+          item.clientId !== event.systemMessage.clientId,
+      ),
       event.systemMessage,
     ]);
     if (localDatabase.available()) {
@@ -248,12 +306,13 @@ export function useChat(
 
   useLayoutEffect(() => {
     if (
-      !conversationId
-      || focusedMessageId
-      || !messageItems.length
-      || initialScrollPendingConversation.current !== conversationId
-      || initialScrollStartedConversation.current === conversationId
-    ) return;
+      !conversationId ||
+      focusedMessageId ||
+      !messageItems.length ||
+      initialScrollPendingConversation.current !== conversationId ||
+      initialScrollStartedConversation.current === conversationId
+    )
+      return;
     // Wait for the selected conversation's first message batch to render. Keep
     // the viewport pinned while its initial images finish decoding, but only
     // until the user starts browsing the history.
@@ -285,18 +344,25 @@ export function useChat(
   useEffect(() => {
     if (!conversationId) return;
     let openedConversation: Conversation | undefined;
-    queryClient.setQueryData<Conversation[]>(queryKeys.conversations, (current) => {
-      openedConversation = current?.find((item) => item.id === conversationId);
-      return clearConversationUnread(current, conversationId);
-    });
+    queryClient.setQueryData<Conversation[]>(
+      queryKeys.conversations,
+      (current) => {
+        openedConversation = current?.find(
+          (item) => item.id === conversationId,
+        );
+        return clearConversationUnread(current, conversationId);
+      },
+    );
     if (openedConversation && localDatabase.available()) {
-      void localDatabase.upsertConversations([{
-        ...openedConversation,
-        unreadCount: 0,
-        mentioned: false,
-        mentionMessageId: null,
-        mentionType: null,
-      }]);
+      void localDatabase.upsertConversations([
+        {
+          ...openedConversation,
+          unreadCount: 0,
+          mentioned: false,
+          mentionMessageId: null,
+          mentionType: null,
+        },
+      ]);
     }
   }, [conversationId, queryClient]);
 
@@ -304,19 +370,33 @@ export function useChat(
     if (!socket || !conversationId) return;
     const onMessage = async (message: Message) => {
       if (message.conversationId !== conversationId) return;
-      if (localDatabase.available()) await localDatabase.upsertMessages([message]);
-      updateMessages((items) => [...items.filter((item) => item.clientId !== message.clientId), message]);
+      if (localDatabase.available())
+        await localDatabase.upsertMessages([message]);
+      updateMessages((items) => [
+        ...items.filter((item) => item.clientId !== message.clientId),
+        message,
+      ]);
       void queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
-      if (message.senderId !== currentUser.id) void chatService.read(conversationId, message.id);
+      if (message.senderId !== currentUser.id)
+        void chatService.read(conversationId, message.id);
     };
     const onSyncAvailable = async () => {
       if (!localDatabase.available()) return;
       await syncService.incremental();
-      await queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.messages(conversationId) });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.messages(conversationId),
+      });
     };
-    const onTyping = (payload: { conversationId: number; name: string; typing: boolean }) => {
-      if (payload.conversationId === conversationId) setTypingName(payload.typing ? payload.name : "");
+    const onTyping = (payload: {
+      conversationId: number;
+      name: string;
+      typing: boolean;
+    }) => {
+      if (payload.conversationId === conversationId)
+        setTypingName(payload.typing ? payload.name : "");
     };
     const onRead = (payload: {
       conversationId: number;
@@ -332,23 +412,28 @@ export function useChat(
         if (appliedReadReceipts.current.has(receiptKey)) return;
         appliedReadReceipts.current.add(receiptKey);
         let changed: Message[] = [];
-        updateMessages((items) => items.map((item) => {
-          if (
-            item.senderId !== currentUser.id
-            || payload.userId === currentUser.id
-            || item.id <= Number(payload.previousMessageId || 0)
-            || item.id > payload.messageId
-            || !item.recipientCount
-          ) {
-            return item;
-          }
-          const updated = {
-            ...item,
-            readCount: Math.min(item.recipientCount, Number(item.readCount || 0) + 1),
-          };
-          changed.push(updated);
-          return updated;
-        }));
+        updateMessages((items) =>
+          items.map((item) => {
+            if (
+              item.senderId !== currentUser.id ||
+              payload.userId === currentUser.id ||
+              item.id <= Number(payload.previousMessageId || 0) ||
+              item.id > payload.messageId ||
+              !item.recipientCount
+            ) {
+              return item;
+            }
+            const updated = {
+              ...item,
+              readCount: Math.min(
+                item.recipientCount,
+                Number(item.readCount || 0) + 1,
+              ),
+            };
+            changed.push(updated);
+            return updated;
+          }),
+        );
         if (changed.length && localDatabase.available()) {
           void localDatabase.upsertMessages(changed);
         }
@@ -385,8 +470,15 @@ export function useChat(
 
   useEffect(() => {
     if (focusedMessageId) return;
-    const lastMessage = messageItems.slice().reverse().find((message) => message.id > 0);
-    if (conversationId && lastMessage && lastMessage.id > lastReportedRead.current) {
+    const lastMessage = messageItems
+      .slice()
+      .reverse()
+      .find((message) => message.id > 0);
+    if (
+      conversationId &&
+      lastMessage &&
+      lastMessage.id > lastReportedRead.current
+    ) {
       lastReportedRead.current = lastMessage.id;
       void chatService.read(conversationId, lastMessage.id).catch(() => {
         lastReportedRead.current = 0;
@@ -394,7 +486,12 @@ export function useChat(
     }
   }, [conversationId, currentUser.id, focusedMessageId, messageItems]);
 
-  function localMessage(clientId: string, parts: MessagePart[], summary: string, status: LocalMessage["status"]): LocalMessage {
+  function localMessage(
+    clientId: string,
+    parts: MessagePart[],
+    summary: string,
+    status: LocalMessage["status"],
+  ): LocalMessage {
     const now = new Date().toISOString();
     return {
       schemaVersion: 1,
@@ -423,15 +520,31 @@ export function useChat(
   async function deliver(pending: LocalMessage, command: SendMessagePayload) {
     await localDatabase.enqueue(pending, command);
     patchMessage(pending.clientId, { status: "sending", progress: 100 });
-    await localDatabase.markMessage({ clientId: pending.clientId, status: "sending" });
+    await localDatabase.markMessage({
+      clientId: pending.clientId,
+      status: "sending",
+    });
     try {
       const saved = await chatService.send(command);
-      await localDatabase.markMessage({ clientId: pending.clientId, message: saved, status: "sent" });
-      updateMessages((items) => [...items.filter((item) => item.clientId !== pending.clientId), saved]);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+      await localDatabase.markMessage({
+        clientId: pending.clientId,
+        message: saved,
+        status: "sent",
+      });
+      updateMessages((items) => [
+        ...items.filter((item) => item.clientId !== pending.clientId),
+        saved,
+      ]);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "发送失败";
-      await localDatabase.markMessage({ clientId: pending.clientId, status: "failed", error: message });
+      await localDatabase.markMessage({
+        clientId: pending.clientId,
+        status: "failed",
+        error: message,
+      });
       patchMessage(pending.clientId, {
         status: "failed",
         error: { code: "SEND_FAILED", message, retryable: true },
@@ -461,18 +574,24 @@ export function useChat(
   ) {
     const clientId = retryClientId || crypto.randomUUID();
     const images = content
-      .filter((part): part is Extract<ImageMessageContent, { type: "image" }> =>
-        part.type === "image")
+      .filter(
+        (part): part is Extract<ImageMessageContent, { type: "image" }> =>
+          part.type === "image",
+      )
       .map((part) => part.item);
     let previewImageIndex = 0;
     const previewParts: MessagePart[] = [
-      ...(quote ? [{
-        type: "quote" as const,
-        messageId: quote.id,
-        senderId: quote.senderId,
-        senderName: quote.senderName,
-        summary: quote.summary,
-      }] : []),
+      ...(quote
+        ? [
+            {
+              type: "quote" as const,
+              messageId: quote.id,
+              senderId: quote.senderId,
+              senderName: quote.senderName,
+              summary: quote.summary,
+            },
+          ]
+        : []),
       ...content.map((part): MessagePart => {
         if (part.type === "text") return { type: "text", text: part.text };
         if (part.type === "mention") {
@@ -498,11 +617,15 @@ export function useChat(
       }),
     ];
     const initialStatus = images.length ? "uploading" : "queued";
-    const summary = content.map((part) => {
-      if (part.type === "text") return part.text;
-      if (part.type === "mention" || part.type === "mention_all") return `@${part.label}`;
-      return "[图片]";
-    }).join("").trim();
+    const summary = content
+      .map((part) => {
+        if (part.type === "text") return part.text;
+        if (part.type === "mention" || part.type === "mention_all")
+          return `@${part.label}`;
+        return "[图片]";
+      })
+      .join("")
+      .trim();
     const pending = localMessage(
       clientId,
       previewParts,
@@ -520,9 +643,8 @@ export function useChat(
       updateMessages((items) => [...items, pending]);
       scrollToLatestAfterSend();
     }
-    uploadRetries.current.set(
-      clientId,
-      () => sendImageMessage(content, quote, clientId),
+    uploadRetries.current.set(clientId, () =>
+      sendImageMessage(content, quote, clientId),
     );
     const upload = {
       controller: new AbortController(),
@@ -530,14 +652,20 @@ export function useChat(
       draftIds: images.map((item) => item.meta.id),
     };
     if (images.length) activeUploads.current.set(clientId, upload);
-    const outgoing: OutgoingMessagePart[] = quote ? [{ type: "quote", messageId: quote.id }] : [];
-    const hydrated: MessagePart[] = quote ? [{
-      type: "quote",
-      messageId: quote.id,
-      senderId: quote.senderId,
-      senderName: quote.senderName,
-      summary: quote.summary,
-    }] : [];
+    const outgoing: OutgoingMessagePart[] = quote
+      ? [{ type: "quote", messageId: quote.id }]
+      : [];
+    const hydrated: MessagePart[] = quote
+      ? [
+          {
+            type: "quote",
+            messageId: quote.id,
+            senderId: quote.senderId,
+            senderName: quote.senderName,
+            summary: quote.summary,
+          },
+        ]
+      : [];
     let uploadedImageIndex = 0;
     for (const part of content) {
       if (part.type === "text") {
@@ -546,8 +674,16 @@ export function useChat(
         continue;
       }
       if (part.type === "mention") {
-        outgoing.push({ type: "mention", userId: part.userId, label: part.label });
-        hydrated.push({ type: "mention", userId: part.userId, label: part.label });
+        outgoing.push({
+          type: "mention",
+          userId: part.userId,
+          label: part.label,
+        });
+        hydrated.push({
+          type: "mention",
+          userId: part.userId,
+          label: part.label,
+        });
         continue;
       }
       if (part.type === "mention_all") {
@@ -583,8 +719,11 @@ export function useChat(
         uploadedImageIndex += 1;
       } catch (error) {
         if (upload.controller.signal.aborted) return false;
-        await Promise.all(upload.uploadedIds.map((id) =>
-          uploadService.remove(id).catch(() => undefined)));
+        await Promise.all(
+          upload.uploadedIds.map((id) =>
+            uploadService.remove(id).catch(() => undefined),
+          ),
+        );
         activeUploads.current.delete(clientId);
         const message = error instanceof Error ? error.message : "图片上传失败";
         const failed: LocalMessage = {
@@ -597,7 +736,12 @@ export function useChat(
         return false;
       }
     }
-    const ready = { ...pending, parts: hydrated, progress: 100, status: "queued" as const };
+    const ready = {
+      ...pending,
+      parts: hydrated,
+      progress: 100,
+      status: "queued" as const,
+    };
     await localDatabase.upsertMessages([ready]);
     patchMessage(clientId, ready);
     activeUploads.current.delete(clientId);
@@ -618,26 +762,35 @@ export function useChat(
     retryClientId?: string,
   ) {
     const clientId = retryClientId || crypto.randomUUID();
-    const pending = localMessage(clientId, [
-      ...(quote ? [{
-        type: "quote" as const,
-        messageId: quote.id,
-        senderId: quote.senderId,
-        senderName: quote.senderName,
-        summary: quote.summary,
-      }] : []),
-      {
-        type: "file",
-        attachment: {
-          id: -1,
-          draftId: item.meta.id,
-          originalName: item.meta.name,
-          mimeType: item.meta.mimeType,
-          size: item.meta.size,
-          url: item.meta.previewUrl,
+    const pending = localMessage(
+      clientId,
+      [
+        ...(quote
+          ? [
+              {
+                type: "quote" as const,
+                messageId: quote.id,
+                senderId: quote.senderId,
+                senderName: quote.senderName,
+                summary: quote.summary,
+              },
+            ]
+          : []),
+        {
+          type: "file",
+          attachment: {
+            id: -1,
+            draftId: item.meta.id,
+            originalName: item.meta.name,
+            mimeType: item.meta.mimeType,
+            size: item.meta.size,
+            url: item.meta.previewUrl,
+          },
         },
-      },
-    ], `[文件] ${item.meta.name}`, "uploading");
+      ],
+      `[文件] ${item.meta.name}`,
+      "uploading",
+    );
     await localDatabase.upsertMessages([pending]);
     if (retryClientId) {
       patchMessage(clientId, { ...pending, progress: 0, error: undefined });
@@ -645,9 +798,8 @@ export function useChat(
       updateMessages((items) => [...items, pending]);
       scrollToLatestAfterSend();
     }
-    uploadRetries.current.set(
-      clientId,
-      () => sendFileMessage(item, quote, clientId),
+    uploadRetries.current.set(clientId, () =>
+      sendFileMessage(item, quote, clientId),
     );
     const upload = {
       controller: new AbortController(),
@@ -665,13 +817,17 @@ export function useChat(
       const ready: LocalMessage = {
         ...pending,
         parts: [
-          ...(quote ? [{
-            type: "quote" as const,
-            messageId: quote.id,
-            senderId: quote.senderId,
-            senderName: quote.senderName,
-            summary: quote.summary,
-          }] : []),
+          ...(quote
+            ? [
+                {
+                  type: "quote" as const,
+                  messageId: quote.id,
+                  senderId: quote.senderId,
+                  senderName: quote.senderName,
+                  summary: quote.summary,
+                },
+              ]
+            : []),
           { type: "file", attachment },
         ],
         status: "queued",
@@ -694,8 +850,11 @@ export function useChat(
       return true;
     } catch (error) {
       if (upload.controller.signal.aborted) return false;
-      await Promise.all(upload.uploadedIds.map((id) =>
-        uploadService.remove(id).catch(() => undefined)));
+      await Promise.all(
+        upload.uploadedIds.map((id) =>
+          uploadService.remove(id).catch(() => undefined),
+        ),
+      );
       activeUploads.current.delete(clientId);
       const message = error instanceof Error ? error.message : "文件上传失败";
       const failed: LocalMessage = {
@@ -721,9 +880,9 @@ export function useChat(
 
       for (const part of composerContentParts(snapshot.text)) {
         if (
-          part.type === "text"
-          || part.type === "mention"
-          || part.type === "mention_all"
+          part.type === "text" ||
+          part.type === "mention" ||
+          part.type === "mention_all"
         ) {
           imageContent.push(part);
           continue;
@@ -756,7 +915,12 @@ export function useChat(
   }
 
   function submit() {
-    if (!conversationId || (!richTextToPlainText(draftState.text).trim() && !draftState.attachments.length)) return;
+    if (
+      !conversationId ||
+      (!richTextToPlainText(draftState.text).trim() &&
+        !draftState.attachments.length)
+    )
+      return;
     const snapshot = draftState;
     setConversationDraft(() => emptyConversationDraft());
     void sendBatch(snapshot);
@@ -770,10 +934,18 @@ export function useChat(
   function changeDraft(value: string) {
     setConversationDraft((draft) => ({ ...draft, text: value }));
     if (!conversationId) return;
-    socket?.emit("typing:start", { conversationId, userId: currentUser.id, name: currentUser.name });
+    socket?.emit("typing:start", {
+      conversationId,
+      userId: currentUser.id,
+      name: currentUser.name,
+    });
     if (typingTimer.current) window.clearTimeout(typingTimer.current);
     typingTimer.current = window.setTimeout(() => {
-      socket?.emit("typing:stop", { conversationId, userId: currentUser.id, name: currentUser.name });
+      socket?.emit("typing:stop", {
+        conversationId,
+        userId: currentUser.id,
+        name: currentUser.name,
+      });
     }, 1200);
   }
 
@@ -793,7 +965,10 @@ export function useChat(
       meta.previewUrl = meta.image ? await imagePreview(file) : "";
       staged.push({ meta, file });
     }
-    setConversationDraft((draft) => ({ ...draft, attachments: [...draft.attachments, ...staged] }));
+    setConversationDraft((draft) => ({
+      ...draft,
+      attachments: [...draft.attachments, ...staged],
+    }));
   }
 
   async function pickFiles(event: ChangeEvent<HTMLInputElement>) {
@@ -822,14 +997,25 @@ export function useChat(
       await uploadRetry();
       return;
     }
-    const item = (await localDatabase.getOutbox()).find((entry) => entry.payload.clientId === clientId);
+    const item = (await localDatabase.getOutbox()).find(
+      (entry) => entry.payload.clientId === clientId,
+    );
     if (!item) return;
     patchMessage(clientId, { status: "sending", error: undefined });
     try {
       const saved = await chatService.send(item.payload);
-      await localDatabase.markMessage({ clientId, message: saved, status: "sent" });
-      updateMessages((items) => [...items.filter((message) => message.clientId !== clientId), saved]);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+      await localDatabase.markMessage({
+        clientId,
+        message: saved,
+        status: "sent",
+      });
+      updateMessages((items) => [
+        ...items.filter((message) => message.clientId !== clientId),
+        saved,
+      ]);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations,
+      });
     } catch (error) {
       patchMessage(clientId, {
         status: "failed",
@@ -849,24 +1035,39 @@ export function useChat(
     activeUploads.current.delete(clientId);
     uploadRetries.current.delete(clientId);
     await localDatabase.cancel(clientId).catch(() => undefined);
-    await Promise.all(active.uploadedIds.map((id) =>
-      uploadService.remove(id).catch(() => undefined)));
-    await Promise.all(active.draftIds.map((id) =>
-      window.desktop?.attachment.removeDraft(id).catch(() => undefined)));
-    updateMessages((items) => items.filter((message) => message.clientId !== clientId));
+    await Promise.all(
+      active.uploadedIds.map((id) =>
+        uploadService.remove(id).catch(() => undefined),
+      ),
+    );
+    await Promise.all(
+      active.draftIds.map((id) =>
+        window.desktop?.attachment.removeDraft(id).catch(() => undefined),
+      ),
+    );
+    updateMessages((items) =>
+      items.filter((message) => message.clientId !== clientId),
+    );
   }
 
   async function removeFailed(clientId: string) {
     const message = messageItems.find((item) => item.clientId === clientId);
     uploadRetries.current.delete(clientId);
     await localDatabase.cancel(clientId).catch(() => undefined);
-    const draftIds = message?.parts.flatMap((part) =>
-      "attachment" in part && part.attachment.draftId
-        ? [part.attachment.draftId]
-        : []) ?? [];
-    await Promise.all(draftIds.map((id) =>
-      window.desktop?.attachment.removeDraft(id).catch(() => undefined)));
-    updateMessages((items) => items.filter((item) => item.clientId !== clientId));
+    const draftIds =
+      message?.parts.flatMap((part) =>
+        "attachment" in part && part.attachment.draftId
+          ? [part.attachment.draftId]
+          : [],
+      ) ?? [];
+    await Promise.all(
+      draftIds.map((id) =>
+        window.desktop?.attachment.removeDraft(id).catch(() => undefined),
+      ),
+    );
+    updateMessages((items) =>
+      items.filter((item) => item.clientId !== clientId),
+    );
   }
 
   async function recall(target: Message) {
@@ -894,7 +1095,10 @@ export function useChat(
   return {
     addFiles,
     attachments: draftState.attachments,
-    canSend: Boolean(richTextToPlainText(draftState.text).trim() || draftState.attachments.length),
+    canSend: Boolean(
+      richTextToPlainText(draftState.text).trim() ||
+      draftState.attachments.length,
+    ),
     cancel,
     cancelInitialScroll,
     changeDraft,

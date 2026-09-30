@@ -1,6 +1,23 @@
 import { useEffect, useState } from "react";
-import { Button, Input, Modal, Popconfirm, Spin, Tag, Tooltip, message } from "antd";
-import { Bot, Copy, KeyRound, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import {
+  Button,
+  Input,
+  Modal,
+  Popconfirm,
+  Spin,
+  Tag,
+  Tooltip,
+  message,
+} from "antd";
+import {
+  Bot,
+  Copy,
+  KeyRound,
+  Pencil,
+  Plus,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import type { Conversation, ConversationBot } from "@chat/shared";
 import { chatService } from "../../../services/chat";
 import { writeClipboardText } from "../../../services/clipboard";
@@ -64,7 +81,9 @@ export default function ConversationBotsModal({
     setSubmitting(true);
     try {
       if (editing) {
-        await chatService.updateBot(conversation.id, editing.id, { name: value });
+        await chatService.updateBot(conversation.id, editing.id, {
+          name: value,
+        });
         message.success("机器人名称已更新");
       } else {
         await chatService.createBot(conversation.id, { name: value });
@@ -126,7 +145,8 @@ export default function ConversationBotsModal({
       styles={{ body: { padding: "6px 22px 22px" } }}
     >
       <p className="mb-5 border-l-2 border-[var(--app-primary)] pl-3 text-xs leading-5 text-[var(--app-text-secondary)]">
-        机器人不会作为联系人或会话成员出现。创建后可从机器人列表复制 Webhook 地址。
+        机器人不会作为联系人或会话成员出现。创建后可从机器人列表复制 Webhook
+        地址。
       </p>
 
       <section className="mb-5 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface-soft)] p-4">
@@ -143,7 +163,13 @@ export default function ConversationBotsModal({
             </small>
           </span>
         </div>
-        <form className="flex items-end gap-2" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+        <form
+          className="flex items-end gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
+          }}
+        >
           <label className="min-w-0 flex-1 text-xs text-[var(--app-text-secondary)]">
             机器人名称
             <Input
@@ -155,7 +181,14 @@ export default function ConversationBotsModal({
             />
           </label>
           {editing && (
-            <Button onClick={() => { setEditing(undefined); setName(""); }}>取消</Button>
+            <Button
+              onClick={() => {
+                setEditing(undefined);
+                setName("");
+              }}
+            >
+              取消
+            </Button>
           )}
           <Button
             type="primary"
@@ -170,14 +203,21 @@ export default function ConversationBotsModal({
       </section>
 
       <div className="mb-3 flex items-center justify-between">
-        <strong className="text-sm font-semibold text-[var(--app-text)]">已创建机器人</strong>
-        <Tag bordered={false} className="m-0 rounded-full bg-[var(--app-primary-soft)] px-2 text-xs text-[var(--app-primary)]">
+        <strong className="text-sm font-semibold text-[var(--app-text)]">
+          已创建机器人
+        </strong>
+        <Tag
+          bordered={false}
+          className="m-0 rounded-full bg-[var(--app-primary-soft)] px-2 text-xs text-[var(--app-primary)]"
+        >
           {items.length} 个
         </Tag>
       </div>
 
       {loading ? (
-        <div className="grid h-32 place-items-center"><Spin /></div>
+        <div className="grid h-32 place-items-center">
+          <Spin />
+        </div>
       ) : (
         <div className="grid max-h-80 gap-2 overflow-y-auto pr-1">
           {!items.length && (
@@ -186,28 +226,79 @@ export default function ConversationBotsModal({
             </div>
           )}
           {items.map((bot, index) => (
-            <article key={bot.id} className="flex items-center gap-3 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] px-3.5 py-3 hover:bg-[var(--app-surface-muted)]">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-base font-medium" style={BOT_TONES[index % BOT_TONES.length]}>
+            <article
+              key={bot.id}
+              className="flex items-center gap-3 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] px-3.5 py-3 hover:bg-[var(--app-surface-muted)]"
+            >
+              <span
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-base font-medium"
+                style={BOT_TONES[index % BOT_TONES.length]}
+              >
                 {bot.avatar || <Bot size={19} />}
               </span>
               <span className="min-w-0 flex-1">
-                <strong className="block truncate text-sm font-medium text-[var(--app-text)]">{bot.name}</strong>
+                <strong className="block truncate text-sm font-medium text-[var(--app-text)]">
+                  {bot.name}
+                </strong>
                 <small className="mt-1 block truncate text-xs text-[var(--app-text-tertiary)]">
-                  创建人：{bot.createdByName || "成员"} · 密钥尾号 {bot.secretTail}
+                  创建人：{bot.createdByName || "成员"} · 密钥尾号{" "}
+                  {bot.secretTail}
                 </small>
               </span>
               <div className="flex shrink-0 items-center gap-1 rounded-lg bg-[var(--app-surface-soft)] p-0.5">
                 <Tooltip title="复制 Webhook 地址">
-                  <Button aria-label="复制 Webhook 地址" type="text" size="small" icon={<Copy size={15} />} onClick={() => void copyWebhook(bot)} />
+                  <Button
+                    aria-label="复制 Webhook 地址"
+                    type="text"
+                    size="small"
+                    icon={<Copy size={15} />}
+                    onClick={() => void copyWebhook(bot)}
+                  />
                 </Tooltip>
                 <Tooltip title="编辑名称">
-                  <Button aria-label="编辑机器人名称" type="text" size="small" icon={<Pencil size={15} />} onClick={() => { setEditing(bot); setName(bot.name); }} />
+                  <Button
+                    aria-label="编辑机器人名称"
+                    type="text"
+                    size="small"
+                    icon={<Pencil size={15} />}
+                    onClick={() => {
+                      setEditing(bot);
+                      setName(bot.name);
+                    }}
+                  />
                 </Tooltip>
-                <Popconfirm title="重置后旧地址会立即失效" description="确认重置这个 Webhook 地址吗？" okText="重置" cancelText="取消" onConfirm={() => resetBot(bot)}>
-                  <Tooltip title="重置地址"><Button aria-label="重置 Webhook 地址" type="text" size="small" icon={<KeyRound size={15} />} /></Tooltip>
+                <Popconfirm
+                  title="重置后旧地址会立即失效"
+                  description="确认重置这个 Webhook 地址吗？"
+                  okText="重置"
+                  cancelText="取消"
+                  onConfirm={() => resetBot(bot)}
+                >
+                  <Tooltip title="重置地址">
+                    <Button
+                      aria-label="重置 Webhook 地址"
+                      type="text"
+                      size="small"
+                      icon={<KeyRound size={15} />}
+                    />
+                  </Tooltip>
                 </Popconfirm>
-                <Popconfirm title="确定删除这个机器人？" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => removeBot(bot)}>
-                  <Tooltip title="删除"><Button aria-label="删除机器人" danger type="text" size="small" icon={<Trash2 size={15} />} /></Tooltip>
+                <Popconfirm
+                  title="确定删除这个机器人？"
+                  okText="删除"
+                  cancelText="取消"
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => removeBot(bot)}
+                >
+                  <Tooltip title="删除">
+                    <Button
+                      aria-label="删除机器人"
+                      danger
+                      type="text"
+                      size="small"
+                      icon={<Trash2 size={15} />}
+                    />
+                  </Tooltip>
                 </Popconfirm>
               </div>
             </article>

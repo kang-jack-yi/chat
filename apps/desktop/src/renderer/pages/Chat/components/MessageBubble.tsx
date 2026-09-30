@@ -1,6 +1,11 @@
 import { Dropdown } from "antd";
 import { Megaphone } from "lucide-react";
-import type { Attachment, ImagePart, LocalMessage, Message } from "@chat/shared";
+import type {
+  Attachment,
+  ImagePart,
+  LocalMessage,
+  Message,
+} from "@chat/shared";
 import { writeClipboardText } from "../../../services/clipboard";
 import MessageContent, {
   attachmentTarget,
@@ -37,12 +42,14 @@ export function canRecallMessage(
   own: boolean,
   now = Date.now(),
 ) {
-  return own
-    && message.kind === "user"
-    && message.id > 0
-    && messageStatus(message) === "sent"
-    && !message.deletedAt
-    && now - new Date(message.createdAt).getTime() <= 2 * 60 * 1000;
+  return (
+    own &&
+    message.kind === "user" &&
+    message.id > 0 &&
+    messageStatus(message) === "sent" &&
+    !message.deletedAt &&
+    now - new Date(message.createdAt).getTime() <= 2 * 60 * 1000
+  );
 }
 
 export default function MessageBubble({
@@ -65,8 +72,13 @@ export default function MessageBubble({
 }: MessageBubbleProps) {
   const status = messageStatus(message);
   const filePart = message.parts.find((part) => part.type === "file");
-  const textParts = message.parts.filter((part) =>
-    part.type === "text" || part.type === "markdown" || part.type === "mention" || part.type === "mention_all");
+  const textParts = message.parts.filter(
+    (part) =>
+      part.type === "text" ||
+      part.type === "markdown" ||
+      part.type === "mention" ||
+      part.type === "mention_all",
+  );
   const fileUrl = useAttachmentUrl(
     filePart?.type === "file" ? filePart.attachment : undefined,
   );
@@ -78,13 +90,16 @@ export default function MessageBubble({
     onRemoveFailed,
   );
   const canRecall = canRecallMessage(message, Boolean(own));
-  const canUseMessageActions = message.id > 0 && status === "sent" && !message.deletedAt;
+  const canUseMessageActions =
+    message.id > 0 && status === "sent" && !message.deletedAt;
   const recallMenuItems = canRecall
-    ? [{
-        key: "recall",
-        label: "撤回",
-        onClick: () => onRecall?.(message),
-      }]
+    ? [
+        {
+          key: "recall",
+          label: "撤回",
+          onClick: () => onRecall?.(message),
+        },
+      ]
     : [];
 
   if (filePart?.type === "file") {
@@ -111,7 +126,8 @@ export default function MessageBubble({
       {
         key: "copy-name",
         label: "复制文件名",
-        onClick: () => void writeClipboardText(filePart.attachment.originalName),
+        onClick: () =>
+          void writeClipboardText(filePart.attachment.originalName),
       },
       {
         key: "forward",
@@ -179,7 +195,8 @@ export default function MessageBubble({
               className="mt-2 text-xs text-red-500"
               onClick={() => onRetry?.(message.clientId)}
             >
-              {(message as Partial<LocalMessage>).error?.message || "发送失败"}，点击重试
+              {(message as Partial<LocalMessage>).error?.message || "发送失败"}
+              ，点击重试
             </button>
           )}
         </div>
@@ -188,43 +205,49 @@ export default function MessageBubble({
   }
 
   const normalBubbleItems = [
-      {
-        key: "copy",
-        label: "复制文本",
-        disabled: !textParts.length,
-        onClick: () => void writeClipboardText(textParts.map((part) =>
-          part.type === "text"
-            ? displayMessageText(part.text)
-            : part.type === "markdown"
-              ? displayMessageText(part.content)
-            : `@${part.label}`).join("")),
-      },
-      {
-        key: "forward",
-        label: "转发",
-        disabled: !canUseMessageActions,
-        onClick: () => onForward?.(message),
-      },
-      {
-        key: "quote",
-        label: "回复",
-        disabled: message.id < 0,
-        onClick: () => onQuote?.(message),
-      },
-      {
-        key: "task",
-        label: "创建任务",
-        disabled: !canUseMessageActions,
-        onClick: () => onCreateTask?.(message),
-      },
-      {
-        key: "select",
-        label: "多选",
-        disabled: !canUseMessageActions,
-        onClick: () => onSelect?.(message),
-      },
-      ...recallMenuItems,
-    ];
+    {
+      key: "copy",
+      label: "复制文本",
+      disabled: !textParts.length,
+      onClick: () =>
+        void writeClipboardText(
+          textParts
+            .map((part) =>
+              part.type === "text"
+                ? displayMessageText(part.text)
+                : part.type === "markdown"
+                  ? displayMessageText(part.content)
+                  : `@${part.label}`,
+            )
+            .join(""),
+        ),
+    },
+    {
+      key: "forward",
+      label: "转发",
+      disabled: !canUseMessageActions,
+      onClick: () => onForward?.(message),
+    },
+    {
+      key: "quote",
+      label: "回复",
+      disabled: message.id < 0,
+      onClick: () => onQuote?.(message),
+    },
+    {
+      key: "task",
+      label: "创建任务",
+      disabled: !canUseMessageActions,
+      onClick: () => onCreateTask?.(message),
+    },
+    {
+      key: "select",
+      label: "多选",
+      disabled: !canUseMessageActions,
+      onClick: () => onSelect?.(message),
+    },
+    ...recallMenuItems,
+  ];
   const bubbleMenu = {
     items: statusMenuItems.length ? statusMenuItems : normalBubbleItems,
   };
@@ -236,7 +259,10 @@ export default function MessageBubble({
         menu={bubbleMenu}
         getPopupContainer={popupContainer}
       >
-        <div data-message-content className="w-full min-w-0 max-w-md overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--app-surface)] text-left shadow-[var(--app-shadow-panel)]">
+        <div
+          data-message-content
+          className="w-full min-w-0 max-w-md overflow-hidden rounded-xl border border-[var(--chat-attachment-border)] bg-[var(--app-surface)] text-left shadow-[var(--app-shadow-panel)]"
+        >
           <div className="flex items-center gap-2 border-b border-[var(--chat-line)] bg-[var(--chat-primary-soft)] px-3.5 py-2.5 text-xs font-medium text-[var(--chat-primary)]">
             <span className="grid h-6 w-6 place-items-center rounded-md bg-[var(--app-surface-soft)] text-[var(--chat-primary)]">
               <Megaphone size={14} />
@@ -296,7 +322,9 @@ export default function MessageBubble({
           onPreviewImage={onPreviewImage}
         />
         {status === "sending" && (
-          <div className="mt-1 text-right text-xs text-slate-400">正在确认…</div>
+          <div className="mt-1 text-right text-xs text-slate-400">
+            正在确认…
+          </div>
         )}
         {status === "failed" && (
           <button
@@ -304,7 +332,8 @@ export default function MessageBubble({
             className="mt-1 text-xs text-red-500"
             onClick={() => onRetry?.(message.clientId)}
           >
-            {(message as Partial<LocalMessage>).error?.message || "发送失败"}，点击重试
+            {(message as Partial<LocalMessage>).error?.message || "发送失败"}
+            ，点击重试
           </button>
         )}
       </div>

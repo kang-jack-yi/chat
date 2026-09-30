@@ -48,7 +48,8 @@ function imagePreview(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error || new Error("图片预览读取失败"));
+    reader.onerror = () =>
+      reject(reader.error || new Error("图片预览读取失败"));
     reader.readAsDataURL(file);
   });
 }
@@ -83,12 +84,14 @@ export default function GroupAnnouncementModal({
     const items = attachments;
     setDraft("");
     setAttachments([]);
-    await Promise.all(items.map(async (item) => {
-      if (item.meta.previewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(item.meta.previewUrl);
-      }
-      await window.desktop?.attachment.removeDraft(item.meta.id);
-    }));
+    await Promise.all(
+      items.map(async (item) => {
+        if (item.meta.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(item.meta.previewUrl);
+        }
+        await window.desktop?.attachment.removeDraft(item.meta.id);
+      }),
+    );
   }
 
   useEffect(() => {
@@ -179,7 +182,9 @@ export default function GroupAnnouncementModal({
       await onPublished(message);
     } catch (reason) {
       await Promise.all(
-        uploadedIds.map((id) => uploadService.remove(id).catch(() => undefined)),
+        uploadedIds.map((id) =>
+          uploadService.remove(id).catch(() => undefined),
+        ),
       );
       setError(reason instanceof Error ? reason.message : "群公告发布失败");
     } finally {

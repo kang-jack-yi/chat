@@ -3,7 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import type { AuthMode } from "../../types/ui";
 import { ROUTES } from "../../constants/routes";
-import { authService, type LoginPayload, type RegisterPayload } from "../../services/auth";
+import {
+  authService,
+  type LoginPayload,
+  type RegisterPayload,
+} from "../../services/auth";
 import { useUserStore } from "../../stores/user-store";
 
 export function useAuthForm() {
@@ -13,7 +17,9 @@ export function useAuthForm() {
   const [error, setError] = useState("");
   const mutation = useMutation({
     mutationFn: (payload: LoginPayload | RegisterPayload) =>
-      mode === "login" ? authService.login(payload as LoginPayload) : authService.register(payload as RegisterPayload),
+      mode === "login"
+        ? authService.login(payload as LoginPayload)
+        : authService.register(payload as RegisterPayload),
     onSuccess: (session) => {
       setSession(session);
       navigate(ROUTES.chat, { replace: true });
@@ -29,7 +35,11 @@ export function useAuthForm() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    mutation.mutate(Object.fromEntries(new FormData(event.currentTarget).entries()) as unknown as LoginPayload | RegisterPayload);
+    mutation.mutate(
+      Object.fromEntries(
+        new FormData(event.currentTarget).entries(),
+      ) as unknown as LoginPayload | RegisterPayload,
+    );
   }
 
   return { mode, error, pending: mutation.isPending, changeMode, submit };

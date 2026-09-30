@@ -1,6 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { Button, Divider, Popover, Tag, Typography } from "antd";
-import { BadgeCheck, ContactRound, MessageCircleMore, Monitor } from "lucide-react";
+import {
+  BadgeCheck,
+  ContactRound,
+  MessageCircleMore,
+  Monitor,
+} from "lucide-react";
 import type { User } from "@chat/shared";
 import Avatar from "../../../components/Avatar";
 import { roleText } from "../../../utils/format";
@@ -51,10 +56,14 @@ export default function MemberProfilePopover({
       arrow={false}
       onOpenChange={setOpen}
       styles={{ content: { padding: 0 } }}
-      content={(
+      content={
         <div className="w-76 p-4">
           <div className="flex min-w-0 items-start gap-3">
-            <Avatar text={user.avatar || user.name} src={user.avatarUrl} online={user.online} />
+            <Avatar
+              text={user.avatar || user.name}
+              src={user.avatarUrl}
+              online={user.online}
+            />
             <div className="min-w-0 flex-1 pt-0.5">
               <div className="flex min-w-0 items-center gap-1.5">
                 <strong className="truncate text-sm font-semibold text-[var(--app-text)]">
@@ -62,11 +71,17 @@ export default function MemberProfilePopover({
                 </strong>
                 <Monitor
                   size={14}
-                  className={user.online
-                    ? "shrink-0 text-[var(--chat-primary)]"
-                    : "shrink-0 text-[var(--chat-text-tertiary)]"}
+                  className={
+                    user.online
+                      ? "shrink-0 text-[var(--chat-primary)]"
+                      : "shrink-0 text-[var(--chat-text-tertiary)]"
+                  }
                 />
-                {disabled && <Tag bordered={false} color="default">已停用</Tag>}
+                {disabled && (
+                  <Tag bordered={false} color="default">
+                    已停用
+                  </Tag>
+                )}
               </div>
               <p className="mt-1 mb-0 truncate text-xs text-slate-400">
                 {user.title || "企业成员"}
@@ -81,7 +96,9 @@ export default function MemberProfilePopover({
 
           <dl className="m-0 grid grid-cols-2 gap-y-3 text-xs leading-5">
             <dt className="text-slate-400">部门</dt>
-            <dd className="m-0 truncate text-[var(--app-text)]">{user.departmentName || "未分配部门"}</dd>
+            <dd className="m-0 truncate text-[var(--app-text)]">
+              {user.departmentName || "未分配部门"}
+            </dd>
             <dt className="text-slate-400">企业</dt>
             <dd className="m-0 flex min-w-0 items-center gap-1 text-[var(--app-text)]">
               <span className="truncate">{companyName}</span>
@@ -89,12 +106,17 @@ export default function MemberProfilePopover({
             </dd>
             <dt className="text-slate-400">手机号</dt>
             <dd className="m-0 min-w-0">
-              <Typography.Text copyable={{ text: user.phone }} className="!text-xs !text-[var(--app-text)]">
+              <Typography.Text
+                copyable={{ text: user.phone }}
+                className="!text-xs !text-[var(--app-text)]"
+              >
                 {user.phone}
               </Typography.Text>
             </dd>
             <dt className="text-slate-400">角色</dt>
-            <dd className="m-0 text-[var(--app-text)]">{roleText(user.role)}</dd>
+            <dd className="m-0 text-[var(--app-text)]">
+              {roleText(user.role)}
+            </dd>
           </dl>
 
           <div className="mt-4 flex gap-2">
@@ -122,7 +144,7 @@ export default function MemberProfilePopover({
             </Button>
           </div>
         </div>
-      )}
+      }
     >
       <span className="inline-flex min-w-0 cursor-pointer">{children}</span>
     </Popover>

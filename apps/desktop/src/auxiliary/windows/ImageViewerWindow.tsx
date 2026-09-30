@@ -23,13 +23,19 @@ export interface ImageViewerWindowProps {
 
 type ViewMode = "fit" | "actual" | "manual";
 
-export const clampImageScale = (value: number) => Math.min(5, Math.max(0.1, value));
+export const clampImageScale = (value: number) =>
+  Math.min(5, Math.max(0.1, value));
 
 export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
   const bridge = window.auxiliary;
   const viewportRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-  const dragRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const dragRef = useRef<{
+    x: number;
+    y: number;
+    left: number;
+    top: number;
+  } | null>(null);
   const [items, setItems] = useState<ImageGalleryItem[]>([]);
   const [index, setIndex] = useState(0);
   const [previousCursor, setPreviousCursor] = useState<string | null>(null);
@@ -61,27 +67,31 @@ export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
     setError("");
     setItems([]);
     resetTransform();
-    void bridge?.images.getPage({
-      taskId: task.taskId,
-      direction: "initial",
-      limit: 50,
-    }).then((page) => {
-      if (!active) return;
-      setItems(page.items);
-      setPreviousCursor(page.previousCursor);
-      setNextCursor(page.nextCursor);
-      setHistoryComplete(page.historyComplete);
-      const targetKey = task.initialDraftId
-        ? `draft:${task.initialDraftId}`
-        : `attachment:${task.initialAttachmentId}`;
-      const target = page.items.findIndex((item) => item.key === targetKey);
-      setIndex(target >= 0 ? target : Math.max(0, page.items.length - 1));
-      if (!page.items.length) setError("当前会话没有可查看的图片");
-    }).catch((reason: Error) => {
-      if (active) setError(reason.message || "读取本地图片失败");
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
+    void bridge?.images
+      .getPage({
+        taskId: task.taskId,
+        direction: "initial",
+        limit: 50,
+      })
+      .then((page) => {
+        if (!active) return;
+        setItems(page.items);
+        setPreviousCursor(page.previousCursor);
+        setNextCursor(page.nextCursor);
+        setHistoryComplete(page.historyComplete);
+        const targetKey = task.initialDraftId
+          ? `draft:${task.initialDraftId}`
+          : `attachment:${task.initialAttachmentId}`;
+        const target = page.items.findIndex((item) => item.key === targetKey);
+        setIndex(target >= 0 ? target : Math.max(0, page.items.length - 1));
+        if (!page.items.length) setError("当前会话没有可查看的图片");
+      })
+      .catch((reason: Error) => {
+        if (active) setError(reason.message || "读取本地图片失败");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     return () => {
       active = false;
     };
@@ -93,14 +103,17 @@ export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
     setError("");
     resetTransform();
     if (!current) return;
-    void bridge?.images.resolve({
-      taskId: task.taskId,
-      imageKey: current.key,
-    }).then((result) => {
-      if (active) setUrl(result.url);
-    }).catch((reason: Error) => {
-      if (active) setError(reason.message || "图片加载失败");
-    });
+    void bridge?.images
+      .resolve({
+        taskId: task.taskId,
+        imageKey: current.key,
+      })
+      .then((result) => {
+        if (active) setUrl(result.url);
+      })
+      .catch((reason: Error) => {
+        if (active) setError(reason.message || "图片加载失败");
+      });
     return () => {
       active = false;
     };
@@ -109,13 +122,16 @@ export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
   useEffect(() => {
     if (!bridge) return;
     for (const item of [items[index - 1], items[index + 1]].filter(Boolean)) {
-      void bridge.images.resolve({
-        taskId: task.taskId,
-        imageKey: item.key,
-      }).then(({ url: nextUrl }) => {
-        const image = new Image();
-        image.src = nextUrl;
-      }).catch(() => undefined);
+      void bridge.images
+        .resolve({
+          taskId: task.taskId,
+          imageKey: item.key,
+        })
+        .then(({ url: nextUrl }) => {
+          const image = new Image();
+          image.src = nextUrl;
+        })
+        .catch(() => undefined);
     }
   }, [bridge, index, items, task.taskId]);
 
@@ -126,11 +142,13 @@ export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
     const rotated = Math.abs(rotation % 180) === 90;
     const width = rotated ? image.naturalHeight : image.naturalWidth;
     const height = rotated ? image.naturalWidth : image.naturalHeight;
-    setFitScale(Math.min(
-      1,
-      Math.max(0.1, (viewport.clientWidth - 40) / width),
-      Math.max(0.1, (viewport.clientHeight - 88) / height),
-    ));
+    setFitScale(
+      Math.min(
+        1,
+        Math.max(0.1, (viewport.clientWidth - 40) / width),
+        Math.max(0.1, (viewport.clientHeight - 88) / height),
+      ),
+    );
   }, [rotation]);
 
   useEffect(() => {
@@ -208,7 +226,12 @@ export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
   function pointerDown(event: ReactPointerEvent) {
     if (scale <= fitScale) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { x: event.clientX, y: event.clientY, left: offset.x, top: offset.y };
+    dragRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      left: offset.x,
+      top: offset.y,
+    };
   }
 
   function pointerMove(event: ReactPointerEvent) {
@@ -220,8 +243,18 @@ export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
   }
 
   const tools = [
-    ["上一张", <ArrowLeft size={18} />, index === 0 && !previousCursor, previous],
-    ["下一张", <ArrowRight size={18} />, index >= items.length - 1 && !nextCursor, next],
+    [
+      "上一张",
+      <ArrowLeft size={18} />,
+      index === 0 && !previousCursor,
+      previous,
+    ],
+    [
+      "下一张",
+      <ArrowRight size={18} />,
+      index >= items.length - 1 && !nextCursor,
+      next,
+    ],
     ["缩小", <ZoomOut size={18} />, scale <= 0.1, () => zoom(-0.25)],
     ["放大", <ZoomIn size={18} />, scale >= 5, () => zoom(0.25)],
     [
@@ -246,10 +279,12 @@ export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
       "另存为",
       <Download size={18} />,
       !current,
-      () => current && void bridge?.images.saveAs({
-        taskId: task.taskId,
-        imageKey: current.key,
-      }),
+      () =>
+        current &&
+        void bridge?.images.saveAs({
+          taskId: task.taskId,
+          imageKey: current.key,
+        }),
     ],
   ] as const;
 
@@ -278,9 +313,14 @@ export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
           <Spin />
         ) : error || !current ? (
           <div className="max-w-[360px] text-center">
-            <p className="m-0 text-sm text-[var(--app-text-secondary)]">{error || "没有可查看的图片"}</p>
+            <p className="m-0 text-sm text-[var(--app-text-secondary)]">
+              {error || "没有可查看的图片"}
+            </p>
             {current && (
-              <Button className="!mt-3" onClick={() => setReloadKey((value) => value + 1)}>
+              <Button
+                className="!mt-3"
+                onClick={() => setReloadKey((value) => value + 1)}
+              >
                 重新加载
               </Button>
             )}
@@ -306,7 +346,9 @@ export default function ImageViewerWindow({ task }: ImageViewerWindowProps) {
       <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center rounded-xl border border-[var(--app-line)] bg-[color-mix(in_srgb,var(--app-surface)_95%,transparent)] p-1.5 shadow-[0_8px_24px_rgba(31,45,61,.14)]">
         {tools.map(([title, icon, disabled, action], toolIndex) => (
           <span key={title} className="flex items-center">
-            {[2, 4, 6].includes(toolIndex) && <i className="mx-1 h-5 w-px bg-[var(--app-line)]" />}
+            {[2, 4, 6].includes(toolIndex) && (
+              <i className="mx-1 h-5 w-px bg-[var(--app-line)]" />
+            )}
             <Tooltip title={title}>
               <Button
                 type="text"

@@ -6,24 +6,36 @@ import { organizationService } from "../../services/organization";
 
 export function useContacts() {
   const [query, setQuery] = useState("");
-  const users = useQuery({ queryKey: queryKeys.users, queryFn: organizationService.users });
+  const users = useQuery({
+    queryKey: queryKeys.users,
+    queryFn: organizationService.users,
+  });
   const filteredUsers = useMemo(
-    () => (users.data ?? []).filter((user) =>
-      user.status === "active" &&
-      (!query || `${user.name}${user.phone}${user.title}`.toLowerCase().includes(query.toLowerCase())),
-    ),
+    () =>
+      (users.data ?? []).filter(
+        (user) =>
+          user.status === "active" &&
+          (!query ||
+            `${user.name}${user.phone}${user.title}`
+              .toLowerCase()
+              .includes(query.toLowerCase())),
+      ),
     [query, users.data],
   );
 
   return { filteredUsers, query, setQuery, users };
 }
 
-export function useStartDirectChat(onSuccess: (conversationId: number) => void) {
+export function useStartDirectChat(
+  onSuccess: (conversationId: number) => void,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: chatService.createDirect,
     onSuccess: async (conversation) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations,
+      });
       onSuccess(conversation.id);
     },
   });

@@ -19,11 +19,18 @@
   font-size: 12px;
   line-height: 24px;
 
-  &:hover { color: var(--chat-primary); }
-  > span:last-child { padding: 0; }
+  &:hover {
+    color: var(--chat-primary);
+  }
+  > span:last-child {
+    padding: 0;
+  }
 }
 
-.rangeHint { color: var(--chat-text-secondary); font-size: 12px; }
+.rangeHint {
+  color: var(--chat-text-secondary);
+  font-size: 12px;
+}
 
 .selectionToolbar {
   display: grid;
@@ -82,24 +89,60 @@
   font-size: 12px;
   font-weight: 400;
 
-  svg { stroke-width: 1.7; }
-  &:not(:disabled):hover { color: var(--chat-primary); background: var(--chat-primary-soft); }
-  &:disabled { color: var(--chat-text-tertiary); background: transparent; }
-  &:focus-visible { outline: 2px solid var(--chat-primary); outline-offset: -2px; }
+  svg {
+    stroke-width: 1.7;
+  }
+  &:not(:disabled):hover {
+    color: var(--chat-primary);
+    background: var(--chat-primary-soft);
+  }
+  &:disabled {
+    color: var(--chat-text-tertiary);
+    background: transparent;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--chat-primary);
+    outline-offset: -2px;
+  }
 }
 
-.actionDivider { width: 1px; height: 28px; flex-shrink: 0; margin-inline: 8px; background: var(--chat-line); }
+.actionDivider {
+  width: 1px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-inline: 8px;
+  background: var(--chat-line);
+}
 .deleteAction:global(.ant-btn):not(:disabled) {
   color: var(--app-danger);
-  &:hover { color: var(--app-danger); background: color-mix(in srgb, var(--app-danger) 9%, transparent); }
+  &:hover {
+    color: var(--app-danger);
+    background: color-mix(in srgb, var(--app-danger) 9%, transparent);
+  }
 }
-.closeSelection:global(.ant-btn) { color: var(--chat-text-secondary); }
+.closeSelection:global(.ant-btn) {
+  color: var(--chat-text-secondary);
+}
 
 @media (max-width: 767px) {
-  .selectionBanner { padding-inline: 14px; }
-  .rangeHint { display: none; }
-  .selectionToolbar { gap: 8px; padding-inline: 14px; }
-  .selectionActions { justify-content: flex-start; }
-  .selectionAction:global(.ant-btn) { width: 64px; flex-basis: 64px; }
-  .actionDivider { margin-inline: 4px; }
+  .selectionBanner {
+    padding-inline: 14px;
+  }
+  .rangeHint {
+    display: none;
+  }
+  .selectionToolbar {
+    gap: 8px;
+    padding-inline: 14px;
+  }
+  .selectionActions {
+    justify-content: flex-start;
+  }
+  .selectionAction:global(.ant-btn) {
+    width: 64px;
+    flex-basis: 64px;
+  }
+  .actionDivider {
+    margin-inline: 4px;
+  }
 }
