@@ -2,6 +2,85 @@
 
 Windows 桌面端企业协作与即时通讯原型。系统由 Electron 客户端、Egg.js 服务端、Socket.IO 实时通信服务和 SQLite 数据层组成，当前覆盖企业通讯录、单聊/群聊、消息与文件、云文档协作、组织管理以及机器人 Webhook 等能力。
 
+## 项目效果图
+
+以下截图取自当前桌面端的 renderer 页面，使用独立演示数据，不包含 Electron 原生窗口边框。图片保存在 `docs/screenshots/`，可点击查看原图。
+
+### 即时通讯
+
+群聊、成员列表、消息编辑与可点击链接集中在同一工作空间。
+
+![即时通讯：群聊、成员列表与可点击链接](docs/screenshots/chat.png)
+
+<details>
+<summary>登录、企业通讯录与组织管理</summary>
+
+### 登录与企业空间
+
+支持员工登录、创建企业和配置服务器地址。
+
+![登录与企业空间](docs/screenshots/login.png)
+
+### 企业通讯录
+
+查看成员资料、部门与联系方式，并从成员资料发起聊天。
+
+![企业通讯录与成员资料](docs/screenshots/contacts.png)
+
+### 组织管理
+
+管理员可查看组织概览，管理成员账号、角色与部门。
+
+![组织管理与成员账号](docs/screenshots/organization.png)
+
+</details>
+
+<details>
+<summary>云文档、评论线程与版本历史</summary>
+
+### 云文档
+
+统一管理在线文档与表格，支持最近访问、共享与收藏。
+
+![云文档与在线表格列表](docs/screenshots/documents.png)
+
+### 评论回复与线程
+
+按线程讨论文档内容，支持筛选未解决/已解决线程，以及整线程解决和重新打开。
+
+![文档评论回复与线程状态](docs/screenshots/comment-threads.png)
+
+### 版本历史
+
+保存命名版本、预览历史内容并恢复版本；恢复前需关闭编辑窗口，系统会自动备份当前内容。
+
+![文档版本历史与纯文本预览](docs/screenshots/document-versions.png)
+
+</details>
+
+<details>
+<summary>任务中心、到期提醒与统一搜索</summary>
+
+### 任务中心
+
+集中管理负责人、优先级、截止时间与任务状态，并标识逾期事项。
+
+![任务中心与逾期任务](docs/screenshots/tasks.png)
+
+### 通知与到期提醒
+
+任务到期提醒与文档评论通知汇集到通知中心，支持未读筛选和标为已读。
+
+![通知中心与任务到期提醒](docs/screenshots/notifications.png)
+
+### 统一搜索
+
+在当前用户权限范围内搜索消息、文档标题与正文、成员、任务和通知；下图同时展示通知、任务、文档正文和消息结果。
+
+![统一搜索：通知、任务、文档正文与消息结果](docs/screenshots/workspace-search.png)
+
+</details>
+
 ## 当前已有功能
 
 ### 1. 登录、企业与个人账号
@@ -83,6 +162,7 @@ Windows 桌面端企业协作与即时通讯原型。系统由 Electron 客户�
 
 - 当前账号范围内的本地全文搜索。
 - 全局搜索会话和消息。
+- 工作区统一搜索消息、文档标题与正文、成员、任务和通知，支持类型筛选与分页。
 - 支持按消息内容、发送者、会话等上下文定位结果。
 - 支持消息历史分类：全部、文件、媒体。
 - 从搜索结果定位到具体会话和消息。
@@ -125,6 +205,8 @@ POST /cgi-bin/webhook/upload_media
 - 所有者删除文档并移入回收状态。
 - 在独立 Electron 文档窗口打开文档。
 - 文档标题和内容自动保存。
+- 自动保留版本快照，支持保存命名版本和查看历史内容的纯文本预览。
+- 关闭编辑窗口后可恢复历史版本，恢复前自动备份当前内容。
 
 相关实现：`apps/desktop/src/renderer/pages/Documents`、`apps/desktop/src/document`、`apps/server/app/controller/documents.ts`。
 
@@ -170,6 +252,7 @@ POST /cgi-bin/webhook/upload_media
 - 支持推进任务、完成任务和重新打开任务。
 - 支持编辑任务、调整负责人、优先级和截止时间。
 - 支持删除任务，并在列表中标识逾期任务。
+- 每分钟扫描已到期的未完成任务，按任务、截止时间和负责人去重提醒。
 - 创建任务和完成任务时向关联会话写入系统消息。
 - 任务通过服务端 API 保存，并为负责人写入增量同步事件。
 
@@ -178,6 +261,7 @@ POST /cgi-bin/webhook/upload_media
 ### 11. 通知中心
 
 - 任务分配时向负责人生成通知，任务完成时向创建者生成通知。
+- 未完成任务到达截止时间时，向当前负责人生成去重的到期提醒。
 - 群聊中 @成员 或 @所有人 时，为对应活跃成员生成通知。
 - 文档成员发表评论时，向其他文档成员生成评论通知。
 - 通知按接收人隔离，支持全部通知/未读通知筛选。
@@ -187,18 +271,19 @@ POST /cgi-bin/webhook/upload_media
 
 相关实现：`apps/server/app/controller/notifications.ts`、`apps/server/app/lib/notifications.ts`、`apps/desktop/src/renderer/pages/Notifications`。
 
-当前仍待补充截止时间自动提醒和更多系统通知类型。
+当前仍待补充更多系统通知类型。
 
 ### 12. 文档评论
 
 - 文档成员可以发表评论，支持可选的段落锚点标识。
 - 支持查看评论、标记解决和重新打开评论。
+- 支持评论回复线程、全部/未解决/已解决筛选，以及整线程解决和重新打开。
 - 评论通知按文档成员隔离，点击通知可打开对应文档。
 - 文档列表的操作菜单提供评论面板，可直接发布和处理评论。
 
 相关实现：`apps/server/app/controller/documents.ts`、`apps/desktop/src/renderer/pages/Documents/components/DocumentCommentsModal.tsx`。
 
-当前仍待补充编辑器选区直接绑定评论锚点，以及评论回复线程。
+当前仍待补充编辑器选区直接绑定评论锚点。
 
 ### 13. 桌面端能力与安全边界
 
@@ -299,7 +384,7 @@ pnpm make:win            # 生成 Windows x64 安装包
 当前项目定位仍是桌面端协同原型，已具备即时通讯和文档协作的主要闭环，但以下能力尚未在当前代码中形成完整模块：
 
 - 日历、会议预约和视频会议。
-- 审批、项目任务拆解、任务看板和任务提醒。
+- 审批、项目任务拆解和任务看板。
 - 多维表格、表单、仪表盘和低代码工作流。
 - AI 摘要、知识问答和自动化代理。
 - 外部访客协作和跨组织权限体系。
