@@ -7,6 +7,7 @@ export const ROUTES = {
   contactDetail: (userId: number | string) => `/contacts/${userId}`,
   organization: "/organization",
   documents: "/documents",
+  reviews: "/reviews",
   search: "/search",
   tasks: "/tasks",
   notifications: "/notifications",

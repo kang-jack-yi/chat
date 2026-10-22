@@ -27,7 +27,11 @@ export function searchResultRoute(hit: WorkspaceSearchHit): string | undefined {
 }
 
 /** 任务通知优先定位任务，避免关联会话抢占到期提醒的跳转。 */
-export function notificationRoute(item: Pick<Notification, "taskId" | "conversationId">) {
+export function notificationRoute(item: Pick<Notification, "taskId" | "conversationId"> & Partial<Pick<Notification, "entityType" | "entityId">>) {
+  if (item.entityType === "document_review") {
+    const id = searchTargetId(item.entityId || null);
+    return id ? `${ROUTES.reviews}?reviewId=${id}` : undefined;
+  }
   if (item.taskId) return `${ROUTES.tasks}?taskId=${item.taskId}`;
   if (item.conversationId) return ROUTES.chatDetail(item.conversationId);
   return undefined;

@@ -296,6 +296,22 @@ POST /cgi-bin/webhook/upload_media
 - access token 默认有效期 15 分钟，刷新时轮换 refresh session。
 - 会话、消息、文档、附件和组织数据均按企业/成员权限隔离。
 
+### 14. 文档评审与固定审批闭环
+
+- 文档列表的操作菜单中，所有者和编辑者可以“提交评审”。
+- 选择关联群聊、指定审批人、任务负责人和截止时间；参与者必须是同企业有效成员，并同时有文档与群聊权限。
+- 提交时保存不可变文档版本，后续编辑不改变本次审批依据。
+- “审批”页面提供待我审批、我发起的和全部参与记录，展示提交版本的纯文本预览。
+- 指定审批人通过或驳回评审，可填写审批意见；通过后自动创建任务、分配通知和群系统消息，失败原子回滚。
+- 重复提交和重复审批按请求标识与终态去重；通知可直接定位评审详情。
+- 指定审批人仍有评审访问权时，可只读查看自动任务；任务修改仍限创建者和负责人。
+- 评审任务到期后通知负责人并向关联群聊写入系统提醒，投递凭据持久化，重启后补投且不重复。
+- 当前只实现固定单人审批，不包含自定义模板、多人会签、条件分支或拖拽流程设计器。
+
+相关实现：`apps/server/app/service/document_reviews.ts`、`apps/desktop/src/renderer/pages/Reviews`、`apps/desktop/src/renderer/pages/Documents/components/DocumentReviewModal.tsx`。
+
+评审并发写入由连接级队列、SQLite IMMEDIATE 事务和有限写锁重试保护。持续锁冲突返回可重试的 `503 DATABASE_BUSY`；这不等同于生产级横向扩展数据库方案。
+
 ## 系统结构
 
 ```text
@@ -328,6 +344,7 @@ packages/
 | `/contacts/:userId` | 成员详情 |
 | `/organization` | 组织架构与成员管理 |
 | `/documents` | 云文档列表 |
+| `/reviews` | 文档评审待办与提交版本；`reviewId` 参数定位详情 |
 
 ## API 能力概览
 
@@ -337,6 +354,7 @@ packages/
 - `/api/company`、`/api/departments`、`/api/users`、`/api/contacts`：企业与通讯录。
 - `/api/conversations/*`：会话、群管理、机器人、消息、已读和转发。
 - `/api/documents/*`：文档、导入、下载、更新、分享和删除。
+- `/api/document-reviews/*`：评审提交、列表、详情和指定成员审批；`/api/documents/:id/review-options` 返回可用群聊与成员。
 - `/api/uploads`、`/api/files/*`：附件上传、下载和删除。
 - `/api/sync/*`：健康检查、bootstrap、增量事件和同步状态。
 - `/cgi-bin/webhook/*`：机器人 Webhook。
@@ -384,7 +402,7 @@ pnpm make:win            # 生成 Windows x64 安装包
 当前项目定位仍是桌面端协同原型，已具备即时通讯和文档协作的主要闭环，但以下能力尚未在当前代码中形成完整模块：
 
 - 日历、会议预约和视频会议。
-- 审批、项目任务拆解和任务看板。
+- 自定义审批模板、多人会签、项目任务拆解和任务看板（已有固定文档单人评审闭环）。
 - 多维表格、表单、仪表盘和低代码工作流。
 - AI 摘要、知识问答和自动化代理。
 - 外部访客协作和跨组织权限体系。

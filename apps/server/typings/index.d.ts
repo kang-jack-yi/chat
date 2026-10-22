@@ -11,6 +11,7 @@ import type TasksService from "../app/service/tasks";
 import type UploadService from "../app/service/upload";
 import type SearchService from "../app/service/search";
 import type DocumentVersionsService from "../app/service/document_versions";
+import type DocumentReviewsService from "../app/service/document_reviews";
 
 declare module "egg" {
   interface IService {
@@ -25,6 +26,7 @@ declare module "egg" {
     upload: UploadService;
     search: SearchService;
     documentVersions: DocumentVersionsService;
+    documentReviews: DocumentReviewsService;
   }
   interface Application {
     chatDb: ChatDatabase;

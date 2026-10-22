@@ -16,6 +16,7 @@ export default function taskReminders(app: Application) {
     /** 使用匿名上下文调用全局任务扫描，不依赖当前登录用户。 */
     async subscribe() {
       await this.ctx.service.tasks.sendDueReminders();
+      await this.ctx.service.documentReviews.sendDueGroupReminders();
     }
   };
 }

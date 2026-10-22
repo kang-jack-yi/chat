@@ -15,6 +15,13 @@ export function useWorkspaceEvents() {
     const refreshConversations = () => queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
     const refreshUsers = () => queryClient.invalidateQueries({ queryKey: queryKeys.users });
     const refreshNotifications = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    /** 评审提交或定案后刷新待办，并更新关联任务与通知。 */
+    const refreshReviews = () => {
+      void queryClient.invalidateQueries({ queryKey: ["document-reviews"] });
+      void queryClient.invalidateQueries({ queryKey: ["document-review"] });
+      void queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      void refreshNotifications();
+    };
     const onPresence = ({ userId, online }: { userId: number; online: boolean }) => {
       queryClient.setQueryData<User[]>(queryKeys.users, (old) =>
         old?.map((user) => user.id === userId ? { ...user, online } : user));
@@ -36,6 +43,7 @@ export function useWorkspaceEvents() {
     socket.on("presence:changed", onPresence);
     socket.on("member:status-changed", refreshUsers);
     socket.on("notification:available", refreshNotifications);
+    socket.on("review:updated", refreshReviews);
     socket.on("message:new", persistMessage);
     socket.on("sync:available", synchronize);
     const unsubscribeRetry = window.desktop?.sync.onRetry(() => {
@@ -47,6 +55,7 @@ export function useWorkspaceEvents() {
       socket.off("presence:changed", onPresence);
       socket.off("member:status-changed", refreshUsers);
       socket.off("notification:available", refreshNotifications);
+      socket.off("review:updated", refreshReviews);
       socket.off("message:new", persistMessage);
       socket.off("sync:available", synchronize);
       unsubscribeRetry?.();

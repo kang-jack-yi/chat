@@ -34,6 +34,7 @@ export default (app: Application) => {
   router.get("/api/sync/status", auth, controller.sync.status);
 
   router.get("/api/tasks", auth, controller.tasks.list);
+  router.get("/api/tasks/:id", auth, controller.tasks.detail);
   router.get("/api/search", auth, controller.search.search);
   router.post("/api/tasks", auth, controller.tasks.create);
   router.patch("/api/tasks/:id", auth, controller.tasks.update);
@@ -44,6 +45,11 @@ export default (app: Application) => {
   router.post("/api/notifications/read-all", auth, controller.notifications.readAll);
 
   router.get("/api/documents", auth, controller.documents.list);
+  router.get("/api/document-reviews", auth, controller.documentReviews.list);
+  router.post("/api/document-reviews", auth, controller.documentReviews.submit);
+  router.get("/api/document-reviews/:id", auth, controller.documentReviews.detail);
+  router.post("/api/document-reviews/:id/decision", auth, controller.documentReviews.decide);
+  router.get("/api/documents/:id/review-options", auth, controller.documentReviews.options);
   router.post("/api/documents", auth, controller.documents.create);
   router.post("/api/documents/import", auth, controller.documents.importFile);
   router.get("/api/documents/:id/download", auth, controller.documents.download);

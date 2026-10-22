@@ -22,6 +22,8 @@ export interface ChatDatabase {
   CloudDocumentMember: AnyModel;
   CloudDocumentComment: AnyModel;
   CloudDocumentVersion: AnyModel;
+  DocumentReview: AnyModel;
+  DocumentReviewDelivery: AnyModel;
   Task: AnyModel;
   Notification: AnyModel;
   SyncEvent: AnyModel;
@@ -242,6 +244,44 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     ],
   });
 
+  const DocumentReview = sequelize.define("DocumentReview", {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    companyId: { type: DataTypes.INTEGER, allowNull: false },
+    documentId: { type: DataTypes.INTEGER, allowNull: false },
+    documentVersionId: { type: DataTypes.INTEGER, allowNull: false },
+    conversationId: { type: DataTypes.INTEGER, allowNull: false },
+    submitterId: { type: DataTypes.INTEGER, allowNull: false },
+    approverId: { type: DataTypes.INTEGER, allowNull: false },
+    assigneeId: { type: DataTypes.INTEGER, allowNull: false },
+    title: { type: DataTypes.STRING(180), allowNull: false },
+    dueAt: { type: DataTypes.DATE, allowNull: false },
+    status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "pending_review" },
+    requestKey: { type: DataTypes.STRING(80), allowNull: false },
+    requestHash: { type: DataTypes.STRING(64), allowNull: false },
+    decisionKey: { type: DataTypes.STRING(80), allowNull: true },
+    decisionComment: { type: DataTypes.STRING(500), allowNull: false, defaultValue: "" },
+    decidedAt: { type: DataTypes.DATE, allowNull: true },
+    taskId: { type: DataTypes.INTEGER, allowNull: true },
+  }, {
+    ...common, tableName: "document_reviews",
+    indexes: [
+      { unique: true, fields: ["company_id", "submitter_id", "request_key"] },
+      { fields: ["company_id", "approver_id", "status"] },
+      { fields: ["document_id", "id"] },
+      { unique: true, fields: ["task_id"] },
+    ],
+  });
+
+  const DocumentReviewDelivery = sequelize.define("DocumentReviewDelivery", {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    reviewId: { type: DataTypes.INTEGER, allowNull: false },
+    reminderKey: { type: DataTypes.STRING(160), allowNull: false },
+    messageId: { type: DataTypes.INTEGER, allowNull: false },
+  }, {
+    ...common, tableName: "document_review_deliveries",
+    indexes: [{ unique: true, fields: ["review_id", "reminder_key"] }],
+  });
+
   const Task = sequelize.define("Task", {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     companyId: { type: DataTypes.INTEGER, allowNull: false },
@@ -344,6 +384,8 @@ function defineModels(sequelize: Sequelize): ChatDatabase {
     CloudDocumentMember,
     CloudDocumentComment,
     CloudDocumentVersion,
+    DocumentReview,
+    DocumentReviewDelivery,
     Task,
     Notification,
     SyncEvent,

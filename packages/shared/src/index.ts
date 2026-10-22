@@ -158,12 +158,55 @@ export interface DocumentVersionPreview extends DocumentVersion {
   text: string;
 }
 
+export type DocumentReviewStatus = "pending_review" | "approved" | "rejected";
+export type DocumentReviewScope = "pending" | "submitted" | "all";
+
+export interface SubmitDocumentReview {
+  requestKey: string;
+  documentId: number;
+  conversationId: number;
+  approverId: number;
+  assigneeId: number;
+  title: string;
+  dueAt: string;
+}
+
+export interface DocumentReview {
+  id: number;
+  documentId: number;
+  documentVersionId: number;
+  documentTitle: string;
+  conversationId: number;
+  conversationName: string;
+  submitterId: number;
+  approverId: number;
+  assigneeId: number;
+  submitter: TaskActor;
+  approver: TaskActor;
+  assignee: TaskActor;
+  title: string;
+  dueAt: string;
+  status: DocumentReviewStatus;
+  taskId: number | null;
+  decisionComment: string;
+  decidedAt: string | null;
+  createdAt: string;
+}
+
+export interface DocumentReviewDetail extends DocumentReview {
+  version: DocumentVersionPreview;
+}
+
+export interface DocumentReviewOptions {
+  groups: Array<{ id: number; name: string; members: TaskActor[] }>;
+}
+
 export interface Notification {
   id: number;
   type: NotificationType;
   title: string;
   body: string;
-  entityType: "task" | "message" | "document" | "system";
+  entityType: "task" | "message" | "document" | "document_review" | "system";
   entityId: string;
   conversationId: number | null;
   taskId: number | null;

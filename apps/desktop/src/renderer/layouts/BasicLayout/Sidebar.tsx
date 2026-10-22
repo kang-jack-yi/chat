@@ -1,4 +1,4 @@
-import { Building2, Bell, ContactRound, FileText, ListTodo, MessageCircleMore, Search, Settings } from "lucide-react";
+import { Building2, Bell, ContactRound, FileText, ListTodo, MessageCircleMore, Search, Settings, ClipboardCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -84,6 +84,7 @@ export default function Sidebar() {
         <NavItem to={ROUTES.search} icon={<Search size={22} />} label="搜索" />
         <NavItem to={ROUTES.contacts} icon={<ContactRound size={22} />} label="通讯录" />
         <NavItem to={ROUTES.documents} icon={<FileText size={22} />} label="文档" />
+        <NavItem to={ROUTES.reviews} icon={<ClipboardCheck size={22} />} label="审批" />
         <NavItem to={ROUTES.tasks} icon={<ListTodo size={22} />} label="任务" />
         <NavItem to={ROUTES.notifications} icon={<Bell size={22} />} label="通知" badge={notifications.data?.unreadCount} />
         {isAdmin && <NavItem to={ROUTES.organization} icon={<Building2 size={22} />} label="组织管理" />}

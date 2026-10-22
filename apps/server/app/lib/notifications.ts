@@ -12,7 +12,7 @@ export async function createNotification(
     type: NotificationType;
     title: string;
     body: string;
-    entityType: "task" | "message" | "document" | "system";
+    entityType: "task" | "message" | "document" | "document_review" | "system";
     entityId: string;
     conversationId?: number | null;
     taskId?: number | null;

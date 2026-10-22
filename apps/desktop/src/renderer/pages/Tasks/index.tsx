@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Button,
+  Alert,
   DatePicker,
   Empty,
   Input,
@@ -26,7 +27,7 @@ import { queryKeys } from "../../constants/query-keys";
 import { tasksService } from "../../services/tasks";
 import { organizationService } from "../../services/organization";
 import { useUserStore } from "../../stores/user-store";
-import { searchTargetId } from "../Search/helpers";
+import { includeSearchTarget, searchTargetId } from "../Search/helpers";
 
 const priorityLabels: Record<TaskPriority, string> = {
   low: "低",
@@ -64,7 +65,14 @@ export default function TasksPage() {
   const [editDueAt, setEditDueAt] = useState<Dayjs | null>(null);
   const tasks = useQuery({
     queryKey: queryKeys.tasks(targetTaskId ? "" : status),
-    queryFn: () => tasksService.list(targetTaskId ? undefined : status || undefined),
+    queryFn: () =>
+      tasksService.list(targetTaskId ? undefined : status || undefined),
+  });
+  const targetTask = useQuery({
+    queryKey: ["tasks", "target", targetTaskId],
+    queryFn: () => tasksService.detail(targetTaskId!),
+    enabled: Boolean(targetTaskId),
+    retry: false,
   });
   const users = useQuery({
     queryKey: queryKeys.users,
@@ -106,7 +114,10 @@ export default function TasksPage() {
     },
     onError: (error: Error) => message.error(error.message),
   });
-  const items = useMemo(() => tasks.data || [], [tasks.data]);
+  const items = useMemo(
+    () => includeSearchTarget(tasks.data || [], targetTask.data),
+    [tasks.data, targetTask.data],
+  );
 
   // 搜索定位时显示全部状态，避免已完成任务被既有筛选隐藏。
   useEffect(() => {
@@ -115,8 +126,9 @@ export default function TasksPage() {
 
   // 数据到达后将目标滚动到可见区域，卡片高亮由 URL 标识维持。
   useEffect(() => {
-    if (targetTaskId) targetTaskRef.current?.scrollIntoView({ block: "center" });
-  }, [targetTaskId, tasks.data]);
+    if (targetTaskId)
+      targetTaskRef.current?.scrollIntoView({ block: "center" });
+  }, [targetTaskId, tasks.data, targetTask.data]);
 
   function openEdit(task: Task) {
     setEditing(task);
@@ -212,7 +224,13 @@ export default function TasksPage() {
         </section>
 
         <div className="grid gap-3">
+          {targetTask.isError && (
+            <Alert type="error" showIcon title={targetTask.error.message} />
+          )}
           {items.map((task) => {
+            const canEdit = [task.creatorId, task.assigneeId].includes(
+              currentUserId || 0,
+            );
             const done = task.status === "done" || task.status === "cancelled";
             const nextStatus: TaskStatus =
               task.status === "todo"
@@ -230,6 +248,7 @@ export default function TasksPage() {
                 <button
                   type="button"
                   aria-label={done ? "重新打开任务" : "推进任务"}
+                  disabled={!canEdit}
                   className="text-[var(--app-primary)]"
                   onClick={() =>
                     update.mutate({
@@ -269,9 +288,11 @@ export default function TasksPage() {
                   {priorityLabels[task.priority]}
                 </Tag>
                 <Tag>{statusLabels[task.status]}</Tag>
+                {!canEdit && <Tag>仅查看</Tag>}
                 <Button
                   type="text"
                   aria-label="编辑任务"
+                  disabled={!canEdit}
                   icon={<Pencil size={16} />}
                   onClick={() => openEdit(task)}
                 />
@@ -294,9 +315,10 @@ export default function TasksPage() {
               </article>
             );
           })}
-          {!tasks.isLoading && !items.length && (
-            <Empty description="暂无任务" />
-          )}
+          {!tasks.isLoading &&
+            !targetTask.isLoading &&
+            !targetTask.isError &&
+            !items.length && <Empty description="暂无任务" />}
         </div>
       </div>
       <Modal

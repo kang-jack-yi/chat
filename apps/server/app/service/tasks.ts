@@ -1,5 +1,5 @@
 import { Service } from "egg";
-import { Op, QueryTypes } from "sequelize";
+import { Op, QueryTypes, type Transaction } from "sequelize";
 import { publicUser } from "../lib/auth";
 import { toPlain } from "../lib/database";
 import { createSystemMessage } from "../lib/chat";
@@ -14,6 +14,15 @@ type TaskPriority = "low" | "normal" | "high" | "urgent";
 const statuses: TaskStatus[] = ["todo", "in_progress", "done", "cancelled"];
 
 const priorities: TaskPriority[] = ["low", "normal", "high", "urgent"];
+
+interface TransactionalTaskInput {
+  title: string;
+  priority: TaskPriority;
+  dueAt: Date | null;
+  conversationId: number | null;
+  messageId?: number | null;
+  documentId?: number;
+}
 
 /** 与 Sequelize SQLite 模型统一使用 UTC 字符串，避免宿主时区影响 SQL 日期比较。 */
 function databaseDate(date: Date): string {
@@ -184,6 +193,121 @@ export default class TasksService extends Service {
     );
   }
 
+  /** 查看自己关联的任务，或当前仍可访问评审的指定审批人所批准的任务。 */
+  async detail(resourceId: number) {
+    const row = await this.findTask(Number(resourceId));
+    if (!row) throw new ServiceError(404, "NOT_FOUND", "任务不存在");
+    const userId = Number(this.ctx.currentUser.id);
+    if (
+      ![Number(row.get("creatorId")), Number(row.get("assigneeId"))].includes(
+        userId,
+      )
+    ) {
+      const review = await this.app.chatDb.DocumentReview.findOne({
+        where: {
+          companyId: this.ctx.currentUser.companyId,
+          taskId: row.get("id"),
+          approverId: userId,
+          status: "approved",
+        },
+      });
+      if (!review) throw new ServiceError(403, "FORBIDDEN", "无权查看该任务");
+      await this.service.documentReviews.detail(Number(review.get("id")));
+    }
+    return serializeTask(this.app, row);
+  }
+
+  /** 已完成权限校验的业务调用在外部事务中创建任务，复用通知、群消息及同步写入。 */
+  async createInTransaction(
+    input: TransactionalTaskInput,
+    creator: any,
+    assignee: any,
+    transaction: Transaction,
+  ) {
+    const assigneeId = Number(assignee.id);
+    const row = await this.app.chatDb.Task.create(
+      {
+        ...input,
+        companyId: creator.companyId,
+        creatorId: creator.id,
+        assigneeId,
+      },
+      { transaction },
+    );
+    if (input.conversationId) {
+      await createSystemMessage(
+        this.app,
+        {
+          companyId: creator.companyId,
+          conversationId: input.conversationId,
+          event: {
+            type: "task_created",
+            actor: { userId: Number(creator.id), name: String(creator.name) },
+            title: input.title,
+            assignee: { userId: assigneeId, name: String(assignee.name) },
+          },
+        },
+        transaction,
+      );
+    }
+    const notification =
+      assigneeId === Number(creator.id)
+        ? null
+        : await createNotification(
+            this.app,
+            {
+              companyId: creator.companyId,
+              recipientUserId: assigneeId,
+              type: "task_assigned",
+              title: "收到一项新任务",
+              body: `“${input.title}”由${String(creator.name)}分配给你`,
+              entityType: "task",
+              entityId: String(row.get("id")),
+              conversationId: input.conversationId,
+              taskId: Number(row.get("id")),
+              documentId: input.documentId,
+            },
+            transaction,
+          );
+    await appendUserSyncEvent(
+      this.app,
+      {
+        companyId: creator.companyId,
+        recipientUserId: assigneeId,
+        type: "task.upsert",
+        entityId: String(row.get("id")),
+        conversationId: input.conversationId || undefined,
+        payload: { id: Number(row.get("id")) },
+        version: Date.now(),
+      },
+      transaction,
+    );
+    return { row, notification };
+  }
+
+  /** 事务提交后通知负责人和关联群，避免实时消费者读到尚未落库的任务。 */
+  publishCreated(result: { row: any; notification: any }) {
+    const taskId = Number(result.row.get("id"));
+    const assigneeId = Number(result.row.get("assigneeId"));
+    const conversationId = Number(result.row.get("conversationId"));
+    this.app.io
+      ?.of("/")
+      ?.to(`user:${assigneeId}`)
+      .emit("sync:available", { taskId });
+    if (conversationId)
+      this.app.io
+        ?.of("/")
+        ?.to(`conversation:${conversationId}`)
+        .emit("sync:available", { conversationId, taskId });
+    if (result.notification)
+      this.app.io
+        ?.of("/")
+        ?.to(`user:${assigneeId}`)
+        .emit("notification:available", {
+          notificationId: Number(result.notification.get("id")),
+        });
+  }
+
   /** 校验任务及关联对象，在事务中创建任务、通知和同步事件。 */
   async create(input: Record<string, any>) {
     const body = input || {};
@@ -233,86 +357,15 @@ export default class TasksService extends Service {
       throw new ServiceError(400, "INVALID_DUE_AT", "截止时间不正确");
     const transaction = await this.app.chatDb.sequelize.transaction();
     try {
-      const row = await this.app.chatDb.Task.create(
-        {
-          companyId: this.ctx.currentUser.companyId,
-          creatorId: this.ctx.currentUser.id,
-          assigneeId,
-          conversationId,
-          messageId,
-          title,
-          priority,
-          dueAt,
-        },
-        { transaction },
-      );
-      if (conversationId) {
-        await createSystemMessage(
-          this.app,
-          {
-            companyId: this.ctx.currentUser.companyId,
-            conversationId,
-            event: {
-              type: "task_created",
-              actor: {
-                userId: Number(this.ctx.currentUser.id),
-                name: String(this.ctx.currentUser.name),
-              },
-              title,
-              assignee: {
-                userId: Number(assignee.get("id")),
-                name: String(assignee.get("name")),
-              },
-            },
-          },
-          transaction,
-        );
-      }
-      const notification =
-        assigneeId === Number(this.ctx.currentUser.id)
-          ? null
-          : await createNotification(
-              this.app,
-              {
-                companyId: this.ctx.currentUser.companyId,
-                recipientUserId: assigneeId,
-                type: "task_assigned",
-                title: "收到一项新任务",
-                body: `“${title}”由${String(this.ctx.currentUser.name)}分配给你`,
-                entityType: "task",
-                entityId: String(row.get("id")),
-                conversationId,
-                taskId: Number(row.get("id")),
-              },
-              transaction,
-            );
-      await appendUserSyncEvent(
-        this.app,
-        {
-          companyId: this.ctx.currentUser.companyId,
-          recipientUserId: assigneeId,
-          type: "task.upsert",
-          entityId: String(row.get("id")),
-          conversationId: conversationId || undefined,
-          payload: { id: Number(row.get("id")) },
-          version: Date.now(),
-        },
+      const result = await this.createInTransaction(
+        { title, priority, dueAt, conversationId, messageId },
+        this.ctx.currentUser,
+        toPlain(assignee),
         transaction,
       );
       await transaction.commit();
-      this.app.io
-        ?.of("/")
-        ?.to(`user:${assigneeId}`)
-        .emit("sync:available", { taskId: Number(row.get("id")) });
-      if (notification) {
-        this.app.io
-          ?.of("/")
-          ?.to(`user:${assigneeId}`)
-          .emit("notification:available", {
-            notificationId: Number(notification.get("id")),
-          });
-      }
-      return await serializeTask(this.app, row);
+      this.publishCreated(result);
+      return await serializeTask(this.app, result.row);
     } catch (error) {
       await transaction.rollback();
       throw error;

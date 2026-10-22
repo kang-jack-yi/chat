@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Avatar,
   Button,
@@ -30,6 +31,8 @@ import type { CloudDocument, CloudDocumentListView } from "@chat/shared";
 import ShareDocumentModal from "./components/ShareDocumentModal";
 import DocumentCommentsModal from "./components/DocumentCommentsModal";
 import DocumentVersionsModal from "./components/DocumentVersionsModal";
+import DocumentReviewModal from "./components/DocumentReviewModal";
+import { ROUTES } from "../../constants/routes";
 import { useDocuments } from "./hooks";
 import { writeClipboardText } from "../../services/clipboard";
 
@@ -60,6 +63,8 @@ function formatUpdatedAt(value: string) {
 
 export default function DocumentsPage() {
   const documents = useDocuments();
+  const navigate = useNavigate();
+  const [reviewing, setReviewing] = useState<CloudDocument | null>(null);
   const [sharing, setSharing] = useState<CloudDocument | null>(null);
   const [commenting, setCommenting] = useState<CloudDocument | null>(null);
   const [versioning, setVersioning] = useState<CloudDocument | null>(null);
@@ -137,6 +142,11 @@ export default function DocumentsPage() {
       },
       ...(document.permission !== "viewer"
         ? [
+            {
+              key: "review",
+              label: "提交评审",
+              onClick: () => setReviewing(document),
+            },
             {
               key: "rename",
               label: "重命名",
@@ -465,6 +475,14 @@ export default function DocumentsPage() {
         <DocumentVersionsModal
           document={versioning}
           onClose={() => setVersioning(null)}
+        />
+        <DocumentReviewModal
+          document={reviewing}
+          onClose={() => setReviewing(null)}
+          onSubmitted={(review) => {
+            setReviewing(null);
+            navigate(`${ROUTES.reviews}?reviewId=${review.id}`);
+          }}
         />
       </main>
     </div>

@@ -8,6 +8,11 @@ export default class TasksController extends Controller {
     ok(this.ctx, data);
   }
 
+  /** 返回当前用户有权查看的指定任务，由 Service 校验评审关联权限。 */
+  async detail() {
+    ok(this.ctx, await this.service.tasks.detail(Number(this.ctx.params.id)));
+  }
+
   /** 接收请求并返回结果；校验任务及关联对象，在事务中创建任务、通知和同步事件。 */
   async create() {
     const data = await this.service.tasks.create(this.ctx.request.body || {});
