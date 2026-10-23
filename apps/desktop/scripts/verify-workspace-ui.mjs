@@ -33,6 +33,7 @@ const staticModalColors = [];
 const radioColors = [];
 const failureUi = [];
 const networkFailures = [];
+const historyRaceEvidence = [];
 let app;
 let api;
 let vite;
@@ -553,6 +554,106 @@ async function openChat(page, group) {
     .filter({ has: page.getByText(group.name, { exact: true }) })
     .click();
   await page.getByRole("textbox", { name: "消息输入框" }).waitFor();
+}
+
+/** 延迟真实历史响应，验证实时消息不被覆盖且原历史仍保留，不伪造任何业务数据。 */
+async function verifyMessageHistoryRace(account, group) {
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+  });
+  const page = await context.newPage();
+  observe(page);
+  page.setDefaultTimeout(20_000);
+  const pattern = `**/api/conversations/${group.id}/messages?*`;
+  let releaseHistory;
+  const released = new Promise((resolve) => {
+    releaseHistory = resolve;
+  });
+  let captureHistory;
+  let failHistory;
+  const captured = new Promise((resolve, reject) => {
+    captureHistory = resolve;
+    failHistory = reject;
+  });
+  let delivery = Promise.resolve();
+  /** 先取得真实服务响应，只控制交付时机；后续重取请求不再拦截。 */
+  const holdHistory = (route) => {
+    delivery = (async () => {
+      const response = await route.fetch();
+      assert.equal(response.status(), 200);
+      const payload = await response.json();
+      assert.equal(payload.success, true);
+      captureHistory(payload.data);
+      await released;
+      await route.fulfill({ response });
+    })();
+    void delivery.catch(failHistory);
+    return delivery;
+  };
+  try {
+    await signIn(page, account.user.phone);
+    await page.route(pattern, holdHistory, { times: 1 });
+    await openChat(page, group);
+    const history = await captured;
+    const historyId = history.items.at(-1)?.id;
+    assert.ok(historyId, "真实历史中必须有旧消息作为响应已应用的可见证据");
+    const oldRow = page.locator(`#message-${historyId}`);
+    assert.equal(await oldRow.count(), 0, "旧历史响应必须尚未交付");
+    const target = `${url}/__workspace-link-target?scheme=history-race`;
+    const response = await app
+      .httpRequest()
+      .post(`/api/conversations/${group.id}/messages`)
+      .set("Authorization", account.authorization)
+      .send({
+        conversationId: group.id,
+        clientId: crypto.randomUUID(),
+        schemaVersion: 1,
+        parts: [{ type: "text", text: target }],
+      })
+      .expect(200);
+    const liveId = response.body.data.id;
+    const liveRow = page.locator(`#message-${liveId}`);
+    const link = liveRow.getByRole("link", { name: target, exact: true });
+    // 历史仍被挂起，此时能显示新消息只能来自真实 Socket 推送。
+    await link.waitFor();
+    const evidence = {
+      historyId,
+      liveId,
+      liveCopiesBeforeRelease: await liveRow.count(),
+    };
+    historyRaceEvidence.push(evidence);
+    assert.equal(evidence.liveCopiesBeforeRelease, 1);
+    console.log(
+      `HISTORY_RACE Socket消息 ${liveId} 已显示，正在释放旧历史 ${historyId}`,
+    );
+    releaseHistory();
+    await delivery;
+    // 旧消息真正显示后才检查新消息，防止在迟到响应应用前提前通过。
+    await oldRow.waitFor();
+    evidence.historyCopiesAfterRelease = await oldRow.count();
+    evidence.liveCopiesAfterRelease = await liveRow.count();
+    assert.equal(
+      evidence.historyCopiesAfterRelease,
+      1,
+      "旧历史应保留或通过权威历史重取恢复",
+    );
+    assert.equal(
+      evidence.liveCopiesAfterRelease,
+      1,
+      "迟到真实历史响应不能移除或重复 Socket 新消息",
+    );
+    await link.waitFor();
+  } catch (error) {
+    await page.screenshot({
+      path: path.join(directory, "history-race-failure.png"),
+    });
+    throw error;
+  } finally {
+    releaseHistory();
+    await delivery.catch(() => undefined);
+    await page.unroute(pattern, holdHistory);
+    await context.close();
+  }
 }
 
 /** 仅接管受控本地链接的落地页；消息和所有业务 API 完全走真实服务。 */
@@ -1193,6 +1294,9 @@ async function verify() {
     await verifyBrowserEvidence();
     return;
   }
+  await check("迟到真实历史不覆盖Socket新消息，旧历史保留且新消息唯一", () =>
+    verifyMessageHistoryRace(account, group),
+  );
   await verifyLinks(page, context, account, group);
   if (process.argv.includes("--links-only")) {
     await verifyBrowserEvidence();
@@ -1401,6 +1505,7 @@ function writeReport() {
         browserErrors,
         consoleErrors,
         networkFailures,
+        historyRaceEvidence,
         layoutIssues,
         layoutMeasurements,
         messageColors,
@@ -1415,7 +1520,7 @@ function writeReport() {
         scope:
           "真实 React App、登录表单、Egg HTTP/Socket；独立临时数据库与 Vite cacheDir；没有 native bridge 或 UI mock",
         linkTargetScope:
-          "仅 HTTP/HTTPS popup 的受控本地落地页由浏览器拦截提供；没有拦截任何业务 API，不验证 TLS 握手或系统浏览器启动",
+          "HTTP/HTTPS popup 使用受控本地落地页；竞态用例只延迟一次真实历史 HTTP 响应，不修改响应内容，后续重取正常放行；不验证 TLS 握手或系统浏览器启动",
         notCovered: [
           "Electron 原生窗口和 preload",
           "聊天发送框依赖原生 SQLite/outbox，需真实 Electron 验证；API fixture 不代表发送框通过",

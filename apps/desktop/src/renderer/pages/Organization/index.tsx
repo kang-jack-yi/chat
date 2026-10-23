@@ -37,15 +37,6 @@ export default function OrganizationPage() {
 
   return (
     <div className="organization-page">
-      <aside className="organization-directory" aria-label="组织管理导航">
-        <AdminMenu
-          company={session.company}
-          users={users}
-          departments={departments}
-          mode={organization.mode}
-          onModeChange={organization.setMode}
-        />
-      </aside>
       <main className="workspace-page organization-main">
         <div className="organization-content">
           <header className="workspace-page-header organization-header">
@@ -59,7 +50,11 @@ export default function OrganizationPage() {
                 </h1>
                 <p className="workspace-page-description">
                   企业编号 {session.company.code} · {users.length} 名成员 ·{" "}
-                  {departments.length} 个部门
+                  {departments.length} 个部门 · 账号启用{" "}
+                  {users.length
+                    ? Math.round((activeUsers / users.length) * 100)
+                    : 0}
+                  %
                 </p>
               </div>
             </div>
@@ -72,24 +67,10 @@ export default function OrganizationPage() {
             </Button>
           </header>
 
-          <nav className="organization-mobile-nav" aria-label="组织管理视图">
-            <Button
-              type={organization.mode === "members" ? "primary" : "default"}
-              aria-pressed={organization.mode === "members"}
-              icon={<UsersRound size={16} />}
-              onClick={() => organization.setMode("members")}
-            >
-              成员与账号
-            </Button>
-            <Button
-              type={organization.mode === "departments" ? "primary" : "default"}
-              aria-pressed={organization.mode === "departments"}
-              icon={<Building2 size={16} />}
-              onClick={() => organization.setMode("departments")}
-            >
-              部门架构
-            </Button>
-          </nav>
+          <AdminMenu
+            mode={organization.mode}
+            onModeChange={organization.setMode}
+          />
 
           {(organization.users.isError || organization.departments.isError) && (
             <Alert

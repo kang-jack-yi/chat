@@ -26,13 +26,23 @@ export default function ContactsPage() {
   );
 
   useEffect(() => {
-    if (!selectedId && contacts.users.data?.length) {
+    // 窄屏先展示列表；桌面仍默认选中第一位同事。
+    if (
+      !selectedId &&
+      contacts.users.data?.length &&
+      !window.matchMedia("(max-width: 767px)").matches
+    ) {
       const first =
         contacts.users.data.find((user) => user.id !== session.user.id) ??
         contacts.users.data[0];
       navigate(ROUTES.contactDetail(first.id), { replace: true });
     }
   }, [contacts.users.data, navigate, selectedId, session.user.id]);
+
+  useEffect(() => {
+    // 直接打开资料链接和浏览器前进、后退时，保持面板与路由一致。
+    setMobileDetailOpen(Boolean(selectedId));
+  }, [selectedId, setMobileDetailOpen]);
 
   /** 选择同事并在窄屏展开资料区域。 */
   function selectUser(id: number) {
@@ -83,7 +93,7 @@ export default function ContactsPage() {
           type="text"
           icon={<ChevronLeft size={20} />}
           aria-label="返回通讯录"
-          onClick={() => setMobileDetailOpen(false)}
+          onClick={() => navigate(ROUTES.contacts)}
           className="contacts-back"
         />
         <ContactDetail

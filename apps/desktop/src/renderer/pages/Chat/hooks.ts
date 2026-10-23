@@ -368,14 +368,26 @@ export function useChat(
 
   useEffect(() => {
     if (!socket || !conversationId) return;
+    /** 保留实时消息；若历史快照仍在加载，取消旧查询并重取完整历史。 */
     const onMessage = async (message: Message) => {
       if (message.conversationId !== conversationId) return;
       if (localDatabase.available())
         await localDatabase.upsertMessages([message]);
+      const queryKey = queryKeys.messages(conversationId);
+      const historyPending =
+        queryClient.getQueryState(queryKey)?.fetchStatus === "fetching";
+      if (historyPending) {
+        await queryClient.cancelQueries(
+          { queryKey, exact: true },
+          { revert: false },
+        );
+      }
       updateMessages((items) => [
         ...items.filter((item) => item.clientId !== message.clientId),
         message,
       ]);
+      if (historyPending)
+        void queryClient.invalidateQueries({ queryKey, exact: true });
       void queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
       if (message.senderId !== currentUser.id)
         void chatService.read(conversationId, message.id);

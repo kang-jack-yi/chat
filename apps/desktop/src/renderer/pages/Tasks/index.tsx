@@ -60,7 +60,11 @@ export default function TasksPage() {
   const targetTaskId = searchTargetId(searchParams.get("taskId"));
   const targetTaskRef = useRef<HTMLElement | null>(null);
   const currentUserId = useUserStore((state) => state.session?.user.id);
-  const [status, setStatus] = useState<TaskStatus | "">("");
+  const statusParam = searchParams.get("status");
+  const status: TaskStatus | "" =
+    !targetTaskId && statusParam && Object.hasOwn(statusLabels, statusParam)
+      ? (statusParam as TaskStatus)
+      : "";
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("normal");
   const [dueAt, setDueAt] = useState<Dayjs | null>(null);
@@ -124,11 +128,6 @@ export default function TasksPage() {
     () => includeSearchTarget(tasks.data || [], targetTask.data),
     [tasks.data, targetTask.data],
   );
-
-  // 搜索定位时显示全部状态，避免已完成任务被既有筛选隐藏。
-  useEffect(() => {
-    if (targetTaskId) setStatus("");
-  }, [targetTaskId]);
 
   // 数据到达后将目标滚动到可见区域，卡片高亮由 URL 标识维持。
   useEffect(() => {
@@ -259,12 +258,11 @@ export default function TasksPage() {
               aria-labelledby="tasks-status-label"
               value={targetTaskId ? "" : status}
               onChange={(value) => {
-                setStatus(value);
-                if (targetTaskId) {
-                  const next = new URLSearchParams(searchParams);
-                  next.delete("taskId");
-                  setSearchParams(next, { replace: true });
-                }
+                const next = new URLSearchParams(searchParams);
+                next.delete("taskId");
+                if (value) next.set("status", value);
+                else next.delete("status");
+                setSearchParams(next, { replace: true });
               }}
               options={[
                 { value: "", label: "全部状态" },

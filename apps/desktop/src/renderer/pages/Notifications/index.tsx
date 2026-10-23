@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Button, Empty, Segmented, Skeleton, Tag, message } from "antd";
 import { ArrowUpRight, Bell, Check, CheckCheck, RefreshCw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { Notification as AppNotification } from "@chat/shared";
 import { queryKeys } from "../../constants/query-keys";
@@ -41,7 +41,9 @@ export default function NotificationsPage() {
     searchParams.get("notificationId"),
   );
   const targetNotificationRef = useRef<HTMLElement | null>(null);
-  const [unreadOnly, setUnreadOnly] = useState(false);
+  // 定位通知时展示全部，其余筛选跟随 URL，切换工作视图后仍能恢复。
+  const unreadOnly =
+    !targetNotificationId && searchParams.get("unread") === "1";
   const notifications = useQuery({
     queryKey: queryKeys.notifications(
       targetNotificationId ? false : unreadOnly,
@@ -78,11 +80,6 @@ export default function NotificationsPage() {
   });
   const data = notifications.data;
   const items = includeSearchTarget(data?.items || [], searchTarget.data);
-
-  // 已读搜索目标必须在全部通知中保持可见，不能沿用未读筛选。
-  useEffect(() => {
-    if (targetNotificationId) setUnreadOnly(false);
-  }, [targetNotificationId]);
 
   // 无论目标来自当前列表还是补查，都滚动到其卡片并维持高亮。
   useEffect(() => {
@@ -150,12 +147,11 @@ export default function NotificationsPage() {
             value={!targetNotificationId && unreadOnly ? "未读" : "全部"}
             options={["全部", "未读"]}
             onChange={(value) => {
-              setUnreadOnly(value === "未读");
-              if (targetNotificationId) {
-                const next = new URLSearchParams(searchParams);
-                next.delete("notificationId");
-                setSearchParams(next, { replace: true });
-              }
+              const next = new URLSearchParams(searchParams);
+              next.delete("notificationId");
+              if (value === "未读") next.set("unread", "1");
+              else next.delete("unread");
+              setSearchParams(next, { replace: true });
             }}
           />
           <span className="notifications-unread-count" aria-live="polite">

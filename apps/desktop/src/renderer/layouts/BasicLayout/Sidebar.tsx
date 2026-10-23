@@ -1,11 +1,9 @@
 import {
-  Bell,
+  BriefcaseBusiness,
   Building2,
   ChevronDown,
-  ClipboardCheck,
   ContactRound,
   FileText,
-  ListTodo,
   LogOut,
   MessageCircleMore,
   Monitor,
@@ -17,11 +15,15 @@ import {
   Sun,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dropdown, message, Tooltip } from "antd";
 import Avatar from "../../components/Avatar";
 import { ROUTES } from "../../constants/routes";
+import {
+  matchesWorkspaceRoute,
+  workspaceSections,
+} from "../../constants/workspace-sections";
 import { queryKeys } from "../../constants/query-keys";
 import { authService } from "../../services/auth";
 import { notificationsService } from "../../services/notifications";
@@ -35,18 +37,28 @@ interface NavItemProps {
   icon: ReactNode;
   label: string;
   badge?: number;
+  activePaths?: readonly string[];
 }
 
 /** 渲染包含当前页状态和未读数量的导航项。 */
-function NavItem({ to, icon, label, badge = 0 }: NavItemProps) {
+function NavItem({
+  to,
+  icon,
+  label,
+  badge = 0,
+  activePaths = [to],
+}: NavItemProps) {
+  const { pathname } = useLocation();
+  const active = activePaths.some((path) =>
+    matchesWorkspaceRoute(pathname, path),
+  );
   return (
     <Tooltip placement="right" title={label}>
-      <NavLink
+      <Link
         to={to}
         aria-label={label}
-        className={({ isActive }) =>
-          `workspace-nav-item${isActive ? " is-active" : ""}`
-        }
+        aria-current={active ? "page" : undefined}
+        className={`workspace-nav-item${active ? " is-active" : ""}`}
       >
         <span className="workspace-nav-icon">{icon}</span>
         <span className="workspace-nav-label">{label}</span>
@@ -55,7 +67,7 @@ function NavItem({ to, icon, label, badge = 0 }: NavItemProps) {
             {badge > 99 ? "99+" : badge}
           </span>
         )}
-      </NavLink>
+      </Link>
     </Tooltip>
   );
 }
@@ -80,7 +92,6 @@ export default function Sidebar({
     (state) => state.setSettingsCenterOpen,
   );
   const { preferences, update } = useDesktopPreferences();
-  const isAdmin = ["owner", "admin"].includes(session?.user.role || "");
   const notifications = useQuery({
     queryKey: queryKeys.notifications(),
     queryFn: () => notificationsService.list(),
@@ -150,7 +161,8 @@ export default function Sidebar({
         <NavItem
           to={ROUTES.contacts}
           icon={<ContactRound size={19} />}
-          label="通讯录"
+          label="团队"
+          activePaths={workspaceSections.team.items.map((item) => item.to)}
         />
         <NavItem
           to={ROUTES.documents}
@@ -158,24 +170,12 @@ export default function Sidebar({
           label="文档"
         />
         <NavItem
-          to={ROUTES.reviews}
-          icon={<ClipboardCheck size={19} />}
-          label="审批"
-        />
-        <NavItem to={ROUTES.tasks} icon={<ListTodo size={19} />} label="任务" />
-        <NavItem
-          to={ROUTES.notifications}
-          icon={<Bell size={19} />}
-          label="通知"
+          to={ROUTES.tasks}
+          icon={<BriefcaseBusiness size={19} />}
+          label="工作中心"
           badge={notifications.data?.unreadCount}
+          activePaths={workspaceSections.work.items.map((item) => item.to)}
         />
-        {isAdmin && (
-          <NavItem
-            to={ROUTES.organization}
-            icon={<Building2 size={19} />}
-            label="组织管理"
-          />
-        )}
       </nav>
       <div className="workspace-sidebar-footer">
         <div className="workspace-sidebar-tools">

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { lazy, Suspense, type ReactNode } from "react";
 import BasicLayout from "./layouts/BasicLayout";
 import BlankLayout from "./layouts/BlankLayout";
+import WorkspaceSectionLayout from "./layouts/WorkspaceSectionLayout";
 import LoadingScreen from "./components/LoadingScreen";
 import { ROUTES } from "./constants/routes";
 import { useSession } from "./hooks/useSession";
@@ -28,17 +29,29 @@ export function canAccessOrganization(session: SessionData | null) {
 
 function ProtectedLayout({ session }: { session: SessionData | null }) {
   if (!session) return <Navigate to={ROUTES.login} replace />;
-  return <SocketProvider><BasicLayout /></SocketProvider>;
+  return (
+    <SocketProvider>
+      <BasicLayout />
+    </SocketProvider>
+  );
 }
 
-function LoginGuard({ session, children }: { session: SessionData | null; children: ReactNode }) {
+function LoginGuard({
+  session,
+  children,
+}: {
+  session: SessionData | null;
+  children: ReactNode;
+}) {
   return session ? <Navigate to={ROUTES.chat} replace /> : children;
 }
 
 function OrganizationGuard({ session }: { session: SessionData | null }) {
-  return canAccessOrganization(session)
-    ? <OrganizationPage />
-    : <Navigate to={ROUTES.chat} replace />;
+  return canAccessOrganization(session) ? (
+    <OrganizationPage />
+  ) : (
+    <Navigate to={ROUTES.chat} replace />
+  );
 }
 
 export default function App() {
@@ -49,21 +62,41 @@ export default function App() {
     <Suspense fallback={<LoadingScreen />}>
       <Routes>
         <Route element={<BlankLayout />}>
-          <Route path={ROUTES.login} element={<LoginGuard session={session}><LoginPage /></LoginGuard>} />
+          <Route
+            path={ROUTES.login}
+            element={
+              <LoginGuard session={session}>
+                <LoginPage />
+              </LoginGuard>
+            }
+          />
         </Route>
         <Route element={<ProtectedLayout session={session} />}>
           <Route path={ROUTES.chat} element={<ChatPage />} />
           <Route path="/chat/:conversationId" element={<ChatPage />} />
-          <Route path={ROUTES.contacts} element={<ContactsPage />} />
-          <Route path="/contacts/:userId" element={<ContactsPage />} />
-          <Route path={ROUTES.organization} element={<OrganizationGuard session={session} />} />
+          <Route element={<WorkspaceSectionLayout section="team" />}>
+            <Route path={ROUTES.contacts} element={<ContactsPage />} />
+            <Route path="/contacts/:userId" element={<ContactsPage />} />
+            <Route
+              path={ROUTES.organization}
+              element={<OrganizationGuard session={session} />}
+            />
+          </Route>
           <Route path={ROUTES.documents} element={<DocumentsPage />} />
-          <Route path={ROUTES.reviews} element={<ReviewsPage />} />
-          <Route path={ROUTES.tasks} element={<TasksPage />} />
-          <Route path={ROUTES.notifications} element={<NotificationsPage />} />
+          <Route element={<WorkspaceSectionLayout section="work" />}>
+            <Route path={ROUTES.reviews} element={<ReviewsPage />} />
+            <Route path={ROUTES.tasks} element={<TasksPage />} />
+            <Route
+              path={ROUTES.notifications}
+              element={<NotificationsPage />}
+            />
+          </Route>
           <Route path={ROUTES.search} element={<SearchPage />} />
         </Route>
-        <Route path="*" element={<Navigate to={defaultRoute(session)} replace />} />
+        <Route
+          path="*"
+          element={<Navigate to={defaultRoute(session)} replace />}
+        />
       </Routes>
     </Suspense>
   );

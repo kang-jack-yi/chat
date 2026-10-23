@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Department, User } from "@chat/shared";
 import { queryKeys } from "../../constants/query-keys";
@@ -11,9 +12,19 @@ export type OrganizationModalState =
   | { kind: "department-edit"; department: Department }
   | null;
 
+/** 管理成员、部门及操作状态，当前分区随 URL 保留以便团队视图往返。 */
 export function useOrganization() {
   const queryClient = useQueryClient();
-  const [mode, setMode] = useState<OrganizationMode>("members");
+  const [params, setParams] = useSearchParams();
+  const mode: OrganizationMode =
+    params.get("view") === "departments" ? "departments" : "members";
+  /** 切换管理分区时保留其他定位参数，并支持刷新和浏览器返回。 */
+  function setMode(value: OrganizationMode) {
+    const next = new URLSearchParams(params);
+    if (value === "members") next.delete("view");
+    else next.set("view", value);
+    setParams(next);
+  }
   const [modal, setModal] = useState<OrganizationModalState>(null);
   const [error, setError] = useState("");
   const users = useQuery({

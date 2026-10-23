@@ -36,8 +36,10 @@ function time(value: string) {
 
 /** 集中展示评审待办与提交时版本，通知可通过 reviewId 直接定位。 */
 export default function ReviewsPage() {
-  const [scope, setScope] = useState<DocumentReviewScope>("pending");
   const [params, setParams] = useSearchParams();
+  const scopeParam = params.get("scope");
+  const scope: DocumentReviewScope =
+    scopeParam === "submitted" || scopeParam === "all" ? scopeParam : "pending";
   const selectedId = searchTargetId(params.get("reviewId"));
   const navigate = useNavigate();
   const list = useQuery({
@@ -99,7 +101,12 @@ export default function ReviewsPage() {
         >
           <Segmented
             value={scope}
-            onChange={(value) => setScope(value as DocumentReviewScope)}
+            onChange={(value) => {
+              const next = new URLSearchParams(params);
+              if (value === "pending") next.delete("scope");
+              else next.set("scope", value);
+              setParams(next, { replace: true });
+            }}
             options={[
               { label: "待我审批", value: "pending" },
               { label: "我发起的", value: "submitted" },
