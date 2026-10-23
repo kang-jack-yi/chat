@@ -323,9 +323,14 @@ describe("ReviewsPage 真实交互", { timeout: 15_000 }, () => {
         review(42).version.text,
       ),
     );
-    expect(document.querySelector("output")?.textContent).toContain(
-      "source=notification&reviewId=42",
+    const route = new URL(
+      document.querySelector("output")!.textContent!.split("|")[0],
+      "http://localhost",
     );
+    expect(route.pathname).toBe("/reviews");
+    expect(route.searchParams.get("source")).toBe("notification");
+    expect(route.searchParams.get("scope")).toBe("all");
+    expect(route.searchParams.get("reviewId")).toBe("42");
     expect(documentReviewsService.decide).not.toHaveBeenCalled();
   });
 

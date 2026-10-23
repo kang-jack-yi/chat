@@ -211,13 +211,21 @@ describe("工作台页面布局重构回归", () => {
     expect(host.textContent).not.toContain("发消息");
   });
 
-  it("窄屏组织模式入口可以切换部门架构并打开新建部门弹窗", async () => {
+  it("统一组织导航可以切换部门架构并打开新建部门弹窗", async () => {
     await renderPage(<OrganizationPage />);
-    const mobileNav = host.querySelector(".organization-mobile-nav")!;
-    await act(async () => button("部门架构", mobileNav).click());
-    expect(button("部门架构", mobileNav).getAttribute("aria-pressed")).toBe(
-      "true",
+    const navigation = host.querySelector('nav[aria-label="组织管理分区"]')!;
+    expect(navigation).not.toBeNull();
+    expect(navigation.querySelectorAll("button")).toHaveLength(2);
+    expect(button("成员与账号", navigation).getAttribute("aria-current")).toBe(
+      "page",
     );
+    await act(async () => button("部门架构", navigation).click());
+    expect(button("部门架构", navigation).getAttribute("aria-current")).toBe(
+      "page",
+    );
+    expect(
+      button("成员与账号", navigation).getAttribute("aria-current"),
+    ).toBeNull();
     expect(host.querySelector(".organization-departments")).not.toBeNull();
     await act(async () => button("新建部门", host).click());
     const dialog = document.querySelector('[role="dialog"]')!;

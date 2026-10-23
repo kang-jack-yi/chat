@@ -2,6 +2,7 @@
 // 原生文档编辑预览：追加 --collaboration，手动启用隔离随机端口协作服务。
 // 自动验收：node apps/desktop/scripts/verify-workspace-ui.mjs <playwright模块路径> msedge
 // 追加 --links-only 只测链接；--chat-only 测链接、中性色与消息截图，JSON 中标明局部范围。
+// 追加 --sections-only 验证工作中心/团队的筛选、深链接、权限及真实审批流程。
 // 所有数据库、缓存、截图和报告保留在系统临时目录；本脚本不会删除目录或重建原生依赖。
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -214,9 +215,24 @@ async function signIn(page, phone = "13800000001") {
   await page.getByRole("link", { name: "消息", exact: true }).waitFor();
 }
 
-/** 从正式侧边导航切换业务页面。 */
+/** 经侧栏区域与二级导航切换页面，区域内切换保留最近的深链接。 */
 async function navigate(page, name) {
-  await page.getByRole("link", { name, exact: true }).click();
+  const section = ["任务", "审批", "通知"].includes(name)
+    ? "工作中心"
+    : ["通讯录", "组织管理"].includes(name)
+      ? "团队"
+      : undefined;
+  if (section) {
+    const navigation = page.getByRole("navigation", {
+      name: `${section}视图`,
+      exact: true,
+    });
+    if (!(await navigation.isVisible()))
+      await page.getByRole("link", { name: section, exact: true }).click();
+    await navigation.getByRole("link", { name, exact: true }).click();
+  } else {
+    await page.getByRole("link", { name, exact: true }).click();
+  }
   await page.locator(".workspace-main").waitFor();
 }
 
@@ -1154,6 +1170,29 @@ async function verify() {
   ).body.data;
   const group = conversations.find((item) => item.type === "group");
   assert.ok(group, "演示数据必须有可访问的真实群聊");
+  if (process.argv.includes("--sections-only")) {
+    const { verifyWorkspaceSections } =
+      await import("./verify-workspace-sections.mjs");
+    await verifyWorkspaceSections({
+      app,
+      browser,
+      page,
+      account,
+      group,
+      url,
+      directory,
+      login,
+      check,
+      navigate,
+      choose,
+      perform,
+      signIn,
+      observe,
+      capture,
+    });
+    await verifyBrowserEvidence();
+    return;
+  }
   await verifyLinks(page, context, account, group);
   if (process.argv.includes("--links-only")) {
     await verifyBrowserEvidence();
@@ -1344,11 +1383,13 @@ function writeReport() {
         mode: serve ? "serve" : "verify",
         selection: serve
           ? "preview"
-          : process.argv.includes("--links-only")
-            ? "links-only"
-            : process.argv.includes("--chat-only")
-              ? "chat-only"
-              : "full-workspace",
+          : process.argv.includes("--sections-only")
+            ? "workspace-sections"
+            : process.argv.includes("--links-only")
+              ? "links-only"
+              : process.argv.includes("--chat-only")
+                ? "chat-only"
+                : "full-workspace",
         url,
         apiUrl,
         collaborationUrl,
