@@ -30,7 +30,7 @@ function ReceiptList({ users }: { users: User[] }) {
           <Avatar
             size={28}
             shape="square"
-            className="!rounded-lg !bg-[#4b8fea]"
+            className="!rounded-lg !bg-[var(--app-primary-soft)] !text-[var(--app-primary)]"
           >
             {user.name.slice(0, 1)}
           </Avatar>

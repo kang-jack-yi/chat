@@ -1,7 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button, Modal, message } from "antd";
 import { ChevronLeft } from "lucide-react";
-import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import {
   useQuery,
   useQueryClient,
@@ -26,7 +31,9 @@ import { useChatDraftStore } from "../../stores/chat-draft-store";
 import type { MessagePage } from "../../types/api";
 import { get } from "../../services/request";
 import { searchTargetId } from "../Search/helpers";
+import "./style.less";
 
+/** 显示会话、聊天内容和成员信息，窄屏按需切换详情。 */
 export default function ChatPage() {
   const { conversationId } = useParams();
   const navigate = useNavigate();
@@ -35,7 +42,9 @@ export default function ChatPage() {
   // 路由切换或卸载立即使旧定位请求失效，避免迟到响应把用户带回旧会话。
   useLayoutEffect(() => {
     navigationRevision.current += 1;
-    return () => { navigationRevision.current += 1; };
+    return () => {
+      navigationRevision.current += 1;
+    };
   }, [location.key]);
   const [searchParams] = useSearchParams();
   const searchMessageId = searchTargetId(searchParams.get("messageId"));
@@ -57,10 +66,24 @@ export default function ChatPage() {
   const searchConversation = useQuery({
     queryKey: ["search-conversation", selectedId, searchMessageId],
     queryFn: () => get<Conversation>(`/api/conversations/${selectedId}`),
-    enabled: Boolean(searchMessageId && selectedId && conversations.isSuccess && !selectedConversation),
+    enabled: Boolean(
+      searchMessageId &&
+      selectedId &&
+      conversations.isSuccess &&
+      !selectedConversation,
+    ),
     retry: false,
   });
-  const showMembers = selectedConversation?.type === "group";
+  const [wideChat, setWideChat] = useState(
+    () => window.matchMedia("(min-width: 1100px)").matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1100px)");
+    const update = () => setWideChat(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  const showMembers = selectedConversation?.type === "group" && wideChat;
   const [focusedMessageId, setFocusedMessageId] = useState<number>();
   const [pendingSearchTarget, setPendingSearchTarget] = useState<{
     conversationId: number;
@@ -78,13 +101,24 @@ export default function ChatPage() {
   }, [conversations.data, navigate, selectedId]);
 
   useEffect(() => {
-    if (selectedId && conversations.data && !selectedConversation && !searchMessageId) {
+    if (
+      selectedId &&
+      conversations.data &&
+      !selectedConversation &&
+      !searchMessageId
+    ) {
       const fallback = conversations.data[0];
       navigate(fallback ? ROUTES.chatDetail(fallback.id) : ROUTES.chat, {
         replace: true,
       });
     }
-  }, [conversations.data, navigate, selectedConversation, selectedId, searchMessageId]);
+  }, [
+    conversations.data,
+    navigate,
+    selectedConversation,
+    selectedId,
+    searchMessageId,
+  ]);
 
   useEffect(() => {
     setFocusedMessageId(undefined);
@@ -131,14 +165,24 @@ export default function ChatPage() {
     if (!target || consumedSearchTarget.current === targetKey) return;
     consumedSearchTarget.current = targetKey;
     void locateSearchResult(target, searchMessageId, true);
-  }, [selectedId, searchMessageId, selectedConversation, searchConversation.data]);
+  }, [
+    selectedId,
+    searchMessageId,
+    selectedConversation,
+    searchConversation.data,
+  ]);
 
   // 无权限或已删除的深链接给出反馈，并恢复正常会话选择逻辑。
   useEffect(() => {
     if (!searchMessageId || !searchConversation.isError) return;
     message.error(searchConversation.error.message || "无法打开搜索结果");
     navigate(ROUTES.chat, { replace: true });
-  }, [searchMessageId, searchConversation.isError, searchConversation.error, navigate]);
+  }, [
+    searchMessageId,
+    searchConversation.isError,
+    searchConversation.error,
+    navigate,
+  ]);
 
   /** 打开会话和移动端详情；搜索深链接消费时可替换当前历史记录。 */
   function selectConversation(id: number, replace = false) {
@@ -287,8 +331,8 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="chat-theme relative grid h-full min-h-0 w-full min-w-0 grid-cols-[258px_minmax(0,1fr)] overflow-hidden bg-[var(--chat-canvas)] max-lg:grid-cols-[238px_minmax(0,1fr)] max-md:grid-cols-1">
-      <section className="flex h-full min-h-0 min-w-0 max-w-full flex-col overflow-hidden border-r border-[var(--chat-line)] bg-[var(--chat-list)]">
+    <div className="chat-theme chat-workspace relative grid h-full min-h-0 w-full min-w-0 overflow-hidden bg-[var(--chat-canvas)]">
+      <section className="chat-conversation-pane flex h-full min-h-0 min-w-0 max-w-full flex-col overflow-hidden border-r border-[var(--chat-line)] bg-[var(--chat-list)]">
         <ConversationList
           conversations={conversations.data ?? []}
           loading={conversations.isLoading}

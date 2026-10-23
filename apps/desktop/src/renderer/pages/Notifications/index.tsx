@@ -1,12 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Empty, Segmented, Tag, message } from "antd";
-import { Bell, Check, CheckCheck } from "lucide-react";
+import { Alert, Button, Empty, Segmented, Skeleton, Tag, message } from "antd";
+import { ArrowUpRight, Bell, Check, CheckCheck, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { Notification as AppNotification } from "@chat/shared";
 import { queryKeys } from "../../constants/query-keys";
 import { notificationsService } from "../../services/notifications";
-import { includeSearchTarget, notificationRoute, searchTargetId } from "../Search/helpers";
+import {
+  includeSearchTarget,
+  notificationRoute,
+  searchTargetId,
+} from "../Search/helpers";
+import "./index.less";
 
 const typeLabels: Record<AppNotification["type"], string> = {
   task_assigned: "任务分配",
@@ -17,6 +22,7 @@ const typeLabels: Record<AppNotification["type"], string> = {
   system: "系统通知",
 };
 
+/** 将通知时间转换为本地月日和时分，供卡片展示。 */
 function notificationTime(value: string) {
   return new Intl.DateTimeFormat("zh-CN", {
     month: "2-digit",
@@ -26,16 +32,22 @@ function notificationTime(value: string) {
   }).format(new Date(value));
 }
 
+/** 展示通知工作台，保留已读操作、未读筛选与搜索目标定位。 */
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const targetNotificationId = searchTargetId(searchParams.get("notificationId"));
+  const targetNotificationId = searchTargetId(
+    searchParams.get("notificationId"),
+  );
   const targetNotificationRef = useRef<HTMLElement | null>(null);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const notifications = useQuery({
-    queryKey: queryKeys.notifications(targetNotificationId ? false : unreadOnly),
-    queryFn: () => notificationsService.list(targetNotificationId ? false : unreadOnly),
+    queryKey: queryKeys.notifications(
+      targetNotificationId ? false : unreadOnly,
+    ),
+    queryFn: () =>
+      notificationsService.list(targetNotificationId ? false : unreadOnly),
   });
   const searchTarget = useQuery({
     queryKey: ["notification-search-target", targetNotificationId],
@@ -74,42 +86,66 @@ export default function NotificationsPage() {
 
   // 无论目标来自当前列表还是补查，都滚动到其卡片并维持高亮。
   useEffect(() => {
-    if (targetNotificationId) targetNotificationRef.current?.scrollIntoView({ block: "center" });
+    if (targetNotificationId)
+      targetNotificationRef.current?.scrollIntoView({ block: "center" });
   }, [targetNotificationId, notifications.data, searchTarget.data]);
 
-  /** 已读通知后优先定位任务；仅无任务关联时打开会话或文档。 */
-  function openNotification(item: AppNotification) {
+  /** 已读通知后打开关联资源，并反馈桌面文档窗口的打开失败。 */
+  async function openNotification(item: AppNotification) {
     if (!item.readAt) read.mutate(item.id);
-    const route = notificationRoute(item);
-    if (route) navigate(route);
-    else if (item.documentId)
-      void window.desktop?.windows.openDocument(item.documentId);
+    try {
+      const route = notificationRoute(item);
+      if (route) navigate(route);
+      else if (item.documentId) {
+        if (!window.desktop) throw new Error("请在桌面客户端中打开文档");
+        await window.desktop.windows.openDocument(item.documentId);
+      }
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "无法打开通知关联内容",
+      );
+    }
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(20px,4vw,64px)] py-8">
-      <div className="mx-auto max-w-4xl">
-        <header className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="m-0 flex items-center gap-2 text-2xl font-semibold text-[var(--app-text)]">
-              <Bell size={24} />
-              通知中心
-            </h1>
-            <p className="mb-0 mt-1 text-sm text-[var(--app-text-secondary)]">
+    <div className="workspace-page notifications-page">
+      <div className="workspace-page-body notifications-page-content">
+        <header className="workspace-page-header">
+          <div className="workspace-page-heading">
+            <span className="workspace-eyebrow">
+              <Bell size={14} /> 消息与动态
+            </span>
+            <h1 className="workspace-page-title">通知中心</h1>
+            <p className="workspace-page-description">
               集中查看任务、提及和系统通知。
             </p>
           </div>
-          <Button
-            icon={<CheckCheck size={16} />}
-            disabled={!data?.unreadCount || readAll.isPending}
-            loading={readAll.isPending}
-            onClick={() => readAll.mutate()}
-          >
-            全部已读
-          </Button>
+          <div className="notifications-header-actions">
+            <Button
+              icon={<RefreshCw size={15} />}
+              loading={notifications.isFetching || searchTarget.isFetching}
+              onClick={() => {
+                void notifications.refetch();
+                if (targetNotificationId) void searchTarget.refetch();
+              }}
+            >
+              刷新
+            </Button>
+            <Button
+              icon={<CheckCheck size={16} />}
+              disabled={!data?.unreadCount || readAll.isPending}
+              loading={readAll.isPending}
+              onClick={() => readAll.mutate()}
+            >
+              全部已读
+            </Button>
+          </div>
         </header>
 
-        <section className="mb-4 flex items-center justify-between rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-3 shadow-[var(--app-shadow-panel)]">
+        <section
+          className="workspace-toolbar notifications-toolbar"
+          aria-label="通知筛选"
+        >
           <Segmented
             value={!targetNotificationId && unreadOnly ? "未读" : "全部"}
             options={["全部", "未读"]}
@@ -122,29 +158,96 @@ export default function NotificationsPage() {
               }
             }}
           />
-          <span className="text-sm text-[var(--app-text-secondary)]">
-            {data?.unreadCount || 0} 条未读
+          <span className="notifications-unread-count" aria-live="polite">
+            <Bell size={14} />
+            {notifications.isLoading ? (
+              "正在同步通知"
+            ) : (
+              <>
+                <strong>{data?.unreadCount || 0}</strong> 条未读
+              </>
+            )}
           </span>
         </section>
 
         {targetNotificationId && searchTarget.isError && (
-          <Alert className="mb-4" type="error" showIcon message={searchTarget.error.message || "无法打开搜索结果"} />
+          <Alert
+            className="mb-4"
+            type="error"
+            showIcon
+            title={searchTarget.error.message || "无法打开搜索结果"}
+            action={
+              <Button onClick={() => void searchTarget.refetch()}>重试</Button>
+            }
+          />
         )}
-        <div className="grid gap-3">
+        <div
+          className="notifications-list"
+          aria-busy={
+            notifications.isLoading ||
+            Boolean(targetNotificationId && searchTarget.isLoading)
+          }
+        >
+          {notifications.isError && (
+            <Alert
+              type="error"
+              showIcon
+              title={notifications.error.message || "通知加载失败"}
+              action={
+                <Button onClick={() => void notifications.refetch()}>
+                  重试
+                </Button>
+              }
+            />
+          )}
+          {(notifications.isLoading ||
+            Boolean(targetNotificationId && searchTarget.isLoading)) && (
+            <div
+              className="workspace-panel notifications-state"
+              role="status"
+              aria-label="正在加载通知"
+            >
+              <Skeleton active paragraph={{ rows: 3 }} />
+            </div>
+          )}
           {items.map((item) => (
             <NotificationCard
               key={item.id}
               item={item}
               highlighted={item.id === targetNotificationId}
-              targetRef={item.id === targetNotificationId ? targetNotificationRef : undefined}
-              loading={read.isPending}
+              targetRef={
+                item.id === targetNotificationId
+                  ? targetNotificationRef
+                  : undefined
+              }
+              loading={read.isPending && read.variables === item.id}
               onRead={() => read.mutate(item.id)}
-              onOpen={() => openNotification(item)}
+              onOpen={() => void openNotification(item)}
             />
           ))}
-          {!notifications.isLoading && !items.length && (
-            <Empty description={unreadOnly ? "暂无未读通知" : "暂无通知"} />
-          )}
+          {!notifications.isLoading &&
+            !notifications.isError &&
+            !searchTarget.isError &&
+            !(targetNotificationId && searchTarget.isLoading) &&
+            !items.length && (
+              <div className="workspace-panel notifications-state">
+                <Empty
+                  image={<CheckCheck size={40} strokeWidth={1.4} />}
+                  description={
+                    <>
+                      <strong>
+                        {unreadOnly ? "暂无未读通知" : "暂无通知"}
+                      </strong>
+                      <p>
+                        {unreadOnly
+                          ? "所有动态都已查看，稍后有新消息会出现在这里。"
+                          : "任务分配、提及和系统动态将在这里集中展示。"}
+                      </p>
+                    </>
+                  }
+                />
+              </div>
+            )}
         </div>
       </div>
     </div>
@@ -167,44 +270,55 @@ function NotificationCard({
   onRead: () => void;
   onOpen: () => void;
 }) {
+  const hasTarget = Boolean(
+    item.conversationId ||
+    item.taskId ||
+    item.documentId ||
+    notificationRoute(item),
+  );
+  const content = (
+    <>
+      <div className="notifications-card-heading">
+        <strong>{item.title}</strong>
+        <Tag>{typeLabels[item.type]}</Tag>
+        {!item.readAt && (
+          <span className="notifications-unread-dot" aria-label="未读" />
+        )}
+        {hasTarget && (
+          <ArrowUpRight
+            size={15}
+            className="notifications-open-icon"
+            aria-hidden="true"
+          />
+        )}
+      </div>
+      <p className="notifications-card-body">{item.body}</p>
+      <time dateTime={item.createdAt}>{notificationTime(item.createdAt)}</time>
+    </>
+  );
   return (
     <article
       ref={targetRef}
       data-search-highlighted={highlighted || undefined}
-      className={`flex items-start gap-3 rounded-xl border bg-[var(--app-surface)] p-4 shadow-sm ${highlighted ? "ring-2 ring-[var(--app-primary)]" : ""} ${item.readAt ? "border-[var(--app-line)]" : "border-[var(--app-primary)]/35"} ${item.conversationId || item.taskId || item.documentId ? "cursor-pointer transition-shadow hover:shadow-md" : ""}`}
-      onClick={
-        item.conversationId || item.taskId || item.documentId
-          ? onOpen
-          : undefined
-      }
+      className={`workspace-panel notifications-card ${highlighted ? "ring-2 ring-[var(--app-primary)]" : ""} ${item.readAt ? "is-read" : "is-unread"}`}
     >
-      <div
-        className={`mt-0.5 rounded-full p-2 ${item.readAt ? "bg-[var(--app-surface-soft)] text-[var(--app-text-tertiary)]" : "bg-[var(--app-primary)]/10 text-[var(--app-primary)]"}`}
-      >
+      <div className="notifications-card-icon" aria-hidden="true">
         {item.readAt ? <Check size={16} /> : <Bell size={16} />}
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <strong className="text-sm text-[var(--app-text)]">
-            {item.title}
-          </strong>
-          <Tag>{typeLabels[item.type]}</Tag>
-          {!item.readAt && (
-            <span
-              className="h-1.5 w-1.5 rounded-full bg-[var(--app-primary)]"
-              aria-label="未读"
-            />
-          )}
-        </div>
-        <p className="mb-1 mt-1 text-sm text-[var(--app-text-secondary)]">
-          {item.body}
-        </p>
-        <time className="text-xs text-[var(--app-text-tertiary)]">
-          {notificationTime(item.createdAt)}
-        </time>
-      </div>
+      {hasTarget ? (
+        <button
+          type="button"
+          className="notifications-card-content notifications-open"
+          onClick={onOpen}
+        >
+          {content}
+        </button>
+      ) : (
+        <div className="notifications-card-content">{content}</div>
+      )}
       {!item.readAt && (
         <Button
+          className="notifications-read-action"
           type="text"
           size="small"
           loading={loading}

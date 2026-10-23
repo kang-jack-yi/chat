@@ -23,6 +23,8 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { pathToFileURL } from "node:url";
 import crypto from "node:crypto";
+import { externalWebUrl } from "./external-links";
+import { DesktopSettingsStore, type StoredSettings } from "./settings-store";
 import type {
   ChatHistoryMetadata,
   ChatPreferences,
@@ -140,18 +142,7 @@ let syncStatus: SyncStatus = {
   phase: "idle",
 };
 
-type StoredSettings = {
-  server?: ServerConfig;
-  window?: { width: number; height: number; x?: number; y?: number; maximized?: boolean };
-  screenshot?: { hideMainWindow: boolean };
-  preferences?: {
-    device?: {
-      appearance?: Partial<DesktopPreferences["appearance"]>;
-      general?: Partial<DesktopPreferences["general"]>;
-    };
-    accounts?: Record<string, { chat?: Partial<ChatPreferences> }>;
-  };
-};
+const settingsStore = new DesktopSettingsStore(settingsPath);
 
 const defaultPreferences: DesktopPreferences = {
   appearance: { theme: "system", zoom: 1, reducedMotion: false },
@@ -214,33 +205,23 @@ function settingsPath() {
   return path.join(app.getPath("userData"), "settings.json");
 }
 
-async function readSettings(): Promise<StoredSettings> {
-  try {
-    return JSON.parse(await fs.readFile(settingsPath(), "utf8"));
-  } catch {
-    return {};
-  }
+/** 统一读取已保存或打包默认的服务器，供窗口、刷新令牌和下载共同使用。 */
+async function readServerConfig(): Promise<ServerConfig | null> {
+  const stored = await readSettings();
+  if (stored.server) return stored.server;
+  if (!defaultServerUrl) return null;
+  return {
+    url: defaultServerUrl,
+    serverId: "",
+    name: "默认企业服务器",
+    apiVersion: "1",
+    socketPath: "/socket.io",
+  };
 }
 
-async function writeSettings(settings: StoredSettings) {
-  await fs.mkdir(app.getPath("userData"), { recursive: true });
-  const target = settingsPath();
-  const temporary = `${target}.${process.pid}.tmp`;
-  const backup = `${target}.${process.pid}.bak`;
-  await fs.writeFile(temporary, JSON.stringify(settings, null, 2), "utf8");
-  try {
-    await fs.rename(target, backup).catch((error: any) => {
-      if (error?.code !== "ENOENT") throw error;
-    });
-    await fs.rename(temporary, target);
-    await fs.rm(backup, { force: true });
-  } catch (error) {
-    await fs.rm(temporary, { force: true });
-    if (await fs.stat(backup).then(() => true).catch(() => false)) {
-      await fs.rename(backup, target).catch(() => undefined);
-    }
-    throw error;
-  }
+/** 读取已完成所有排队修改的设置快照。 */
+function readSettings(): Promise<StoredSettings> {
+  return settingsStore.read();
 }
 
 function preferenceWindows() {
@@ -270,42 +251,44 @@ async function reloadPreferences({ broadcast = true } = {}) {
   return currentPreferences;
 }
 
+/** 串行合并本次偏好修改，避免多个窗口同时保存时覆盖彼此。 */
 async function updatePreferences(input: DesktopPreferencesUpdate) {
-  const stored = await readSettings();
-  const preferences = stored.preferences || {};
-  const device = preferences.device || {};
-  const accounts = { ...(preferences.accounts || {}) };
-  if (input.chat) {
-    const key = accountPreferenceKey();
-    if (!key) throw new Error("请先登录后再修改聊天设置");
-    accounts[key] = {
-      ...accounts[key],
-      chat: { ...accounts[key]?.chat, ...input.chat },
-    };
-  }
-  const next: StoredSettings = {
-    ...stored,
-    preferences: {
-      device: {
-        appearance: { ...device.appearance, ...input.appearance },
-        general: { ...device.general, ...input.general },
+  await settingsStore.update((stored) => {
+    const preferences = stored.preferences || {};
+    const device = preferences.device || {};
+    const accounts = { ...(preferences.accounts || {}) };
+    if (input.chat) {
+      const key = accountPreferenceKey();
+      if (!key) throw new Error("请先登录后再修改聊天设置");
+      accounts[key] = {
+        ...accounts[key],
+        chat: { ...accounts[key]?.chat, ...input.chat },
+      };
+    }
+    const next: StoredSettings = {
+      ...stored,
+      preferences: {
+        device: {
+          appearance: { ...device.appearance, ...input.appearance },
+          general: { ...device.general, ...input.general },
+        },
+        accounts,
       },
-      accounts,
-    },
-  };
-  const normalized = normalizePreferences(next);
-  const key = accountPreferenceKey();
-  next.preferences = {
-    device: {
-      appearance: normalized.appearance,
-      general: normalized.general,
-    },
-    accounts: {
-      ...accounts,
-      ...(key ? { [key]: { ...accounts[key], chat: normalized.chat } } : {}),
-    },
-  };
-  await writeSettings(next);
+    };
+    const normalized = normalizePreferences(next);
+    const key = accountPreferenceKey();
+    next.preferences = {
+      device: {
+        appearance: normalized.appearance,
+        general: normalized.general,
+      },
+      accounts: {
+        ...accounts,
+        ...(key ? { [key]: { ...accounts[key], chat: normalized.chat } } : {}),
+      },
+    };
+    return next;
+  });
   return reloadPreferences();
 }
 
@@ -642,7 +625,7 @@ class ImPluginClient {
 const imPlugin = new ImPluginClient();
 
 async function refreshHostAccessToken() {
-  const server = (await readSettings()).server;
+  const server = await readServerConfig();
   if (!server) throw new Error("服务器尚未配置");
   const response = await net.fetch(`${server.url}/api/auth/refresh`, {
     method: "POST",
@@ -672,7 +655,7 @@ async function refreshHostAccessToken() {
 async function downloadAttachmentToCache(attachmentId: number) {
   const cached = await imPlugin.readAttachment(attachmentId);
   if (cached) return cached;
-  const server = (await readSettings()).server;
+  const server = await readServerConfig();
   if (!server) throw new Error("服务器尚未配置");
   let token = hostAccessToken || await refreshHostAccessToken();
   const request = () => net.fetch(`${server.url}/api/files/${attachmentId}`, {
@@ -704,7 +687,7 @@ async function downloadCloudDocument(
 ) {
   const documentId = Number(typeof input === "number" ? input : input?.id);
   if (!Number.isSafeInteger(documentId) || documentId <= 0) throw new Error("文档编号无效");
-  const server = (await readSettings()).server;
+  const server = await readServerConfig();
   if (!server) throw new Error("服务器尚未配置");
   let token = hostAccessToken || await refreshHostAccessToken();
   const request = () => net.fetch(`${server.url}/api/documents/${documentId}/download`, {
@@ -907,7 +890,7 @@ async function createWindow() {
     developmentUrl,
     preloadPath: path.join(__dirname, "document-preload.cjs"),
     getContext: async () => ({
-      serverUrl: (await readSettings()).server?.url || "",
+      serverUrl: (await readServerConfig())?.url || "",
       accessToken: hostAccessToken,
       account: activeAccount,
     }),
@@ -950,11 +933,10 @@ function registerIpc() {
   ipcMain.handle("screenshot:set-preferences", async (_event, input: {
     hideMainWindow: boolean;
   }) => {
-    const stored = await readSettings();
-    await writeSettings({
+    await settingsStore.update((stored) => ({
       ...stored,
       screenshot: { hideMainWindow: Boolean(input?.hideMainWindow) },
-    });
+    }));
     return true;
   });
   ipcMain.handle("screenshot:set-active-conversation", (event, conversationId?: number) => {
@@ -1359,18 +1341,7 @@ function registerIpc() {
     clipboard.writeImage(image);
     return true;
   });
-  ipcMain.handle("server:get", async () => {
-    const stored = await readSettings();
-    if (stored.server) return stored.server;
-    if (!defaultServerUrl) return null;
-    return {
-      url: defaultServerUrl,
-      serverId: "",
-      name: "默认企业服务器",
-      apiVersion: "1",
-      socketPath: "/socket.io",
-    } satisfies ServerConfig;
-  });
+  ipcMain.handle("server:get", readServerConfig);
   ipcMain.handle("server:test", (_event, url: string) => checkServer(url));
   ipcMain.handle("server:switch", async (_event, url: string) => {
     const checked = await checkServer(url);
@@ -1380,8 +1351,7 @@ function registerIpc() {
     hostAccessToken = null;
     await imPlugin.close();
     await reloadPreferences();
-    const stored = await readSettings();
-    await writeSettings({ ...stored, server: checked.config });
+    await settingsStore.update((stored) => ({ ...stored, server: checked.config }));
     await session.defaultSession.clearStorageData({ storages: ["cookies"] });
     mainWindow?.webContents.send("server:switched", checked.config);
     return checked;
@@ -1506,9 +1476,7 @@ function registerIpc() {
   });
   ipcMain.handle("app:get-version", () => app.getVersion());
   ipcMain.handle("external:open", (_event, url: string) => {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "https:") throw new Error("仅允许打开 HTTPS 链接");
-    return shell.openExternal(parsed.toString());
+    return shell.openExternal(externalWebUrl(url));
   });
 }
 
@@ -1559,11 +1527,11 @@ app.on("before-quit", async () => {
   screenshotShortcutRegistered = false;
   if (mainWindow) {
     const bounds = mainWindow.getNormalBounds();
-    const stored = await readSettings();
-    await writeSettings({
+    const maximized = mainWindow.isMaximized();
+    await settingsStore.update((stored) => ({
       ...stored,
-      window: { ...bounds, maximized: mainWindow.isMaximized() },
-    });
+      window: { ...bounds, maximized },
+    }));
   }
   await auxiliaryWindowPool?.dispose();
   await screenshotManager?.dispose();

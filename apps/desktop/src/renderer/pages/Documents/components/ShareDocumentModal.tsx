@@ -17,6 +17,7 @@ interface ShareDocumentModalProps {
 
 type EditablePermission = Exclude<CloudDocumentPermission, "owner">;
 
+/** 配置文档协作者及权限，使用主题语义颜色保持成员头像清晰。 */
 export default function ShareDocumentModal({
   document,
   onClose,
@@ -120,7 +121,13 @@ export default function ShareDocumentModal({
             title: "成员",
             render: (_, user) => (
               <span className="flex items-center gap-2">
-                <Avatar size={28}>
+                <Avatar
+                  size={28}
+                  style={{
+                    backgroundColor: "var(--app-primary-soft)",
+                    color: "var(--app-primary)",
+                  }}
+                >
                   {user.avatar || user.name.slice(0, 1)}
                 </Avatar>
                 <span>

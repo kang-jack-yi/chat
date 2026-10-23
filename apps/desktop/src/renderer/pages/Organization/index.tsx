@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Card } from "antd";
+import { Alert, Button, Card } from "antd";
 import {
   Building2,
   CircleOff,
@@ -15,7 +15,9 @@ import MemberToolbar from "./components/MemberToolbar";
 import OrganizationModal from "./components/OrganizationModal";
 import { filterMembers, type MemberFilterValue } from "./member-filter";
 import { useOrganization } from "./hooks";
+import "./page.less";
 
+/** 分区展示企业成员统计、账号管理与部门架构，并保留全部管理操作。 */
 export default function OrganizationPage() {
   const session = useUserStore((state) => state.session)!;
   const organization = useOrganization();
@@ -34,8 +36,8 @@ export default function OrganizationPage() {
   );
 
   return (
-    <div className="grid h-full grid-cols-[300px_minmax(0,1fr)] bg-[var(--app-canvas)] max-lg:grid-cols-[280px_minmax(0,1fr)] max-md:block">
-      <section className="flex min-w-0 flex-col overflow-hidden border-r border-[var(--app-line)] bg-[var(--app-surface-soft)] max-md:hidden">
+    <div className="organization-page">
+      <aside className="organization-directory" aria-label="组织管理导航">
         <AdminMenu
           company={session.company}
           users={users}
@@ -43,19 +45,19 @@ export default function OrganizationPage() {
           mode={organization.mode}
           onModeChange={organization.setMode}
         />
-      </section>
-      <main className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(20px,3vw,40px)] py-6 max-md:px-4 max-md:py-5">
-        <div className="mx-auto w-full max-w-6xl">
-          <header className="mb-4 flex items-center justify-between gap-6">
+      </aside>
+      <main className="workspace-page organization-main">
+        <div className="organization-content">
+          <header className="workspace-page-header organization-header">
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--app-surface)] text-[var(--app-primary)] shadow-sm ring-1 ring-[var(--app-line)]">
                 <Building2 size={20} />
               </span>
               <div className="min-w-0">
-                <h1 className="m-0 truncate text-2xl font-semibold tracking-[-0.3px] text-[var(--app-text)]">
+                <h1 className="workspace-page-title organization-company-title">
                   {session.company.name}
                 </h1>
-                <p className="mt-1 mb-0 text-xs text-[var(--app-text-secondary)]">
+                <p className="workspace-page-description">
                   企业编号 {session.company.code} · {users.length} 名成员 ·{" "}
                   {departments.length} 个部门
                 </p>
@@ -70,8 +72,46 @@ export default function OrganizationPage() {
             </Button>
           </header>
 
+          <nav className="organization-mobile-nav" aria-label="组织管理视图">
+            <Button
+              type={organization.mode === "members" ? "primary" : "default"}
+              aria-pressed={organization.mode === "members"}
+              icon={<UsersRound size={16} />}
+              onClick={() => organization.setMode("members")}
+            >
+              成员与账号
+            </Button>
+            <Button
+              type={organization.mode === "departments" ? "primary" : "default"}
+              aria-pressed={organization.mode === "departments"}
+              icon={<Building2 size={16} />}
+              onClick={() => organization.setMode("departments")}
+            >
+              部门架构
+            </Button>
+          </nav>
+
+          {(organization.users.isError || organization.departments.isError) && (
+            <Alert
+              type="error"
+              title="组织信息加载失败"
+              showIcon
+              action={
+                <Button
+                  size="small"
+                  onClick={() => {
+                    void organization.users.refetch();
+                    void organization.departments.refetch();
+                  }}
+                >
+                  重试
+                </Button>
+              }
+            />
+          )}
+
           {organization.mode === "members" && (
-            <div className="mb-4 grid grid-cols-4 overflow-hidden rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)] max-sm:grid-cols-2">
+            <div className="organization-stats">
               {[
                 {
                   label: "在职成员",
@@ -83,7 +123,7 @@ export default function OrganizationPage() {
                   label: "管理角色",
                   value: managerUsers,
                   icon: <ShieldCheck size={18} />,
-                  tone: "bg-[color-mix(in_srgb,#8b7cf6_14%,transparent)] text-violet-400",
+                  tone: "bg-[var(--app-surface-muted)] text-[var(--app-text-secondary)]",
                 },
                 {
                   label: "停用账号",
@@ -95,12 +135,12 @@ export default function OrganizationPage() {
                   label: "未分配部门",
                   value: unassignedUsers,
                   icon: <Building2 size={18} />,
-                  tone: "bg-[color-mix(in_srgb,#d68a16_14%,transparent)] text-amber-600",
+                  tone: "bg-[var(--app-surface-muted)] text-[var(--app-text-secondary)]",
                 },
-              ].map((item, index) => (
+              ].map((item) => (
                 <div
                   key={item.label}
-                  className={`flex items-center gap-3 px-4 py-3.5 ${index ? "border-l border-[var(--app-line)]" : ""}`}
+                  className="workspace-stat organization-stat"
                 >
                   <span
                     className={`grid size-9 shrink-0 place-items-center rounded-lg ${item.tone}`}
@@ -108,7 +148,7 @@ export default function OrganizationPage() {
                     {item.icon}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-xs text-[var(--app-text-tertiary)]">
+                    <span className="block text-xs text-[var(--app-text-secondary)]">
                       {item.label}
                     </span>
                     <strong className="mt-0.5 block text-xl font-semibold text-[var(--app-text)]">
@@ -124,10 +164,10 @@ export default function OrganizationPage() {
           )}
 
           <Card
-            className="overflow-hidden !rounded-xl !border-[var(--app-line)] !bg-[var(--app-surface)]"
+            className="workspace-panel organization-panel"
             styles={{ body: { padding: 0 } }}
           >
-            <div className="flex min-h-12 items-center justify-between border-b border-[var(--app-line)] px-4">
+            <div className="organization-panel-heading">
               <div className="flex items-center gap-2">
                 <strong className="text-sm text-[var(--app-text)]">
                   {organization.mode === "members" ? "成员与账号" : "部门架构"}
@@ -151,6 +191,7 @@ export default function OrganizationPage() {
                 <MemberTable
                   currentUser={session.user}
                   users={filteredUsers}
+                  loading={organization.users.isLoading}
                   onToggleStatus={(user) =>
                     organization.setStatus.mutate({
                       userId: user.id,

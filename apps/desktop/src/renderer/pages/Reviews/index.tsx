@@ -11,7 +11,7 @@ import {
   Tag,
   message,
 } from "antd";
-import { ClipboardCheck, FileText, RefreshCw } from "lucide-react";
+import { ClipboardCheck, FileCheck2, FileText, RefreshCw } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type {
   DocumentReview,
@@ -22,18 +22,13 @@ import { documentReviewsService } from "../../services/document-reviews";
 import { useUserStore } from "../../stores/user-store";
 import { ROUTES } from "../../constants/routes";
 import { searchTargetId } from "../Search/helpers";
+import "./index.less";
 
 const statusLabels = {
   pending_review: "待审批",
   approved: "已通过",
   rejected: "已驳回",
 } as const;
-const statusColors = {
-  pending_review: "blue",
-  approved: "green",
-  rejected: "red",
-} as const;
-
 /** 将评审日期转换为本地可读时间，保留完整日期避免跨日歧义。 */
 function time(value: string) {
   return new Date(value).toLocaleString("zh-CN", { hour12: false });
@@ -66,19 +61,19 @@ export default function ReviewsPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(16px,3vw,48px)] py-7">
-      <div className="mx-auto max-w-6xl">
-        <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="m-0 flex items-center gap-2 text-2xl font-semibold text-[var(--app-text)]">
-              <ClipboardCheck size={25} />
-              文档评审
-            </h1>
-            <p className="mb-0 mt-2 text-sm text-[var(--app-text-secondary)]">
-              提交文档 → 指定成员审批 → 自动建任务 → 到期提醒
+    <div className="workspace-page reviews-page">
+      <div className="workspace-page-body reviews-page-content">
+        <header className="workspace-page-header">
+          <div className="workspace-page-heading">
+            <span className="workspace-eyebrow">
+              <ClipboardCheck size={14} /> 审批与协作
+            </span>
+            <h1 className="workspace-page-title">文档评审</h1>
+            <p className="workspace-page-description">
+              追踪提交版本、审批进度与后续任务，让每一次协作都有结论。
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="reviews-header-actions">
             <Button
               icon={<RefreshCw size={15} />}
               loading={list.isFetching || detail.isFetching}
@@ -90,6 +85,7 @@ export default function ReviewsPage() {
               刷新
             </Button>
             <Button
+              type="primary"
               onClick={() => navigate(ROUTES.documents)}
               icon={<FileText size={16} />}
             >
@@ -97,24 +93,36 @@ export default function ReviewsPage() {
             </Button>
           </div>
         </header>
-        <Segmented
-          className="mb-5"
-          value={scope}
-          onChange={(value) => setScope(value as DocumentReviewScope)}
-          options={[
-            { label: "待我审批", value: "pending" },
-            { label: "我发起的", value: "submitted" },
-            { label: "全部参与", value: "all" },
-          ]}
-        />
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(280px,0.85fr)_minmax(0,1.4fr)]">
+        <section
+          className="workspace-toolbar reviews-toolbar"
+          aria-label="评审筛选"
+        >
+          <Segmented
+            value={scope}
+            onChange={(value) => setScope(value as DocumentReviewScope)}
+            options={[
+              { label: "待我审批", value: "pending" },
+              { label: "我发起的", value: "submitted" },
+              { label: "全部参与", value: "all" },
+            ]}
+          />
+          <span className="reviews-toolbar-hint">
+            提交版本留档 · 审批通过后自动建任务
+          </span>
+        </section>
+        <div className="reviews-layout">
           <section
             aria-label="评审列表"
-            className="rounded-2xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4 shadow-[var(--app-shadow-panel)]"
+            className="workspace-panel reviews-list-panel"
+            aria-busy={list.isLoading}
           >
-            <div className="mb-4 flex items-center justify-between text-sm text-[var(--app-text-secondary)]">
-              <span>最近评审</span>
-              <span>{list.data?.length || 0} 条 · 最多 100 条</span>
+            <div className="reviews-panel-heading">
+              <h2>最近评审</h2>
+              <span aria-live="polite">
+                {list.isLoading
+                  ? "正在同步"
+                  : `${list.data?.length || 0} 条 · 最多 100 条`}
+              </span>
             </div>
             {list.isError ? (
               <Alert
@@ -126,16 +134,19 @@ export default function ReviewsPage() {
                 }
               />
             ) : list.isLoading ? (
-              <Skeleton active />
+              <div role="status" aria-label="正在加载评审列表">
+                <Skeleton active />
+              </div>
             ) : !list.data?.length ? (
               <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                className="reviews-empty"
+                image={<ClipboardCheck size={40} strokeWidth={1.4} />}
                 description={
                   scope === "pending" ? "暂无待审批评审" : "暂无评审记录"
                 }
               />
             ) : (
-              <div className="grid gap-3">
+              <div className="reviews-list">
                 {list.data.map((review) => (
                   <ReviewCard
                     key={review.id}
@@ -149,11 +160,13 @@ export default function ReviewsPage() {
           </section>
           <section
             aria-label="评审详情"
-            className="min-w-0 rounded-2xl border border-[var(--app-line)] bg-[var(--app-surface)] p-5 shadow-[var(--app-shadow-panel)]"
+            className="workspace-panel reviews-detail-panel"
+            aria-busy={Boolean(selectedId && detail.isLoading)}
           >
             {!selectedId ? (
               <Empty
-                className="py-20"
+                className="reviews-empty reviews-detail-empty"
+                image={<FileCheck2 size={44} strokeWidth={1.3} />}
                 description="选择评审查看提交版本和审批进度"
               />
             ) : detail.isError ? (
@@ -166,7 +179,9 @@ export default function ReviewsPage() {
                 }
               />
             ) : detail.isLoading || !detail.data ? (
-              <Skeleton active paragraph={{ rows: 8 }} />
+              <div role="status" aria-label="正在加载评审详情">
+                <Skeleton active paragraph={{ rows: 8 }} />
+              </div>
             ) : (
               <ReviewDetail
                 key={detail.data.id}
@@ -196,13 +211,13 @@ function ReviewCard({
       type="button"
       aria-pressed={selected}
       onClick={onSelect}
-      className={`w-full cursor-pointer rounded-xl border p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-[var(--app-primary)] ${selected ? "border-[var(--app-primary)] bg-[var(--app-primary-soft)]" : "border-[var(--app-line)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-soft)]"}`}
+      className={`reviews-card ${selected ? "is-selected" : ""}`}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <strong className="break-words text-sm text-[var(--app-text)]">
           {review.title}
         </strong>
-        <Tag className="!m-0 shrink-0" color={statusColors[review.status]}>
+        <Tag className={`reviews-status reviews-status-${review.status}`}>
           {statusLabels[review.status]}
         </Tag>
       </div>
@@ -213,7 +228,10 @@ function ReviewCard({
         <span>{review.submitter.name} 发起</span>
         <span>{review.approver.name} 审批</span>
       </div>
-      <time className="mt-3 block text-xs text-[var(--app-text-tertiary)]">
+      <time
+        dateTime={review.createdAt}
+        className="mt-3 block text-xs text-[var(--app-text-secondary)]"
+      >
         {time(review.createdAt)}
       </time>
     </button>
@@ -273,7 +291,7 @@ function ReviewDetail({
 
   return (
     <>
-      <div className="mb-5 flex items-start justify-between gap-3">
+      <div className="reviews-detail-heading">
         <div>
           <h2 className="m-0 break-words text-lg font-semibold text-[var(--app-text)]">
             {review.title}
@@ -282,11 +300,11 @@ function ReviewDetail({
             评审 #{review.id} · {time(review.createdAt)}
           </p>
         </div>
-        <Tag className="shrink-0" color={statusColors[review.status]}>
+        <Tag className={`reviews-status reviews-status-${review.status}`}>
           {statusLabels[review.status]}
         </Tag>
       </div>
-      <dl className="mb-5 grid grid-cols-2 gap-x-5 gap-y-3 rounded-xl bg-[var(--app-surface-soft)] p-4 text-sm max-sm:grid-cols-1">
+      <dl className="reviews-facts">
         <div>
           <dt className="text-xs text-[var(--app-text-secondary)]">
             发起人 / 审批人
@@ -318,7 +336,7 @@ function ReviewDetail({
           </dd>
         </div>
       </dl>
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="reviews-version-heading">
         <h3 className="m-0 text-sm font-medium text-[var(--app-text)]">
           提交版本 · {review.version.title}
         </h3>
@@ -329,7 +347,7 @@ function ReviewDetail({
       <p className="mt-0 text-xs text-[var(--app-text-secondary)]">
         此处为提交时的纯文本快照，不随当前文档的编辑变化。
       </p>
-      <pre className="mb-5 max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-[var(--app-line)] bg-[var(--app-surface-soft)] p-4 font-sans text-sm leading-7 text-[var(--app-text)]">
+      <pre className="reviews-version-snapshot">
         {review.version.text || "（此版本暂无正文）"}
       </pre>
       {review.decidedAt && (
@@ -349,7 +367,7 @@ function ReviewDetail({
         </Button>
       )}
       {canDecide && (
-        <div className="border-t border-[var(--app-line)] pt-4">
+        <div className="reviews-decision-form">
           <label
             htmlFor={`review-comment-${review.id}`}
             className="mb-2 block text-sm text-[var(--app-text)]"
@@ -373,7 +391,7 @@ function ReviewDetail({
               description="请确认当前评审状态后重试；失败不会重复创建任务。"
             />
           )}
-          <div className="mt-4 flex justify-end gap-2">
+          <div className="reviews-decision-actions">
             <Popconfirm
               title="驳回此评审？"
               description="驳回后不会创建任务，需要重新发起评审。"

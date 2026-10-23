@@ -11,6 +11,7 @@ export interface MemberToolbarProps {
   onChange: (filters: MemberFilterValue) => void;
 }
 
+/** 提供成员搜索和部门、角色、账号状态筛选，保持筛选条件可清除。 */
 export default function MemberToolbar({
   departments,
   filters,
@@ -26,34 +27,36 @@ export default function MemberToolbar({
   );
 
   return (
-    <div className="border-b border-[var(--app-line)] bg-[var(--app-surface)] px-4 py-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="organization-member-toolbar">
+      <div className="organization-member-filters">
         <Input
           allowClear
           prefix={
             <Search size={15} className="text-[var(--app-text-tertiary)]" />
           }
           placeholder="搜索姓名、手机号或职位"
+          aria-label="搜索成员"
           value={filters.keyword}
           onChange={(event) =>
             onChange({ ...filters, keyword: event.target.value })
           }
-          className="!w-56"
+          className="organization-member-search"
         />
         <Select
           allowClear
           placeholder="全部部门"
+          aria-label="按部门筛选"
           value={filters.departmentId}
           options={departments.map((department) => ({
             label: department.name,
             value: department.id,
           }))}
           onChange={(departmentId) => onChange({ ...filters, departmentId })}
-          className="!w-30"
         />
         <Select
           allowClear
           placeholder="全部角色"
+          aria-label="按角色筛选"
           value={filters.role}
           options={[
             { label: "企业所有者", value: "owner" },
@@ -63,11 +66,11 @@ export default function MemberToolbar({
           onChange={(role: User["role"] | undefined) =>
             onChange({ ...filters, role })
           }
-          className="!w-28"
         />
         <Select
           allowClear
           placeholder="全部状态"
+          aria-label="按账号状态筛选"
           value={filters.status}
           options={[
             { label: "正常", value: "active" },
@@ -76,14 +79,13 @@ export default function MemberToolbar({
           onChange={(status: User["status"] | undefined) =>
             onChange({ ...filters, status })
           }
-          className="!w-26"
         />
         {filtered && (
           <Button type="link" onClick={() => onChange({ keyword: "" })}>
             清除筛选
           </Button>
         )}
-        <span className="ml-auto shrink-0 text-xs text-[var(--app-text-tertiary)]">
+        <span className="organization-result-count" role="status">
           {filtered ? `找到 ${resultCount} 位成员` : `共 ${totalCount} 位成员`}
         </span>
       </div>

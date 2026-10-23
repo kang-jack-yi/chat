@@ -19,6 +19,7 @@ export interface ContactDetailProps {
   onStartChat: (id: number) => void;
 }
 
+/** 展示成员身份与联系方式，并保留复制手机号和发起会话能力。 */
 export default function ContactDetail({
   user,
   currentUser,
@@ -36,24 +37,23 @@ export default function ContactDetail({
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(20px,5vw,72px)] py-[clamp(28px,7vh,72px)] max-md:px-4 max-md:pt-16">
+    <div className="workspace-page contacts-profile">
       <div className="mx-auto w-full max-w-3xl">
-        <div className="mb-5">
-          <h1 className="m-0 text-2xl font-semibold tracking-[-0.5px] text-[var(--app-text)]">
-            成员资料
-          </h1>
-        </div>
+        <header className="workspace-page-header">
+          <div className="workspace-page-heading">
+            <span className="workspace-eyebrow">企业通讯录</span>
+            <h1 className="workspace-page-title">成员资料</h1>
+            <p className="workspace-page-description">了解同事，开启高效协作</p>
+          </div>
+        </header>
         <Card
-          className="overflow-hidden !rounded-xl !border-[var(--app-line)]"
+          className="contacts-profile-card"
           styles={{ body: { padding: 0 } }}
         >
-          <div className="relative h-28 overflow-hidden bg-[linear-gradient(125deg,#294fad_0%,#3d70eb_62%,#7899eb_100%)]">
-            <div className="absolute -top-24 right-8 size-52 rounded-full border border-white/12" />
-          </div>
-          <div className="px-8 pb-8 max-md:px-5">
-            <div className="-mt-10 flex items-end justify-between gap-4 max-sm:items-start">
-              <div className="flex items-end gap-5 max-sm:items-start">
-                <div className="rounded-2xl border-4 border-[var(--app-surface)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)]">
+          <div className="contacts-profile-content">
+            <div className="contacts-profile-intro">
+              <div className="contacts-profile-identity">
+                <div className="contacts-profile-avatar">
                   <Avatar
                     text={user.avatar}
                     src={user.avatarUrl}
@@ -92,13 +92,14 @@ export default function ContactDetail({
               )}
             </div>
 
-            <div className="my-7 h-px bg-[var(--app-line)]" />
+            <div className="contacts-profile-divider" />
 
             <Descriptions
+              layout="vertical"
               column={{ xs: 1, sm: 2 }}
               colon={false}
               labelStyle={{
-                color: "var(--app-text-tertiary)",
+                color: "var(--app-text-secondary)",
                 paddingBottom: 6,
               }}
               contentStyle={{

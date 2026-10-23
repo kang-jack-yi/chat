@@ -8,20 +8,21 @@ body,
 }
 
 :root {
-  --app-canvas: #f3f5f8;
+  color-scheme: light;
+  --app-canvas: #f5f7fb;
   --app-surface: #ffffff;
   --app-surface-soft: #f8fafc;
-  --app-surface-muted: #edf1f5;
-  --app-primary: #2f6bff;
-  --app-primary-hover: #2458d8;
-  --app-primary-soft: #eaf1ff;
-  --app-text: #182230;
-  --app-text-secondary: #607080;
-  --app-text-tertiary: #98a2b3;
-  --app-line: #e3e8ef;
+  --app-surface-muted: #edf1f7;
+  --app-primary: #4263eb;
+  --app-primary-hover: #3654d4;
+  --app-primary-soft: #edf1ff;
+  --app-text: #202939;
+  --app-text-secondary: #657087;
+  --app-text-tertiary: #657084;
+  --app-line: #e4e9f2;
   --app-success: #19966d;
   --app-danger: #dc5368;
-  --app-radius-control: 10px;
+  --app-radius-control: 9px;
   --app-radius-card: 14px;
   --app-radius-panel: 18px;
   --app-shadow-panel:
@@ -32,18 +33,19 @@ body,
   --chat-primary-soft: var(--app-primary-soft);
   --chat-pinned: #f0f4fa;
   --chat-pinned-hover: #e9eff7;
-  --chat-rail: #edf2f8;
-  --chat-rail-hover: #e4ebf4;
-  --chat-rail-active: #dce8ff;
-  --chat-list: #f7f9fb;
-  --chat-canvas: #f1f4f8;
-  --chat-header: #fbfcfe;
+  --chat-rail: #ffffff;
+  --chat-rail-hover: #f0f3f9;
+  --chat-rail-active: #edf1ff;
+  --chat-list: #fbfcfd;
+  --chat-canvas: #f4f5f7;
+  --chat-header: #ffffff;
   --chat-line: var(--app-line);
   --chat-text: var(--app-text);
   --chat-text-secondary: var(--app-text-secondary);
   --chat-text-tertiary: var(--app-text-tertiary);
-  --chat-own-bubble: #dce9ff;
-  --chat-own-bubble-border: #cfe0ff;
+  --chat-own-bubble: #eef0f4;
+  --chat-own-bubble-border: #e0e4ea;
+  --chat-link: #315fc9;
   --chat-other-bubble: #ffffff;
   --chat-attachment: #f8fafd;
   --chat-attachment-border: #dce4ee;
@@ -58,40 +60,41 @@ body,
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --app-canvas: #18191b;
-  --app-surface: #202124;
-  --app-surface-soft: #252629;
-  --app-surface-muted: #2d2f33;
-  --app-primary: #5b9aff;
-  --app-primary-hover: #70aaff;
-  --app-primary-soft: #283747;
-  --app-text: #f1f3f5;
-  --app-text-secondary: #b7bcc4;
-  --app-text-tertiary: #949aa3;
-  --app-line: #36383d;
+  --app-canvas: #141619;
+  --app-surface: #1c1f24;
+  --app-surface-soft: #24282e;
+  --app-surface-muted: #2e333b;
+  --app-primary: #91a7ff;
+  --app-primary-hover: #b0bfff;
+  --app-primary-soft: #2d323b;
+  --app-text: #eceef1;
+  --app-text-secondary: #b1b6bf;
+  --app-text-tertiary: #949ba7;
+  --app-line: #353b43;
   --app-success: #55bd8a;
   --app-danger: #ff7a8a;
   --app-shadow-panel:
     0 10px 28px rgba(0, 0, 0, 0.22), 0 1px 4px rgba(0, 0, 0, 0.2);
   --app-shadow-float: 0 20px 52px rgba(0, 0, 0, 0.48);
-  --chat-pinned: #26272a;
-  --chat-pinned-hover: #2c2d31;
-  --chat-rail: #1b1c1e;
-  --chat-rail-hover: #27292d;
-  --chat-rail-active: #2a3544;
-  --chat-list: #202124;
-  --chat-canvas: #18191b;
-  --chat-header: #202124;
-  --chat-own-bubble: #252b32;
-  --chat-own-bubble-border: #353d47;
-  --chat-other-bubble: #252629;
-  --chat-attachment: #282a2e;
-  --chat-attachment-border: #3a3c42;
-  --chat-attachment-icon: #303845;
-  --chat-file-own: #252a30;
-  --chat-file-own-border: #353d46;
-  --chat-file-other: #282a2e;
-  --chat-file-other-border: #3a3c42;
+  --chat-pinned: #24282e;
+  --chat-pinned-hover: #2e333b;
+  --chat-rail: #191c20;
+  --chat-rail-hover: #292d34;
+  --chat-rail-active: #2d323b;
+  --chat-list: #1c1f24;
+  --chat-canvas: #15171a;
+  --chat-header: #1c1f24;
+  --chat-own-bubble: #30353b;
+  --chat-own-bubble-border: #40464e;
+  --chat-other-bubble: #24282e;
+  --chat-link: #a7c7ff;
+  --chat-attachment: #24282e;
+  --chat-attachment-border: #353b43;
+  --chat-attachment-icon: #2d323b;
+  --chat-file-own: #30353b;
+  --chat-file-own-border: #40464e;
+  --chat-file-other: #24282e;
+  --chat-file-other-border: #353b43;
 }
 
 :root[data-theme="dark"] {
@@ -134,7 +137,7 @@ body,
   scroll-behavior: auto !important;
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+  transition: none !important;
 }
 
 :root[data-chat-density="compact"] {
@@ -207,7 +210,7 @@ body {
 }
 
 ::selection {
-  color: #0958b8;
+  color: var(--app-primary);
   background: var(--app-primary-soft);
 }
 
@@ -244,7 +247,7 @@ body {
   height: 16px !important;
   margin-top: 2px !important;
   padding: 0 !important;
-  color: #4b8fea !important;
+  color: var(--chat-link) !important;
   font-size: 11px !important;
   font-weight: 400 !important;
   line-height: 16px !important;
@@ -254,12 +257,12 @@ body {
 }
 
 .message-read-receipt:hover {
-  color: #2f75d6 !important;
+  color: var(--chat-link) !important;
 }
 
 .message-read-receipt--all-read,
 .message-read-receipt--all-read:hover {
-  color: #a6adb8 !important;
+  color: var(--app-text-tertiary) !important;
 }
 
 .message-read-receipt:focus-visible {
@@ -315,12 +318,14 @@ body {
     background: var(--app-surface-muted) !important;
   }
   .ant-card,
-  .ant-modal-content {
+  .ant-modal-content,
+  .ant-modal-container {
     background: var(--app-surface) !important;
   }
 }
 
-.ant-modal .ant-modal-content {
+.ant-modal .ant-modal-content,
+.ant-modal .ant-modal-container {
   border: 1px solid var(--app-line);
   border-radius: 16px;
   box-shadow: var(--app-shadow-float);
@@ -343,7 +348,7 @@ body {
 }
 
 .ant-dropdown .ant-dropdown-menu-item-selected {
-  background: transparent !important;
+  background: var(--app-primary-soft) !important;
 }
 
 .ant-tabs .ant-tabs-ink-bar {
@@ -358,7 +363,7 @@ body {
 .ant-select-dropdown {
   .ant-select-item-option-active:not(.ant-select-item-option-disabled),
   .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
-    background-color: transparent !important;
+    background-color: var(--app-primary-soft) !important;
   }
 }
 
@@ -478,7 +483,7 @@ body {
 
   strong {
     overflow: hidden;
-    color: #303640;
+    color: var(--app-text);
     font-size: 12px;
     font-weight: 600;
     line-height: 18px;
@@ -487,7 +492,7 @@ body {
   }
 
   small {
-    color: #969daa;
+    color: var(--app-text-secondary);
     font-size: 10px;
     line-height: 16px;
   }
@@ -541,3 +546,5 @@ body {
     list-style: decimal;
   }
 }
+
+@import "./workspace.less";

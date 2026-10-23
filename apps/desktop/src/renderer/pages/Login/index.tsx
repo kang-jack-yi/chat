@@ -12,6 +12,7 @@ import { useServerStore } from "../../stores/server-store";
 import { useAppStore } from "../../stores/app-store";
 import styles from "./style.module.less";
 
+/** 展示企业协作品牌与登录、注册表单，保留服务器连接状态反馈。 */
 export default function LoginPage() {
   const { mode, error, pending, changeMode, submit } = useAuthForm();
   const health = useServerStore((state) => state.health);
@@ -41,6 +42,33 @@ export default function LoginPage() {
             <p className={styles.description}>
               把组织通讯录、即时消息和团队文件放在一个安静、可靠的工作空间里。
             </p>
+            <div className={styles.brandCanvas} aria-hidden="true">
+              <svg
+                className={styles.connections}
+                viewBox="0 0 360 136"
+                fill="none"
+              >
+                <path
+                  d="M58 68H302M180 24V112"
+                  stroke="currentColor"
+                  strokeDasharray="4 6"
+                />
+                <circle cx="180" cy="68" r="48" stroke="currentColor" />
+                <circle cx="180" cy="68" r="64" stroke="currentColor" />
+              </svg>
+              <span className={styles.canvasNode}>
+                <MessageCircleMore size={22} />
+                <small>沟通</small>
+              </span>
+              <span className={styles.canvasCenter}>
+                <MessageCircleMore size={30} />
+                <small>同频协作</small>
+              </span>
+              <span className={styles.canvasNode}>
+                <FolderLock size={22} />
+                <small>知识</small>
+              </span>
+            </div>
             <ul className={styles.features}>
               <li>
                 <span>

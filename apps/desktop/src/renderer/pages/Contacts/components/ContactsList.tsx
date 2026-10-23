@@ -3,7 +3,6 @@ import { ChevronRight, ContactRound, UsersRound } from "lucide-react";
 import type { Company, User } from "@chat/shared";
 import Avatar from "../../../components/Avatar";
 import EmptyState from "../../../components/EmptyState";
-import PanelTitle from "../../../components/PanelTitle";
 import SearchBox from "../../../components/SearchBox";
 
 export interface ContactsListProps {
@@ -15,6 +14,7 @@ export interface ContactsListProps {
   onSelect: (id: number) => void;
 }
 
+/** 展示可搜索的企业成员目录与清晰的当前选中状态。 */
 export default function ContactsList({
   company,
   users,
@@ -25,14 +25,15 @@ export default function ContactsList({
 }: ContactsListProps) {
   return (
     <>
-      <PanelTitle
-        title="通讯录"
-        action={
-          <Tag bordered={false} color="blue">
-            {users.length} 人
-          </Tag>
-        }
-      />
+      <header className="contacts-directory-heading">
+        <div>
+          <span className="workspace-eyebrow">团队连接</span>
+          <h1>通讯录</h1>
+        </div>
+        <Tag bordered={false} color="blue">
+          {users.length} 人
+        </Tag>
+      </header>
       <SearchBox
         value={query}
         onChange={onQueryChange}
@@ -55,11 +56,9 @@ export default function ContactsList({
             return (
               <button
                 key={user.id}
-                className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all duration-200 ${
-                  active
-                    ? "border-[#cfe2fa] bg-[var(--app-primary-soft)] shadow-[0_7px_20px_rgba(22,119,255,.07)]"
-                    : "border-transparent bg-transparent hover:bg-[var(--app-surface-muted)]"
-                }`}
+                type="button"
+                aria-pressed={active}
+                className="contacts-member"
                 onClick={() => onSelect(user.id)}
               >
                 <Avatar
@@ -73,7 +72,7 @@ export default function ContactsList({
                       {user.name}
                     </strong>
                     {user.online && (
-                      <i className="size-1.5 rounded-full bg-[#1ca777]" />
+                      <span className="contacts-online" aria-label="在线" />
                     )}
                   </span>
                   <small className="truncate text-xs text-[var(--app-text-secondary)]">
@@ -81,10 +80,7 @@ export default function ContactsList({
                     {user.title || "成员"}
                   </small>
                 </span>
-                <ChevronRight
-                  size={16}
-                  className={`shrink-0 transition-transform ${active ? "translate-x-0 text-[var(--app-primary)]" : "-translate-x-1 text-slate-300 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"}`}
-                />
+                <ChevronRight size={16} className="contacts-member-chevron" />
               </button>
             );
           })}

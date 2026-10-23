@@ -238,7 +238,7 @@ body,
 }
 
 .cloudEditor a {
-  color: #1677ff;
+  color: var(--app-primary);
   text-decoration: underline;
 }
 
@@ -341,5 +341,34 @@ body,
 
   .documentCanvas .documentEditorPage {
     padding: 48px 42px 70px;
+  }
+}
+
+@media (max-width: 560px) {
+  .documentHeader {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  .documentHeaderActions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .documentTitleBlock {
+    min-width: 0;
+  }
+  .documentToolbar {
+    padding-inline: 8px;
+  }
+  .documentCanvas {
+    padding: 16px 12px 32px;
+  }
+  .documentCanvas .documentEditorPage {
+    padding: 30px 22px 48px;
+  }
+  .documentBoot {
+    width: calc(100% - 32px);
+    padding: 24px;
+    margin-top: 32px;
   }
 }

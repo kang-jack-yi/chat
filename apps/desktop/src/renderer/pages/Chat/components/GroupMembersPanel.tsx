@@ -23,6 +23,7 @@ export interface GroupMembersPanelProps {
   onViewMember: (userId: number) => void;
 }
 
+/** 显示群成员与公告，并提供成员邀请和群设置入口。 */
 export default function GroupMembersPanel({
   conversation,
   currentUser,
@@ -67,7 +68,7 @@ export default function GroupMembersPanel({
   }, [conversation.createdBy, conversation.members, keyword, users]);
 
   return (
-    <aside className="grid h-full w-full min-h-0 min-w-0 max-w-full grid-rows-[48px_auto_minmax(0,1fr)] overflow-hidden bg-[var(--chat-list)]">
+    <aside className="grid h-full w-full min-h-0 min-w-0 max-w-full grid-rows-[72px_auto_minmax(0,1fr)] overflow-hidden bg-[var(--chat-list)]">
       <header className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,32px)] items-center justify-end overflow-hidden border-b border-l border-[var(--chat-line)] bg-[var(--chat-header)] px-2">
         <Button
           type="text"
@@ -110,7 +111,7 @@ export default function GroupMembersPanel({
         {announcementSummary && (
           <button
             type="button"
-            className="flex min-h-40 w-full min-w-0 max-w-full gap-2 overflow-hidden border-y border-[var(--chat-line)] bg-[var(--chat-list)] px-2.5 py-3 text-left transition-colors hover:bg-[var(--app-surface-muted)]"
+            className="flex min-h-24 w-full min-w-0 max-w-full gap-2 overflow-hidden border-y border-[var(--chat-line)] bg-[var(--chat-list)] px-3 py-4 text-left transition-colors hover:bg-[var(--app-surface-muted)]"
             onClick={onOpenSettings}
           >
             <Megaphone
@@ -148,7 +149,7 @@ export default function GroupMembersPanel({
                   <Avatar
                     shape="square"
                     size={28}
-                    className="!rounded-lg !bg-[var(--chat-primary)] !text-xs"
+                    className="!rounded-lg !bg-[var(--chat-primary-soft)] !text-[var(--chat-primary)] !text-xs"
                   >
                     {member.avatar || member.name.slice(0, 1)}
                   </Avatar>

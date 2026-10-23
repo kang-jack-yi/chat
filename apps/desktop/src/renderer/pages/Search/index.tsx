@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Empty, Input, Select, Spin, Tag, message } from "antd";
-import { Search } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bell,
+  FileText,
+  ListTodo,
+  MessageSquare,
+  Search,
+  Users,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { WorkspaceSearchHit, WorkspaceSearchType } from "@chat/shared";
 import { searchService, workspaceSearchKey } from "../../services/search";
 import { searchResultRoute } from "./helpers";
+import "./index.less";
 
 const typeLabels: Record<WorkspaceSearchType, string> = {
   message: "消息",
@@ -15,6 +24,13 @@ const typeLabels: Record<WorkspaceSearchType, string> = {
   notification: "通知",
 };
 const pageSize = 20;
+const typeIcons = {
+  message: MessageSquare,
+  document: FileText,
+  member: Users,
+  task: ListTodo,
+  notification: Bell,
+};
 
 /** 统一检索工作区内容，防抖输入并按类型分页展示结果。 */
 export default function SearchPage() {
@@ -52,88 +68,191 @@ export default function SearchPage() {
       if (!route) throw new Error("搜索结果缺少定位信息");
       navigate(route);
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "无法打开搜索结果");
+      message.error(
+        error instanceof Error ? error.message : "无法打开搜索结果",
+      );
     }
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(20px,4vw,64px)] py-8">
-      <div className="mx-auto max-w-4xl">
-        <header className="mb-6">
-          <h1 className="m-0 flex items-center gap-2 text-2xl font-semibold text-[var(--app-text)]">
-            <Search size={24} />工作区搜索
-          </h1>
-          <p className="mb-0 mt-1 text-sm text-[var(--app-text-secondary)]">
-            搜索消息全文、文档标题与正文、成员、任务和通知。
-          </p>
-        </header>
-        <section className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4 shadow-[var(--app-shadow-panel)]">
-          <Input
-            className="min-w-[220px] flex-1"
-            prefix={<Search size={16} />}
-            aria-label="搜索关键词"
-            placeholder="输入关键词搜索工作区"
-            allowClear
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-          />
-          <Select
-            className="w-[120px]"
-            aria-label="搜索类型"
-            value={type}
-            onChange={(value) => { setType(value); setOffset(0); }}
-            options={[
-              { value: "all", label: "全部类型" },
-              ...Object.entries(typeLabels).map(([value, label]) => ({ value, label })),
-            ]}
-          />
-        </section>
-        {!input.trim() ? (
-          <Empty description="输入关键词开始搜索" />
-        ) : pendingInput || results.isLoading ? (
-          <div className="py-10 text-center" role="status" aria-label="正在搜索"><Spin /></div>
-        ) : results.isError ? (
-          <Alert
-            type="error"
-            showIcon
-            message={results.error.message || "搜索失败，请重试"}
-            action={<Button size="small" onClick={() => void results.refetch()}>重试</Button>}
-          />
-        ) : !results.data?.items.length ? (
-          <Empty description="没有找到匹配结果" />
-        ) : (
-          <>
-            <p className="text-sm text-[var(--app-text-secondary)]" aria-live="polite">
-              共 {results.data.total} 条结果{results.isFetching ? " · 正在更新" : ""}
+    <div className="workspace-page search-page">
+      <div className="workspace-page-body search-page-content">
+        <header className="workspace-page-header">
+          <div className="workspace-page-heading">
+            <span className="workspace-eyebrow">
+              <Search size={14} /> 统一检索
+            </span>
+            <h1 className="workspace-page-title">工作区搜索</h1>
+            <p className="workspace-page-description">
+              搜索消息全文、文档标题与正文、成员、任务和通知。
             </p>
-            <div className="grid gap-3">
-              {results.data.items.map((hit) => (
-                <button
-                  key={`${hit.type}:${hit.id}`}
-                  type="button"
-                  className="w-full rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4 text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-[var(--app-primary)]"
-                  onClick={() => void openResult(hit)}
-                >
-                  <div className="flex items-center gap-2">
-                    <Tag>{typeLabels[hit.type]}</Tag>
-                    <strong className="min-w-0 flex-1 truncate text-sm text-[var(--app-text)]">{hit.title}</strong>
-                    <time className="shrink-0 text-xs text-[var(--app-text-tertiary)]" dateTime={hit.updatedAt}>
-                      {new Date(hit.updatedAt).toLocaleDateString("zh-CN")}
-                    </time>
-                  </div>
-                  <p className="mb-0 mt-2 line-clamp-3 break-words text-sm text-[var(--app-text-secondary)]">{hit.snippet}</p>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-        {keyword && !pendingInput && results.data && !results.isError && (
-          <div className="mt-6 flex items-center justify-center gap-3">
-            <Button disabled={offset === 0 || results.isFetching} onClick={() => setOffset(Math.max(0, offset - pageSize))}>上一页</Button>
-            <span className="text-sm text-[var(--app-text-secondary)]">第 {offset / pageSize + 1} 页</span>
-            <Button disabled={!results.data.hasMore || results.isFetching} onClick={() => setOffset(offset + pageSize)}>下一页</Button>
           </div>
-        )}
+        </header>
+        <section
+          className="workspace-panel search-filter-panel"
+          aria-label="工作区搜索筛选"
+        >
+          <div className="workspace-toolbar search-filter-toolbar">
+            <label className="search-keyword-field">
+              <span>搜索关键词</span>
+              <Input
+                prefix={<Search size={16} />}
+                aria-label="搜索关键词"
+                placeholder="输入关键词搜索工作区"
+                allowClear
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+              />
+            </label>
+            <label className="search-type-field">
+              <span>内容类型</span>
+              <Select
+                aria-label="搜索类型"
+                value={type}
+                onChange={(value) => {
+                  setType(value);
+                  setOffset(0);
+                }}
+                options={[
+                  { value: "all", label: "全部类型" },
+                  ...Object.entries(typeLabels).map(([value, label]) => ({
+                    value,
+                    label,
+                  })),
+                ]}
+              />
+            </label>
+          </div>
+          <p className="search-filter-hint">
+            跨消息与工作内容检索，点击结果可直接前往对应位置。
+          </p>
+        </section>
+        <section
+          className="workspace-panel search-results-panel"
+          aria-label="搜索结果"
+          aria-busy={
+            Boolean(input.trim()) && (pendingInput || results.isLoading)
+          }
+        >
+          <div className="search-results-heading">
+            <h2>{input.trim() ? "搜索结果" : "从关键词开始"}</h2>
+            <span aria-live="polite">
+              {keyword && !pendingInput && results.data && !results.isError
+                ? `共 ${results.data.total} 条结果${results.isFetching ? " · 正在更新" : ""}`
+                : "消息 · 文档 · 成员 · 任务 · 通知"}
+            </span>
+          </div>
+          {!input.trim() ? (
+            <div className="search-state">
+              <Empty
+                image={<Search size={40} strokeWidth={1.4} />}
+                description={
+                  <>
+                    <strong>输入关键词开始搜索</strong>
+                    <p>快速找到讨论记录、协作文档与待办事项。</p>
+                  </>
+                }
+              />
+              <div className="search-content-types">
+                {Object.entries(typeLabels).map(([value, label]) => {
+                  const Icon = typeIcons[value as WorkspaceSearchType];
+                  return (
+                    <span key={value}>
+                      <Icon size={14} />
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ) : pendingInput || results.isLoading ? (
+            <div
+              className="search-state search-loading"
+              role="status"
+              aria-label="正在搜索"
+            >
+              <Spin />
+              <span>正在查找相关内容…</span>
+            </div>
+          ) : results.isError ? (
+            <Alert
+              type="error"
+              showIcon
+              title={results.error.message || "搜索失败，请重试"}
+              action={
+                <Button size="small" onClick={() => void results.refetch()}>
+                  重试
+                </Button>
+              }
+            />
+          ) : !results.data?.items.length ? (
+            <div className="search-state">
+              <Empty
+                image={<Search size={40} strokeWidth={1.4} />}
+                description={
+                  <>
+                    <strong>没有找到匹配结果</strong>
+                    <p>试试更简短的关键词，或切换为全部类型。</p>
+                  </>
+                }
+              />
+            </div>
+          ) : (
+            <>
+              <div className="search-results-list">
+                {results.data.items.map((hit) => {
+                  const Icon = typeIcons[hit.type];
+                  return (
+                    <button
+                      key={`${hit.type}:${hit.id}`}
+                      type="button"
+                      className="search-result-card"
+                      onClick={() => void openResult(hit)}
+                    >
+                      <span className="search-result-icon" aria-hidden="true">
+                        <Icon size={19} />
+                      </span>
+                      <div className="search-result-content">
+                        <div className="search-result-heading">
+                          <Tag>{typeLabels[hit.type]}</Tag>
+                          <strong>{hit.title}</strong>
+                          <time dateTime={hit.updatedAt}>
+                            {new Date(hit.updatedAt).toLocaleDateString(
+                              "zh-CN",
+                            )}
+                          </time>
+                        </div>
+                        <p className="search-result-snippet">{hit.snippet}</p>
+                      </div>
+                      <ArrowUpRight
+                        size={16}
+                        className="search-result-arrow"
+                        aria-hidden="true"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+          {keyword && !pendingInput && results.data && !results.isError && (
+            <nav className="search-pagination" aria-label="搜索结果分页">
+              <Button
+                disabled={offset === 0 || results.isFetching}
+                onClick={() => setOffset(Math.max(0, offset - pageSize))}
+              >
+                上一页
+              </Button>
+              <span>第 {offset / pageSize + 1} 页</span>
+              <Button
+                disabled={!results.data.hasMore || results.isFetching}
+                onClick={() => setOffset(offset + pageSize)}
+              >
+                下一页
+              </Button>
+            </nav>
+          )}
+        </section>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Dropdown, Image, Progress, Spin } from "antd";
+import { Dropdown, Image, Progress, Spin, message as feedback } from "antd";
 import { Download, FileText, RotateCcw, XCircle } from "lucide-react";
 import type {
   Attachment,
@@ -120,6 +120,7 @@ export function messageTextSegments(value: string): MessageTextSegment[] {
   return segments;
 }
 
+/** 识别网页链接，桌面端交给系统浏览器，网页预览使用原生新标签行为。 */
 function LinkifiedText({ value }: { value: string }) {
   return (
     <>
@@ -128,11 +129,16 @@ function LinkifiedText({ value }: { value: string }) {
           <a
             key={`${segment.value}-${index}`}
             href={segment.value}
-            className="text-blue-600 underline decoration-blue-600/40 underline-offset-2 hover:text-blue-700"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="chat-message-link"
             onClick={(event) => {
-              event.preventDefault();
               event.stopPropagation();
-              void window.desktop?.external.open(segment.value);
+              if (!window.desktop?.external) return;
+              event.preventDefault();
+              void window.desktop.external.open(segment.value).catch(() => {
+                feedback.error("无法打开链接，请复制到浏览器后重试");
+              });
             }}
           >
             {segment.value}

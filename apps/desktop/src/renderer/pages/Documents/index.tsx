@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Avatar,
+  Alert,
   Button,
   Dropdown,
   Empty,
@@ -35,6 +36,7 @@ import DocumentReviewModal from "./components/DocumentReviewModal";
 import { ROUTES } from "../../constants/routes";
 import { useDocuments } from "./hooks";
 import { writeClipboardText } from "../../services/clipboard";
+import "./page.less";
 
 const views: Array<{
   key: CloudDocumentListView;
@@ -47,6 +49,7 @@ const views: Array<{
   { key: "favorite", label: "我的收藏", icon: <Star size={17} /> },
 ];
 
+/** 将文档更新时间格式化为便于扫描的中文日期。 */
 function formatUpdatedAt(value: string) {
   const date = new Date(value);
   const today = new Date();
@@ -61,6 +64,7 @@ function formatUpdatedAt(value: string) {
   return `${date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" })} ${time}`;
 }
 
+/** 组织文档目录、创建工具与列表，保留文档权限及协作操作。 */
 export default function DocumentsPage() {
   const documents = useDocuments();
   const navigate = useNavigate();
@@ -80,12 +84,13 @@ export default function DocumentsPage() {
     },
     {
       key: "sheet",
-      icon: <FileSpreadsheet size={17} className="text-emerald-600" />,
+      icon: <FileSpreadsheet size={17} className="text-[var(--app-success)]" />,
       label: "新建在线表格",
       onClick: () => documents.createDocument.mutate("sheet"),
     },
   ];
 
+  /** 根据当前文档权限构建版本、评论、分享及管理菜单。 */
   function actionItems(document: CloudDocument): MenuProps["items"] {
     return [
       {
@@ -204,8 +209,12 @@ export default function DocumentsPage() {
   const hasTableContent = documents.documents.isLoading || data.length > 0;
 
   return (
-    <div className="grid h-full grid-cols-[224px_minmax(0,1fr)] bg-[var(--app-canvas)]">
-      <aside className="flex min-h-0 flex-col border-r border-[var(--app-line)] bg-[var(--app-surface-soft)] p-4">
+    <div className="documents-page">
+      <aside className="documents-directory" aria-label="文档目录">
+        <div className="documents-directory-heading">
+          <FileText size={19} />
+          <strong>文档空间</strong>
+        </div>
         <div className="grid gap-2">
           <Dropdown menu={{ items: createItems }} trigger={["click"]}>
             <Button
@@ -235,28 +244,25 @@ export default function DocumentsPage() {
               loading={documents.importDocument.isPending}
               onClick={() => importInput.current?.click()}
             >
-              上传
+              导入文件
             </Button>
           </Tooltip>
         </div>
-        <nav className="mt-6 grid gap-1">
+        <nav className="documents-views" aria-label="文档视图">
           {views.map((item) => (
             <button
               key={item.key}
               type="button"
+              aria-current={documents.view === item.key ? "page" : undefined}
               onClick={() => documents.setView(item.key)}
-              className={`flex h-10 items-center gap-3 rounded-lg px-3 text-left text-xs transition-colors ${
-                documents.view === item.key
-                  ? "bg-[var(--app-primary-soft)] font-medium text-[var(--app-primary)]"
-                  : "text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
-              }`}
+              className="documents-view"
             >
               {item.icon}
               {item.label}
             </button>
           ))}
         </nav>
-        <div className="mt-auto rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-3 shadow-sm">
+        <div className="documents-directory-note">
           <div className="flex items-center gap-2 text-xs font-medium text-[var(--app-text)]">
             <Share2 size={16} className="text-[var(--app-primary)]" />
             多人实时协作
@@ -266,36 +272,26 @@ export default function DocumentsPage() {
           </p>
         </div>
       </aside>
-      <main className="min-h-0 min-w-0 overflow-hidden px-8 py-8 lg:px-12">
-        <div className="mx-auto flex h-full min-h-0 max-w-6xl flex-col">
-          <header className="flex items-start justify-between gap-6">
-            <div>
-              <h1 className="m-0 text-2xl font-semibold tracking-[-.4px] text-[var(--app-text)]">
-                云文档
-              </h1>
-              <p className="mb-0 mt-1 text-sm text-[var(--app-text-secondary)]">
+      <main className="workspace-page documents-main">
+        <div className="documents-content">
+          <header className="workspace-page-header">
+            <div className="workspace-page-heading">
+              <span className="workspace-eyebrow">知识与协作</span>
+              <h1 className="workspace-page-title">云文档</h1>
+              <p className="workspace-page-description">
                 在线文档与表格，内容实时保存并支持多人协作
               </p>
             </div>
-            <Input
-              allowClear
-              prefix={
-                <Search size={16} className="text-[var(--app-text-tertiary)]" />
-              }
-              placeholder="搜索文档"
-              value={documents.query}
-              onChange={(event) => documents.setQuery(event.target.value)}
-              className="!w-80"
-            />
           </header>
 
-          <section className="mt-7 grid grid-cols-2 gap-4">
+          <section className="documents-create-grid" aria-label="快速创建">
             <button
               type="button"
+              disabled={documents.createDocument.isPending}
               onClick={() => documents.createDocument.mutate("doc")}
-              className="group flex items-center gap-4 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[var(--app-primary)] hover:bg-[var(--app-surface-soft)]"
+              className="documents-create-card"
             >
-              <span className="grid size-12 place-items-center rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]">
+              <span className="documents-create-icon">
                 <FilePlus2 size={23} />
               </span>
               <span>
@@ -309,10 +305,11 @@ export default function DocumentsPage() {
             </button>
             <button
               type="button"
+              disabled={documents.createDocument.isPending}
               onClick={() => documents.createDocument.mutate("sheet")}
-              className="group flex items-center gap-4 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-5 text-left shadow-[var(--app-shadow-panel)] transition-colors hover:border-[var(--app-primary)] hover:bg-[var(--app-surface-soft)]"
+              className="documents-create-card"
             >
-              <span className="grid size-12 place-items-center rounded-xl bg-[#e8f8f2] text-emerald-600">
+              <span className="documents-create-icon documents-create-icon-sheet">
                 <FileSpreadsheet size={23} />
               </span>
               <span>
@@ -327,9 +324,9 @@ export default function DocumentsPage() {
           </section>
 
           <section
-            className={`mt-7 flex min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)] ${hasTableContent ? "flex-1" : "shrink-0"}`}
+            className={`workspace-panel documents-table-panel ${hasTableContent ? "documents-table-panel-filled" : ""}`}
           >
-            <div className="flex items-center justify-between border-b border-[var(--app-line)] px-5 py-4">
+            <div className="workspace-toolbar documents-toolbar">
               <div className="flex items-center gap-2">
                 <FolderClock size={18} className="text-[var(--app-primary)]" />
                 <strong className="text-sm text-[var(--app-text)]">
@@ -337,18 +334,54 @@ export default function DocumentsPage() {
                 </strong>
                 <Tag bordered={false}>{data.length}</Tag>
               </div>
+              <Input
+                allowClear
+                prefix={
+                  <Search
+                    size={16}
+                    className="text-[var(--app-text-secondary)]"
+                  />
+                }
+                placeholder="搜索文档"
+                aria-label="搜索文档"
+                value={documents.query}
+                onChange={(event) => documents.setQuery(event.target.value)}
+                className="documents-search"
+              />
             </div>
+            {documents.documents.isError && (
+              <Alert
+                type="error"
+                showIcon
+                title="文档加载失败"
+                action={
+                  <Button
+                    size="small"
+                    onClick={() => void documents.documents.refetch()}
+                  >
+                    重试
+                  </Button>
+                }
+              />
+            )}
             <div className="min-h-0 flex-1 overflow-y-auto">
               <Table<CloudDocument>
                 rowKey="id"
                 loading={documents.documents.isLoading}
                 pagination={false}
+                tableLayout="fixed"
+                scroll={{ x: 680 }}
+                className="documents-table"
                 dataSource={data}
                 locale={{
                   emptyText: (
                     <Empty
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      description="这里还没有文档"
+                      description={
+                        documents.query
+                          ? "没有找到匹配的文档，试试其他关键词"
+                          : "这里还没有文档，可新建或导入文件"
+                      }
                     />
                   ),
                 }}
@@ -360,17 +393,17 @@ export default function DocumentsPage() {
                 columns={[
                   {
                     title: "名称",
+                    width: 260,
                     render: (_, document) => (
                       <button
                         type="button"
                         onClick={() =>
                           window.desktop?.windows.openDocument(document.id)
                         }
-                        className="flex min-w-0 items-center gap-3 text-left"
+                        className="documents-file-button"
                       >
                         <span
-                          className="grid size-9 shrink-0 place-items-center rounded-lg text-white"
-                          style={{ background: document.color }}
+                          className={`documents-file-icon ${document.type === "sheet" ? "documents-create-icon-sheet" : ""}`}
                         >
                           {document.type === "sheet" ? (
                             <FileSpreadsheet size={18} />
@@ -401,7 +434,12 @@ export default function DocumentsPage() {
                             key={member.userId}
                             title={`${member.name} · ${member.permission === "owner" ? "所有者" : member.permission === "editor" ? "可编辑" : "仅查看"}`}
                           >
-                            <Avatar>
+                            <Avatar
+                              style={{
+                                backgroundColor: "var(--app-primary-soft)",
+                                color: "var(--app-primary)",
+                              }}
+                            >
                               {member.avatar || member.name.slice(0, 1)}
                             </Avatar>
                           </Tooltip>
@@ -432,9 +470,11 @@ export default function DocumentsPage() {
                           icon={
                             <Star
                               size={16}
-                              fill={document.favorite ? "#f3b23d" : "none"}
+                              fill={document.favorite ? "currentColor" : "none"}
                               color={
-                                document.favorite ? "#f3b23d" : "currentColor"
+                                document.favorite
+                                  ? "var(--app-primary)"
+                                  : "currentColor"
                               }
                             />
                           }
@@ -448,10 +488,12 @@ export default function DocumentsPage() {
                         <Dropdown
                           menu={{ items: actionItems(document) }}
                           trigger={["click"]}
+                          placement="bottomRight"
                         >
                           <Button
                             type="text"
                             size="small"
+                            aria-label={`更多操作：${document.title}`}
                             icon={<MoreHorizontal size={17} />}
                           />
                         </Dropdown>

@@ -276,7 +276,7 @@ export default function ChatHistoryWindow({ task }: ChatHistoryWindowProps) {
                       <Avatar
                         shape="square"
                         size={34}
-                        className="!shrink-0 !rounded-lg !bg-[#4b8fea]"
+                        className="!shrink-0 !rounded-lg !bg-[var(--app-primary-soft)] !text-[var(--app-primary)]"
                       >
                         {message.senderAvatar || message.senderName.slice(0, 1)}
                       </Avatar>

@@ -112,6 +112,7 @@ function messageImages(message: Message) {
   return images;
 }
 
+/** 承载消息阅读、回复、多选和可调高度的输入区。 */
 export default function ChatPanel({
   conversation,
   currentUser,
@@ -473,7 +474,7 @@ export default function ChatPanel({
       data-chat-root
       className="relative flex h-full w-full min-h-0 min-w-0 max-w-full flex-col overflow-hidden"
     >
-      <header className="flex h-12 w-full min-w-0 max-w-full shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-[var(--chat-line)] bg-[var(--chat-header)] px-4 max-md:pl-12">
+      <header className="chat-detail-heading flex w-full min-w-0 max-w-full shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-[var(--chat-line)] bg-[var(--chat-header)] px-5 max-md:pl-12">
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
           {conversation.type === "direct" ? (
             <MemberProfilePopover
@@ -802,7 +803,7 @@ export default function ChatPanel({
         </footer>
       ) : (
         <footer
-          className="relative min-h-40 max-h-96 border-t border-[var(--chat-line)] bg-[var(--app-surface)] px-4 pb-3 pt-2.5 max-md:pb-[calc(12px+env(safe-area-inset-bottom))]"
+          className="chat-composer relative min-h-40 max-h-96 border-t border-[var(--chat-line)] bg-[var(--app-surface)] px-4 pb-3 pt-2.5 max-md:pb-[calc(12px+env(safe-area-inset-bottom))]"
           style={
             {
               height: composerHeight,
@@ -867,8 +868,8 @@ export default function ChatPanel({
             )}
           />
           <Button
-            type="text"
-            className="!absolute !right-4 !bottom-3.5 !min-w-0 !rounded-none !border-0 !bg-transparent !px-2 !font-medium !shadow-none enabled:!text-[var(--chat-primary)] hover:!bg-transparent active:!bg-transparent"
+            type="primary"
+            className="!absolute !right-4 !bottom-3.5 !min-w-18 !px-4 !font-medium"
             onClick={() => void chat.submit()}
             disabled={!chat.canSend}
           >

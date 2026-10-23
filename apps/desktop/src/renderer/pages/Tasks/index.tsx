@@ -10,15 +10,18 @@ import {
   Modal,
   Popconfirm,
   Select,
+  Skeleton,
   Tag,
   message,
 } from "antd";
 import {
   CheckCircle2,
   Circle,
+  CircleDot,
   ListTodo,
   Pencil,
   Plus,
+  RefreshCw,
   Trash2,
 } from "lucide-react";
 import dayjs, { type Dayjs } from "dayjs";
@@ -28,6 +31,7 @@ import { tasksService } from "../../services/tasks";
 import { organizationService } from "../../services/organization";
 import { useUserStore } from "../../stores/user-store";
 import { includeSearchTarget, searchTargetId } from "../Search/helpers";
+import "./index.less";
 
 const priorityLabels: Record<TaskPriority, string> = {
   low: "低",
@@ -42,12 +46,14 @@ const statusLabels: Record<TaskStatus, string> = {
   cancelled: "已取消",
 };
 
+/** 将任务截止时间格式化为包含完整日期的提示。 */
 function dueText(value: string | null) {
   return value
     ? `截止 ${dayjs(value).format("YYYY-MM-DD HH:mm")}`
     : "未设置截止时间";
 }
 
+/** 展示任务工作台，保留状态流转、编辑权限与深链接定位。 */
 export default function TasksPage() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -130,6 +136,7 @@ export default function TasksPage() {
       targetTaskRef.current?.scrollIntoView({ block: "center" });
   }, [targetTaskId, tasks.data, targetTask.data]);
 
+  /** 将选中任务载入编辑表单，不改变原有负责人权限。 */
   function openEdit(task: Task) {
     setEditing(task);
     setEditTitle(task.title);
@@ -138,6 +145,7 @@ export default function TasksPage() {
     setEditDueAt(task.dueAt ? dayjs(task.dueAt) : null);
   }
 
+  /** 校验编辑字段后保存任务，并在成功后关闭弹窗。 */
   function saveEdit() {
     if (!editing || !editTitle.trim() || !editAssigneeId) return;
     update.mutate(
@@ -155,83 +163,166 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[var(--app-canvas)] px-[clamp(20px,4vw,64px)] py-8">
-      <div className="mx-auto max-w-4xl">
-        <header className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="m-0 flex items-center gap-2 text-2xl font-semibold text-[var(--app-text)]">
-              <ListTodo size={24} />
-              我的任务
-            </h1>
-            <p className="mb-0 mt-1 text-sm text-[var(--app-text-secondary)]">
+    <div className="workspace-page tasks-page">
+      <div className="workspace-page-body tasks-page-content">
+        <header className="workspace-page-header">
+          <div className="workspace-page-heading">
+            <span className="workspace-eyebrow">
+              <ListTodo size={14} /> 工作事项
+            </span>
+            <h1 className="workspace-page-title">我的任务</h1>
+            <p className="workspace-page-description">
               集中查看和推进分配给你的工作事项。
             </p>
           </div>
-          <Select
-            value={targetTaskId ? "" : status}
-            onChange={(value) => {
-              setStatus(value);
-              if (targetTaskId) {
-                const next = new URLSearchParams(searchParams);
-                next.delete("taskId");
-                setSearchParams(next, { replace: true });
-              }
+          <Button
+            icon={<RefreshCw size={15} />}
+            loading={tasks.isFetching || targetTask.isFetching}
+            onClick={() => {
+              void tasks.refetch();
+              if (targetTaskId) void targetTask.refetch();
             }}
-            options={[
-              { value: "", label: "全部状态" },
-              ...Object.entries(statusLabels).map(([value, label]) => ({
-                value,
-                label,
-              })),
-            ]}
-          />
+          >
+            刷新
+          </Button>
         </header>
 
-        <section className="mb-6 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4 shadow-[var(--app-shadow-panel)]">
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              className="min-w-[260px] flex-1"
-              value={title}
-              maxLength={200}
-              placeholder="输入任务标题"
-              onChange={(event) => setTitle(event.target.value)}
-              onPressEnter={() => title.trim() && create.mutate()}
-            />
-            <Select
-              value={priority}
-              onChange={setPriority}
-              options={Object.entries(priorityLabels).map(([value, label]) => ({
-                value,
-                label: `优先级：${label}`,
-              }))}
-            />
-            <DatePicker
-              showTime
-              value={dueAt}
-              placeholder="截止时间"
-              onChange={setDueAt}
-            />
+        <section className="workspace-panel tasks-create" aria-label="新增任务">
+          <div className="tasks-section-heading">
+            <h2>快速新建</h2>
+            <span>记录下一项待办，让协作有序推进</span>
+          </div>
+          <form
+            className="tasks-create-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (title.trim() && !create.isPending) create.mutate();
+            }}
+          >
+            <label className="tasks-field tasks-title-field">
+              <span>任务标题</span>
+              <Input
+                aria-label="任务标题"
+                value={title}
+                maxLength={200}
+                placeholder="输入任务标题"
+                disabled={create.isPending}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </label>
+            <label className="tasks-field">
+              <span>优先级</span>
+              <Select
+                aria-label="任务优先级"
+                value={priority}
+                onChange={setPriority}
+                disabled={create.isPending}
+                options={Object.entries(priorityLabels).map(
+                  ([value, label]) => ({ value, label: `优先级：${label}` }),
+                )}
+              />
+            </label>
+            <label className="tasks-field">
+              <span>截止时间</span>
+              <DatePicker
+                aria-label="任务截止时间"
+                showTime
+                value={dueAt}
+                placeholder="选择截止时间"
+                disabled={create.isPending}
+                onChange={setDueAt}
+              />
+            </label>
             <Button
+              htmlType="submit"
               type="primary"
               icon={<Plus size={16} />}
               loading={create.isPending}
               disabled={!title.trim()}
-              onClick={() => create.mutate()}
             >
               新增任务
             </Button>
+          </form>
+        </section>
+
+        <section
+          className="workspace-toolbar tasks-toolbar"
+          aria-label="任务筛选"
+        >
+          <div className="tasks-section-heading">
+            <h2>任务列表</h2>
+            <span aria-live="polite">当前视图 {items.length} 项</span>
+          </div>
+          <div className="tasks-status-filter">
+            <span id="tasks-status-label">状态</span>
+            <Select
+              aria-labelledby="tasks-status-label"
+              value={targetTaskId ? "" : status}
+              onChange={(value) => {
+                setStatus(value);
+                if (targetTaskId) {
+                  const next = new URLSearchParams(searchParams);
+                  next.delete("taskId");
+                  setSearchParams(next, { replace: true });
+                }
+              }}
+              options={[
+                { value: "", label: "全部状态" },
+                ...Object.entries(statusLabels).map(([value, label]) => ({
+                  value,
+                  label,
+                })),
+              ]}
+            />
           </div>
         </section>
 
-        <div className="grid gap-3">
+        <div
+          className="tasks-list"
+          aria-busy={
+            tasks.isLoading || Boolean(targetTaskId && targetTask.isLoading)
+          }
+        >
+          {tasks.isError && (
+            <Alert
+              type="error"
+              showIcon
+              title={tasks.error.message || "任务加载失败"}
+              action={
+                <Button onClick={() => void tasks.refetch()}>重试</Button>
+              }
+            />
+          )}
           {targetTask.isError && (
-            <Alert type="error" showIcon title={targetTask.error.message} />
+            <Alert
+              type="error"
+              showIcon
+              title={targetTask.error.message}
+              action={
+                <Button onClick={() => void targetTask.refetch()}>重试</Button>
+              }
+            />
+          )}
+          {(tasks.isLoading ||
+            Boolean(targetTaskId && targetTask.isLoading)) && (
+            <div
+              className="workspace-panel tasks-loading"
+              role="status"
+              aria-label="正在加载任务"
+            >
+              <Skeleton active paragraph={{ rows: 3 }} />
+            </div>
           )}
           {items.map((task) => {
             const canEdit = [task.creatorId, task.assigneeId].includes(
               currentUserId || 0,
             );
             const done = task.status === "done" || task.status === "cancelled";
+            const overdue = Boolean(
+              task.dueAt &&
+              !done &&
+              new Date(task.dueAt).getTime() < Date.now(),
+            );
             const nextStatus: TaskStatus =
               task.status === "todo"
                 ? "in_progress"
@@ -243,13 +334,13 @@ export default function TasksPage() {
                 key={task.id}
                 ref={task.id === targetTaskId ? targetTaskRef : undefined}
                 data-search-highlighted={task.id === targetTaskId || undefined}
-                className={`flex items-center gap-3 rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] p-4 shadow-sm ${task.id === targetTaskId ? "ring-2 ring-[var(--app-primary)]" : ""}`}
+                className={`workspace-panel tasks-card ${task.id === targetTaskId ? "ring-2 ring-[var(--app-primary)]" : ""}`}
               >
                 <button
                   type="button"
                   aria-label={done ? "重新打开任务" : "推进任务"}
-                  disabled={!canEdit}
-                  className="text-[var(--app-primary)]"
+                  disabled={!canEdit || update.isPending}
+                  className={`tasks-progress ${done ? "is-complete" : ""}`}
                   onClick={() =>
                     update.mutate({
                       id: task.id,
@@ -257,72 +348,91 @@ export default function TasksPage() {
                     })
                   }
                 >
-                  {done ? <CheckCircle2 size={21} /> : <Circle size={21} />}
+                  {done ? (
+                    <CheckCircle2 size={21} />
+                  ) : task.status === "in_progress" ? (
+                    <CircleDot size={21} />
+                  ) : (
+                    <Circle size={21} />
+                  )}
                 </button>
                 <div className="min-w-0 flex-1">
                   <strong
-                    className={`block truncate text-sm ${done ? "text-[var(--app-text-tertiary)] line-through" : "text-[var(--app-text)]"}`}
+                    className={`tasks-card-title ${done ? "is-complete" : ""}`}
                   >
                     {task.title}
                   </strong>
                   <span
-                    className={`mt-1 block text-xs ${task.dueAt && task.status !== "done" && new Date(task.dueAt).getTime() < Date.now() ? "text-[var(--app-danger)]" : "text-[var(--app-text-tertiary)]"}`}
+                    className={`tasks-card-meta ${overdue ? "is-overdue" : ""}`}
                   >
                     负责人：{task.assignee.name} · {dueText(task.dueAt)}
-                    {task.dueAt &&
-                    task.status !== "done" &&
-                    new Date(task.dueAt).getTime() < Date.now()
-                      ? " · 已逾期"
-                      : ""}
+                    {overdue ? " · 已逾期" : ""}
                   </span>
                 </div>
-                <Tag
-                  color={
-                    task.priority === "urgent"
-                      ? "red"
-                      : task.priority === "high"
-                        ? "orange"
-                        : "blue"
-                  }
-                >
-                  {priorityLabels[task.priority]}
-                </Tag>
-                <Tag>{statusLabels[task.status]}</Tag>
-                {!canEdit && <Tag>仅查看</Tag>}
-                <Button
-                  type="text"
-                  aria-label="编辑任务"
-                  disabled={!canEdit}
-                  icon={<Pencil size={16} />}
-                  onClick={() => openEdit(task)}
-                />
-                {task.creatorId === currentUserId && (
-                  <Popconfirm
-                    title="删除这个任务？"
-                    okText="删除"
-                    cancelText="取消"
-                    okButtonProps={{ danger: true }}
-                    onConfirm={() => remove.mutate(task.id)}
+                <div className="tasks-card-actions">
+                  <Tag
+                    className={`tasks-priority tasks-priority-${task.priority}`}
                   >
-                    <Button
-                      type="text"
-                      danger
-                      aria-label="删除任务"
-                      icon={<Trash2 size={16} />}
-                    />
-                  </Popconfirm>
-                )}
+                    {priorityLabels[task.priority]}
+                  </Tag>
+                  <Tag>{statusLabels[task.status]}</Tag>
+                  {!canEdit && <Tag>仅查看</Tag>}
+                  <Button
+                    type="text"
+                    aria-label="编辑任务"
+                    disabled={!canEdit || update.isPending}
+                    icon={<Pencil size={16} />}
+                    onClick={() => openEdit(task)}
+                  />
+                  {task.creatorId === currentUserId && (
+                    <Popconfirm
+                      title="删除这个任务？"
+                      okText="删除"
+                      cancelText="取消"
+                      okButtonProps={{ danger: true }}
+                      onConfirm={() => remove.mutate(task.id)}
+                    >
+                      <Button
+                        type="text"
+                        danger
+                        aria-label="删除任务"
+                        loading={
+                          remove.isPending && remove.variables === task.id
+                        }
+                        icon={<Trash2 size={16} />}
+                      />
+                    </Popconfirm>
+                  )}
+                </div>
               </article>
             );
           })}
           {!tasks.isLoading &&
-            !targetTask.isLoading &&
+            !tasks.isError &&
+            !(targetTaskId && targetTask.isLoading) &&
             !targetTask.isError &&
-            !items.length && <Empty description="暂无任务" />}
+            !items.length && (
+              <div className="workspace-panel tasks-empty">
+                <Empty
+                  image={<ListTodo size={40} strokeWidth={1.4} />}
+                  description={
+                    <>
+                      <strong>暂无任务</strong>
+                      <p>
+                        {status
+                          ? "试试切换状态，查看其他工作事项。"
+                          : "在上方新建任务，开始安排接下来的工作。"}
+                      </p>
+                    </>
+                  }
+                />
+              </div>
+            )}
         </div>
       </div>
       <Modal
         open={Boolean(editing)}
+        className="tasks-edit-modal"
         title="编辑任务"
         okText="保存"
         cancelText="取消"
@@ -332,15 +442,20 @@ export default function TasksPage() {
         onOk={saveEdit}
         destroyOnHidden
       >
-        <Input.TextArea
-          value={editTitle}
-          maxLength={200}
-          showCount
-          rows={3}
-          onChange={(event) => setEditTitle(event.target.value)}
-        />
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <label className="tasks-field">
+          <span>任务标题</span>
+          <Input.TextArea
+            aria-label="编辑任务标题"
+            value={editTitle}
+            maxLength={200}
+            showCount
+            rows={3}
+            onChange={(event) => setEditTitle(event.target.value)}
+          />
+        </label>
+        <div className="tasks-edit-fields">
           <Select
+            aria-label="任务负责人"
             value={editAssigneeId}
             className="w-full"
             disabled={editing ? editing.creatorId !== currentUserId : false}
@@ -353,6 +468,7 @@ export default function TasksPage() {
             onChange={setEditAssigneeId}
           />
           <Select
+            aria-label="编辑任务优先级"
             value={editPriority}
             className="w-full"
             options={Object.entries(priorityLabels).map(([value, label]) => ({
@@ -362,6 +478,7 @@ export default function TasksPage() {
             onChange={setEditPriority}
           />
           <DatePicker
+            aria-label="编辑任务截止时间"
             className="w-full"
             showTime
             value={editDueAt}

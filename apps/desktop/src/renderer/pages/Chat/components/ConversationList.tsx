@@ -78,6 +78,7 @@ export interface ConversationListProps {
   ) => void;
 }
 
+/** 展示会话、未读提示和搜索结果，保留置顶与草稿预览。 */
 export default function ConversationList({
   conversations,
   loading,
@@ -161,7 +162,14 @@ export default function ConversationList({
 
   return (
     <>
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--chat-line)] bg-[var(--app-surface-soft)] px-3">
+      <div className="chat-list-heading">
+        <div>
+          <span className="workspace-eyebrow">TEAM CHAT</span>
+          <h1>消息</h1>
+        </div>
+        <span className="chat-list-count">{conversations.length}</span>
+      </div>
+      <header className="chat-list-search flex shrink-0 items-center gap-2 px-4 pb-4">
         <Input
           allowClear
           value={query}
@@ -169,7 +177,7 @@ export default function ConversationList({
             <Search size={15} className="text-[var(--chat-text-secondary)]" />
           }
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="搜索"
+          placeholder="搜索会话与消息"
           className="!rounded-lg !border !border-transparent !bg-[var(--app-surface-muted)] !shadow-none focus-within:!border-[var(--chat-primary)] focus-within:!bg-[var(--app-surface)]"
         />
         <Button
@@ -346,7 +354,7 @@ export default function ConversationList({
               return (
                 <Dropdown key={item.id} trigger={["contextMenu"]} menu={menu}>
                   <button
-                    className={`group flex w-full max-w-full items-center gap-2.5 overflow-hidden rounded-lg border px-2.5 py-2.5 text-left transition-colors duration-150 ${
+                    className={`chat-conversation-row group flex w-full max-w-full items-center gap-2.5 overflow-hidden rounded-lg border px-2.5 py-2.5 text-left transition-colors duration-150 ${
                       selected
                         ? "border-transparent bg-[var(--chat-primary-soft)]"
                         : item.pinned

@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 export default defineConfig({
   base: "./",
+  cacheDir: process.env.CHAT_VITE_CACHE_DIR,
   plugins: [react()],
   build: {
     outDir: "dist/renderer",

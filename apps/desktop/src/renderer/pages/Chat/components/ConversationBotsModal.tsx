@@ -29,10 +29,10 @@ export interface ConversationBotsModalProps {
 }
 
 const BOT_TONES = [
-  { background: "#eaf3ff", color: "#2878d4" },
-  { background: "#f1edff", color: "#7254d5" },
-  { background: "#eaf9f2", color: "#168961" },
-  { background: "#fff3e5", color: "#d4771a" },
+  { background: "var(--app-primary-soft)", color: "var(--app-primary)" },
+  { background: "var(--app-surface-muted)", color: "var(--app-primary)" },
+  { background: "var(--app-surface-muted)", color: "var(--app-success)" },
+  { background: "var(--app-surface-muted)", color: "var(--app-text-secondary)" },
 ];
 
 export default function ConversationBotsModal({

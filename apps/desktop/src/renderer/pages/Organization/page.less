@@ -1,0 +1,292 @@
+.organization-page {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--app-text);
+  background: var(--app-canvas);
+}
+.organization-directory {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  padding: 24px 16px 16px;
+  border-right: 1px solid var(--app-line);
+  background: var(--app-surface-soft);
+}
+.organization-directory-heading {
+  padding-inline: 8px;
+}
+.organization-directory-heading h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+.organization-company-card {
+  padding: 16px;
+  border: 1px solid var(--app-line);
+  border-radius: 12px;
+  background: var(--app-surface);
+}
+.organization-menu {
+  display: grid;
+  gap: 4px;
+}
+.organization-menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--app-text-secondary);
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 180ms,
+    border-color 180ms;
+  &:hover {
+    background: var(--app-surface-muted);
+  }
+  &[aria-current="page"] {
+    border-color: var(--app-line);
+    color: var(--app-primary);
+    background: var(--app-primary-soft);
+    font-weight: 600;
+  }
+}
+.organization-security-note {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding: 12px;
+  border: 1px solid var(--app-line);
+  border-radius: 12px;
+  color: var(--app-text-secondary);
+  background: var(--app-surface);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.organization-main {
+  height: 100%;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.organization-content {
+  display: flex;
+  width: 100%;
+  max-width: 1200px;
+  flex-direction: column;
+  gap: 24px;
+  margin-inline: auto;
+}
+.organization-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.organization-company-title {
+  overflow-wrap: anywhere;
+}
+.organization-header > .ant-btn {
+  flex-shrink: 0;
+  height: 36px;
+}
+.organization-mobile-nav {
+  display: none;
+}
+.organization-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.organization-stat {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--app-line);
+  border-radius: 12px;
+  background: var(--app-surface);
+  font-variant-numeric: tabular-nums;
+}
+.organization-panel.ant-card {
+  min-width: 0;
+  overflow: hidden;
+  border-color: var(--app-line);
+  border-radius: 14px;
+  background: var(--app-surface);
+}
+.organization-panel-heading {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--app-line);
+}
+.organization-member-toolbar {
+  padding: 16px;
+  border-bottom: 1px solid var(--app-line);
+  background: var(--app-surface);
+}
+.organization-member-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.organization-member-search.ant-input-affix-wrapper {
+  width: 240px;
+  min-height: 36px;
+}
+.organization-member-filters .ant-select {
+  width: 128px;
+  min-height: 36px;
+}
+.organization-result-count {
+  margin-left: auto;
+  color: var(--app-text-secondary);
+  font-size: 12px;
+}
+.organization-panel .ant-btn-sm {
+  min-height: 30px;
+}
+.organization-departments {
+  display: grid;
+  min-height: 384px;
+  grid-template-columns: minmax(200px, 0.8fr) minmax(0, 1.6fr);
+}
+.organization-department-tree {
+  min-width: 0;
+  padding: 16px;
+  border-right: 1px solid var(--app-line);
+  background: var(--app-surface);
+}
+.organization-department-tree .ant-tree {
+  overflow-x: auto;
+}
+.organization-department-detail {
+  min-width: 0;
+  padding: 24px;
+  background: var(--app-surface-soft);
+}
+.organization-department-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--app-line);
+}
+.organization-department-heading .ant-btn {
+  height: 36px;
+}
+.organization-page button:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
+}
+.organization-modal {
+  .ant-form-item {
+    margin-bottom: 20px;
+  }
+  .ant-form-item-label > label {
+    font-size: 13px;
+  }
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-select,
+  .ant-btn {
+    min-height: 36px;
+  }
+  .ant-input-affix-wrapper .ant-input {
+    min-height: 0;
+  }
+}
+@media (max-width: 1200px) {
+  .organization-page {
+    grid-template-columns: 232px minmax(0, 1fr);
+  }
+  .organization-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .organization-departments {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .organization-department-tree {
+    border-right: 0;
+    border-bottom: 1px solid var(--app-line);
+  }
+  .organization-department-tree .ant-tree {
+    max-height: 280px;
+    overflow-y: auto;
+  }
+}
+@media (max-width: 767px) {
+  .organization-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .organization-directory {
+    display: none;
+  }
+  .organization-content {
+    gap: 16px;
+  }
+  .organization-mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .organization-mobile-nav .ant-btn,
+  .organization-header > .ant-btn {
+    height: 44px;
+  }
+  .organization-stats {
+    gap: 12px;
+  }
+  .organization-stat {
+    gap: 8px;
+    padding: 12px;
+  }
+  .organization-member-search.ant-input-affix-wrapper {
+    width: 100%;
+    min-height: 44px;
+  }
+  .organization-member-filters .ant-select {
+    flex: 1 1 120px;
+    min-height: 44px;
+  }
+  .organization-result-count {
+    width: 100%;
+    margin: 4px 0 0;
+  }
+  .organization-department-detail {
+    padding: 16px;
+  }
+  .organization-department-heading .ant-btn {
+    height: 44px;
+  }
+  .organization-modal .ant-input,
+  .organization-modal .ant-input-affix-wrapper,
+  .organization-modal .ant-select,
+  .organization-modal .ant-btn {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .organization-menu-item {
+    transition: none;
+  }
+}

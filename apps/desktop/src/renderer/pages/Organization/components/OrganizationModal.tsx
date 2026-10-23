@@ -31,6 +31,7 @@ function collectDescendantIds(departmentId: number, departments: Department[]) {
   return ids;
 }
 
+/** 以对齐的表单展示成员和部门管理弹窗，保留校验与角色限制。 */
 export default function OrganizationModal({
   modal,
   departments,
@@ -79,6 +80,7 @@ export default function OrganizationModal({
   return (
     <Modal
       open={Boolean(modal)}
+      className="organization-modal"
       centered
       width={isMember ? 640 : 520}
       title={title}
@@ -86,7 +88,9 @@ export default function OrganizationModal({
       onCancel={onClose}
       destroyOnHidden
     >
-      <p className="mb-5 text-xs text-slate-400">{description}</p>
+      <p className="mb-5 text-[13px] text-[var(--app-text-secondary)]">
+        {description}
+      </p>
       <Form
         key={
           isEdit

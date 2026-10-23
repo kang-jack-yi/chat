@@ -74,7 +74,7 @@ describe("Zustand stores", () => {
     expect(useChatDraftStore.getState().drafts).toEqual({});
   });
 
-  it("resets cross-page UI state", () => {
+  it("resets cross-page UI state while preserving the sidebar preference", () => {
     const app = useAppStore.getState();
     app.setMobileDetailOpen(true);
     app.setGroupDialogOpen(true);
@@ -83,7 +83,7 @@ describe("Zustand stores", () => {
     expect(useAppStore.getState()).toMatchObject({
       mobileDetailOpen: false,
       groupDialogOpen: false,
-      sidebarCollapsed: false,
+      sidebarCollapsed: true,
     });
   });
 });

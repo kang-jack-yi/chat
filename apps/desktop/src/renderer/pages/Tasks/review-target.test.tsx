@@ -411,7 +411,12 @@ describe("审批关联任务深链接", { timeout: 15_000 }, () => {
       expect(
         dialog.querySelector<HTMLInputElement>('[role="combobox"]')?.disabled,
       ).toBe(userId !== 1);
-      const text = dialog.querySelector("textarea")!;
+      const text = dialog.querySelector<HTMLTextAreaElement>(
+        '[aria-label="编辑任务标题"]',
+      )!;
+      expect(text).not.toBeNull();
+      for (const label of ["任务负责人", "编辑任务优先级", "编辑任务截止时间"])
+        expect(dialog.querySelector(`[aria-label="${label}"]`)).not.toBeNull();
       await act(async () => {
         Object.getOwnPropertyDescriptor(
           HTMLTextAreaElement.prototype,

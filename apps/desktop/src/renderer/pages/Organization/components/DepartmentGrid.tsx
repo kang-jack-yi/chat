@@ -12,6 +12,7 @@ export interface DepartmentGridProps {
   onAddChild: (department: Department) => void;
 }
 
+/** 展示部门树与所选部门资料，保留编辑、添加下级和成员分区。 */
 export default function DepartmentGrid({
   departments,
   users,
@@ -32,6 +33,7 @@ export default function DepartmentGrid({
     );
   }, [departmentIds, departments, selectedId]);
 
+  /** 按上级部门递归构建可选择的组织树节点。 */
   function buildNodes(parentId: number | null): TreeDataNode[] {
     return departments
       .filter((department) => department.parentId === parentId)
@@ -88,8 +90,8 @@ export default function DepartmentGrid({
   }
 
   return (
-    <div className="grid min-h-96 grid-cols-2 max-lg:grid-cols-2">
-      <section className="min-w-0 border-r border-[var(--app-line)] bg-[var(--app-surface)] p-4">
+    <div className="organization-departments">
+      <section className="organization-department-tree">
         <div className="mb-3 flex items-center justify-between px-1">
           <strong className="text-sm text-[var(--app-text)]">部门列表</strong>
           <span className="text-xs text-[var(--app-text-tertiary)]">
@@ -107,16 +109,16 @@ export default function DepartmentGrid({
         />
       </section>
 
-      <section className="min-w-0 bg-[var(--app-surface-soft)] p-5">
+      <section className="organization-department-detail">
         {selected && (
           <>
-            <div className="flex items-start justify-between gap-4 border-b border-[var(--app-line)] pb-4">
+            <div className="organization-department-heading">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]">
                   <Building2 size={21} />
                 </span>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h2 className="m-0 truncate text-lg font-semibold text-[var(--app-text)]">
                       {selected.name}
                     </h2>

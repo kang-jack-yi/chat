@@ -52,6 +52,7 @@ export function canRecallMessage(
   );
 }
 
+/** 按消息类型展示内容，并统一发送状态与上下文操作。 */
 export default function MessageBubble({
   message,
   own,
@@ -298,10 +299,10 @@ export default function MessageBubble({
     >
       <div
         data-message-content
-        className={`min-w-0 max-w-xl overflow-hidden break-words border px-3.5 py-2.5 text-left text-sm leading-relaxed [overflow-wrap:anywhere] shadow-sm max-md:max-w-xs ${
+        className={`min-w-0 max-w-xl overflow-hidden break-words border px-3.5 py-2.5 text-left text-sm leading-relaxed [overflow-wrap:anywhere] max-md:max-w-xs ${
           own
-            ? "rounded-2xl border-[var(--chat-own-bubble-border)] bg-[var(--chat-own-bubble)] text-[var(--chat-text)]"
-            : "rounded-2xl border-[var(--chat-attachment-border)] bg-[var(--chat-other-bubble)] text-[var(--chat-text)]"
+            ? "rounded-xl border-[var(--chat-own-bubble-border)] bg-[var(--chat-own-bubble)] text-[var(--chat-text)]"
+            : "rounded-xl border-[var(--chat-attachment-border)] bg-[var(--chat-other-bubble)] text-[var(--chat-text)]"
         }`}
       >
         <MessageContent
