@@ -8,6 +8,7 @@ import {
   Empty,
   Input,
   Modal,
+  Spin,
   Tree,
 } from "antd";
 import type { DataNode } from "antd/es/tree";
@@ -16,6 +17,7 @@ import type { Conversation, Department, Message, User } from "@chat/shared";
 import { queryKeys } from "../../../constants/query-keys";
 import { chatService } from "../../../services/chat";
 import { organizationService } from "../../../services/organization";
+import "./invite-members.less";
 
 export interface InviteGroupMembersModalProps {
   open: boolean;
@@ -25,14 +27,17 @@ export interface InviteGroupMembersModalProps {
   onSuccess?: () => void;
 }
 
+/** 为成员生成独立于部门节点的勾选标识。 */
 function userKey(userId: number) {
   return `user:${userId}`;
 }
 
+/** 为部门生成可级联选择的树节点标识。 */
 function departmentKey(departmentId: number) {
   return `department:${departmentId}`;
 }
 
+/** 按部门组织可邀请成员，并保留已有成员的只读勾选状态。 */
 function createDepartmentTree(
   departments: Department[],
   users: User[],
@@ -70,21 +75,21 @@ function createDepartmentTree(
   const userNode = (user: User): DataNode => ({
     key: userKey(user.id),
     title: (
-      <span className="flex min-w-0 items-center gap-2">
+      <span className="invite-member-person">
         <Avatar
           shape="square"
           size={28}
-          className="!rounded-lg !bg-[var(--app-primary)] !text-xs"
+          src={user.avatarUrl}
+          className="invite-member-avatar"
         >
           {user.avatar || user.name.slice(0, 1)}
         </Avatar>
-        <span className="min-w-0 truncate text-sm text-[var(--app-text)]">
-          {user.name}
+        <span className="invite-member-person-copy">
+          <strong title={user.name}>{user.name}</strong>
+          {user.title && <small title={user.title}>{user.title}</small>}
         </span>
         {existingMemberIds.has(user.id) && (
-          <small className="shrink-0 text-xs text-[var(--app-text-tertiary)]">
-            已在群聊
-          </small>
+          <small className="invite-member-existing">已在群聊</small>
         )}
       </span>
     ),
@@ -121,13 +126,18 @@ function createDepartmentTree(
   if (unassigned.length) {
     roots.push({
       key: "department:unassigned",
-      title: <span className="text-xs text-slate-500">未分配部门</span>,
+      title: (
+        <span className="text-xs text-[var(--app-text-secondary)]">
+          未分配部门
+        </span>
+      ),
       children: unassigned,
     });
   }
   return roots;
 }
 
+/** 提供企业成员选择、已选预览和可选的入群聊天记录。 */
 export default function InviteGroupMembersModal({
   open,
   conversation,
@@ -176,9 +186,24 @@ export default function InviteGroupMembersModal({
     const selected = new Set(selectedIds);
     return users.filter((user) => selected.has(user.id));
   }, [selectedIds, users]);
+  // 搜索会隐藏部分节点，树控件只接收当前可见的勾选项。
+  const visibleUserIds = useMemo(() => {
+    const ids = new Set<number>();
+    const pending = [...treeData];
+    while (pending.length) {
+      const node = pending.pop()!;
+      const key = String(node.key);
+      if (key.startsWith("user:")) ids.add(Number(key.slice(5)));
+      if (node.children) pending.push(...node.children);
+    }
+    return ids;
+  }, [treeData]);
   const checkedKeys = useMemo(
-    () => [...[...existingMemberIds].map(userKey), ...selectedIds.map(userKey)],
-    [existingMemberIds, selectedIds],
+    () =>
+      [...existingMemberIds, ...selectedIds]
+        .filter((id) => visibleUserIds.has(id))
+        .map(userKey),
+    [existingMemberIds, selectedIds, visibleUserIds],
   );
 
   const invite = useMutation({
@@ -201,9 +226,10 @@ export default function InviteGroupMembersModal({
     onError: (reason: Error) => setError(reason.message),
   });
 
+  /** 打开桌面独立窗口，确认后回填需要附带的消息。 */
   async function openHistorySelection(defaultSelectAll: boolean) {
     if (!window.desktop?.windows) {
-      setError("当前客户端不支持独立聊天记录选择窗口");
+      setError("请在桌面客户端中选择聊天记录");
       if (defaultSelectAll) setIncludeHistory(false);
       return;
     }
@@ -235,9 +261,10 @@ export default function InviteGroupMembersModal({
     }
   }
 
+  /** 勾选附带记录时读取最近可分享的普通消息。 */
   async function selectRecentHistory() {
     if (!window.desktop?.windows) {
-      setError("当前客户端不支持本地聊天记录");
+      setError("请在桌面客户端中附带聊天记录");
       setIncludeHistory(false);
       return;
     }
@@ -270,15 +297,21 @@ export default function InviteGroupMembersModal({
     }
   }
 
+  /** 从级联勾选结果中提取尚未入群的成员。 */
   function handleTreeCheck(keys: Key[] | { checked: Key[] }) {
     const checked = Array.isArray(keys) ? keys : keys.checked;
-    setSelectedIds(
-      checked
-        .map(String)
-        .filter((key) => key.startsWith("user:"))
-        .map((key) => Number(key.slice(5)))
-        .filter((id) => !existingMemberIds.has(id)),
-    );
+    const checkedIds = checked
+      .map(String)
+      .filter((key) => key.startsWith("user:"))
+      .map((key) => Number(key.slice(5)))
+      .filter((id) => !existingMemberIds.has(id));
+    // 只更新本次筛选中的成员，保留用户在其他搜索结果里做出的选择。
+    setSelectedIds((current) => [
+      ...new Set([
+        ...current.filter((id) => !visibleUserIds.has(id)),
+        ...checkedIds,
+      ]),
+    ]);
   }
 
   return (
@@ -286,30 +319,27 @@ export default function InviteGroupMembersModal({
       open={open}
       className="invite-members-modal"
       title={
-        <span className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]">
+        <span className="invite-members-title">
+          <span className="invite-members-title-icon">
             <UsersRound size={20} strokeWidth={1.8} />
           </span>
-          <span className="grid gap-0.5">
-            <strong className="text-sm font-semibold text-[var(--app-text)]">
-              添加群成员
-            </strong>
-            <small className="text-xs font-normal text-slate-400">
-              从企业通讯录中选择要邀请的新成员
-            </small>
+          <span className="invite-members-title-copy">
+            <strong>添加群成员</strong>
+            <small>从企业通讯录中选择要邀请的新成员</small>
           </span>
         </span>
       }
-      width={840}
+      width={860}
       centered
       destroyOnHidden
       onCancel={onClose}
       footer={
-        <div className="flex items-center justify-between gap-4 px-1">
-          <span className="flex min-w-0 items-center gap-1.5">
+        <div className="invite-members-footer">
+          <div className="invite-members-history">
             <Checkbox
+              aria-label="附带最近聊天记录"
               checked={includeHistory}
-              disabled={historyOpening}
+              disabled={historyOpening || invite.isPending}
               onChange={(event) => {
                 if (!event.target.checked) {
                   setIncludeHistory(false);
@@ -319,71 +349,94 @@ export default function InviteGroupMembersModal({
                 void selectRecentHistory();
               }}
             />
-            <button
-              type="button"
-              className="flex min-w-0 items-center gap-1.5 rounded-lg px-1 py-1.5 text-left text-sm text-[var(--app-text-secondary)] transition-colors hover:text-[var(--app-primary)] disabled:text-[var(--app-text-tertiary)]"
-              disabled={historyOpening}
+            <span className="invite-members-history-copy">
+              <strong>
+                {historyOpening ? "正在读取聊天记录…" : "附带最近聊天记录"}
+                {includeHistory && selectedHistoryIds.length > 0 && (
+                  <em>{selectedHistoryIds.length} 条</em>
+                )}
+              </strong>
+              <small>
+                可选，从最近 30 条普通消息中选择，供新成员入群后查看
+              </small>
+            </span>
+            <Button
+              type="text"
+              aria-label="选择附带的聊天记录"
+              className="invite-members-history-select"
+              disabled={historyOpening || invite.isPending}
               onClick={() =>
                 void openHistorySelection(selectedHistoryIds.length === 0)
               }
             >
-              <span>
-                {historyOpening ? "正在读取聊天记录…" : "附带最近聊天记录"}
-              </span>
+              选择记录
               <ChevronRight size={14} />
-            </button>
-            {includeHistory && selectedHistoryIds.length > 0 && (
-              <span className="rounded-full bg-[var(--app-primary-soft)] px-2 py-0.5 text-xs font-medium text-[var(--app-primary)]">
-                {selectedHistoryIds.length} 条
-              </span>
-            )}
-          </span>
-          <span className="flex shrink-0 gap-2">
-            <Button onClick={onClose}>取消</Button>
-            <Button
-              type="primary"
-              loading={invite.isPending}
-              disabled={!selectedIds.length}
-              onClick={() => invite.mutate()}
-            >
-              确定{selectedIds.length ? `（${selectedIds.length}）` : ""}
             </Button>
-          </span>
+          </div>
+          <div className="invite-members-actions">
+            <span className="invite-members-selection-hint" aria-live="polite">
+              已选择 <strong>{selectedIds.length}</strong> 位新成员
+            </span>
+            <span className="invite-members-action-buttons">
+              <Button onClick={onClose}>取消</Button>
+              <Button
+                type="primary"
+                loading={invite.isPending}
+                disabled={!selectedIds.length || historyOpening}
+                onClick={() => invite.mutate()}
+              >
+                邀请{selectedIds.length ? ` ${selectedIds.length} 人` : "成员"}
+              </Button>
+            </span>
+          </div>
         </div>
       }
     >
       {error && (
         <Alert
           type="error"
-          message={error}
+          title={error}
           closable
           className="!mb-3"
           onClose={() => setError("")}
         />
       )}
-      <div className="grid h-[456px] grid-cols-[minmax(0,1fr)_288px] overflow-hidden rounded-xl border border-[var(--app-line)] bg-[var(--app-surface)] shadow-[var(--app-shadow-panel)]">
-        <section className="grid min-h-0 min-w-0 grid-rows-[72px_minmax(0,1fr)] border-r border-[var(--app-line)]">
-          <div className="grid h-[72px] gap-2 border-b border-[var(--app-line)] bg-[var(--app-surface)] px-4 py-3">
-            <span className="flex items-center gap-2 text-xs font-medium text-[var(--app-text-secondary)]">
+      <div className="invite-members-layout">
+        <section className="invite-members-directory" aria-label="企业通讯录">
+          <div className="invite-members-directory-header">
+            <label htmlFor={`invite-member-search-${conversation.id}`}>
               <Building2 size={15} className="text-[var(--app-primary)]" />
               企业通讯录
-            </span>
+            </label>
             <Input
+              id={`invite-member-search-${conversation.id}`}
+              aria-label="搜索企业成员"
               allowClear
               value={keyword}
-              prefix={<Search size={15} className="text-slate-400" />}
+              prefix={<Search size={15} />}
               placeholder="搜索姓名、手机号、职位或部门"
               size="middle"
-              className="!rounded-lg !border-[var(--app-line)] !bg-[var(--app-surface-soft)]"
               onChange={(event) => setKeyword(event.target.value)}
             />
           </div>
-          <div className="min-h-0 overflow-y-auto bg-[var(--app-surface-soft)] px-3 py-3">
-            {!treeData.length ? (
+          <div className="invite-members-directory-list">
+            {departments.isLoading ? (
+              <div className="invite-members-loading" role="status">
+                <Spin size="small" />
+                正在加载通讯录
+              </div>
+            ) : departments.isError ? (
+              <div className="invite-members-directory-error" role="alert">
+                <p>通讯录加载失败</p>
+                <Button onClick={() => void departments.refetch()}>
+                  重新加载
+                </Button>
+              </div>
+            ) : !treeData.length ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description="没有匹配的企业成员"
-                className="!my-16"
+                className="invite-members-directory-empty"
               />
             ) : (
               <Tree
@@ -391,6 +444,7 @@ export default function InviteGroupMembersModal({
                 blockNode
                 checkable
                 defaultExpandAll
+                disabled={invite.isPending}
                 checkedKeys={checkedKeys}
                 treeData={treeData}
                 className="invite-member-tree !bg-transparent"
@@ -401,41 +455,41 @@ export default function InviteGroupMembersModal({
             )}
           </div>
         </section>
-        <section className="grid min-h-0 min-w-0 grid-rows-[72px_minmax(0,1fr)] bg-[var(--app-surface-soft)]">
-          <div className="flex h-[72px] items-center border-b border-[var(--app-line)] bg-[var(--app-surface)] px-4">
-            <h3 className="m-0 flex w-full items-center justify-between text-sm font-medium text-[var(--app-text)]">
+        <section className="invite-members-selection" aria-label="已选择成员">
+          <div className="invite-members-selection-header">
+            <h3>
               <span className="grid gap-0.5">
                 <span>已选择成员</span>
                 <small className="text-xs font-normal text-[var(--app-text-tertiary)]">
-                  确认后将邀请加入当前群聊
+                  确认后加入「{conversation.name}」
                 </small>
               </span>
-              <span className="rounded-full bg-[var(--app-primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--app-primary)]">
+              <span className="invite-members-selection-count">
                 {selectedUsers.length}
               </span>
             </h3>
           </div>
-          <div className="min-h-0 overflow-y-auto px-3 py-3">
+          <div className="invite-members-selected-list">
             {!selectedUsers.length && (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="从左侧选择新成员"
-                className="!my-16"
-              />
+              <div className="invite-members-selected-empty">
+                <UsersRound size={28} aria-hidden="true" />
+                <p>选择的成员会显示在这里</p>
+              </div>
             )}
             {selectedUsers.map((user) => (
-              <div
-                key={user.id}
-                className="mb-2 flex items-center gap-2 rounded-lg border border-[var(--app-line)] bg-[var(--app-surface)] px-3 py-2 shadow-[var(--app-shadow-panel)]"
-              >
+              <div key={user.id} className="invite-members-selected-person">
                 <Avatar
                   shape="square"
                   size={32}
-                  className="!rounded-lg !bg-[var(--app-primary)]"
+                  src={user.avatarUrl}
+                  className="invite-member-avatar"
                 >
                   {user.avatar || user.name.slice(0, 1)}
                 </Avatar>
-                <span className="min-w-0 flex-1 truncate text-xs text-[var(--app-text)]">
+                <span
+                  className="invite-members-selected-name"
+                  title={user.name}
+                >
                   {user.name}
                 </span>
                 <Button
@@ -443,7 +497,8 @@ export default function InviteGroupMembersModal({
                   size="small"
                   aria-label={`移除${user.name}`}
                   icon={<X size={14} />}
-                  className="!text-[var(--app-text-tertiary)] hover:!bg-[var(--app-surface-muted)]"
+                  disabled={invite.isPending}
+                  className="invite-members-remove"
                   onClick={() =>
                     setSelectedIds((current) =>
                       current.filter((id) => id !== user.id),

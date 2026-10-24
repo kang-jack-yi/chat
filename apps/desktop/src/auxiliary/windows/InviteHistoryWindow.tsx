@@ -4,11 +4,13 @@ import { RefreshCw } from "lucide-react";
 import type { Attachment, InviteHistoryTask, Message } from "@chat/shared";
 import MessageView from "../../renderer/pages/Chat/components/MessageView";
 import { initialInviteHistorySelection } from "../invite-history-selection";
+import "./invite-history.less";
 
 export interface InviteHistoryWindowProps {
   task: InviteHistoryTask;
 }
 
+/** 同日消息简写时间，跨日时补充日期以保留阅读上下文。 */
 function messageTime(value: string, previous?: string) {
   const current = new Date(value);
   const previousDate = previous ? new Date(previous) : null;
@@ -25,6 +27,7 @@ function messageTime(value: string, previous?: string) {
   });
 }
 
+/** 选择随群聊邀请附带的本地历史，保留辅助窗口的完成与取消协议。 */
 export default function InviteHistoryWindow({
   task,
 }: InviteHistoryWindowProps) {
@@ -39,6 +42,8 @@ export default function InviteHistoryWindow({
     let active = true;
     setLoading(true);
     setError("");
+    setMessages([]);
+    setSelectedIds([]);
     void bridge?.messages
       .getRecent({
         taskId: task.taskId,
@@ -79,6 +84,7 @@ export default function InviteHistoryWindow({
     [bridge, task.taskId],
   );
 
+  /** 更新单条消息的选择，确保同一消息不会重复进入完成结果。 */
   function toggleMessage(messageId: number, checked: boolean) {
     setSelectedIds((current) =>
       checked
@@ -87,24 +93,48 @@ export default function InviteHistoryWindow({
     );
   }
 
+  /** 只有本次读取成功且有选择时，才按原协议完成当前任务。 */
+  function confirmSelection() {
+    if (loading || error || !selectedIds.length) return;
+    void bridge?.task.complete(task.taskId, {
+      confirmed: true,
+      selectedMessageIds: selectedIds,
+      selectedCount: selectedIds.length,
+    });
+  }
+
   return (
     <main
       data-chat-root
-      className="fixed inset-0 grid min-h-0 grid-rows-[minmax(0,1fr)_70px] border border-[var(--app-line)] bg-[var(--app-surface)]"
+      className="invite-history"
+      aria-labelledby="invite-history-title"
     >
-      <section className="min-h-0 overflow-y-auto bg-[var(--app-surface)] px-5 py-3">
+      <header className="invite-history__header">
+        <h1 id="invite-history-title">附带聊天记录</h1>
+        <p id="invite-history-description">
+          选择要随邀请分享给新成员的聊天记录，仅展示最近 30 条普通消息。
+        </p>
+      </header>
+
+      <section
+        className="invite-history__body"
+        aria-label="可附带的聊天记录"
+        aria-describedby="invite-history-description"
+        aria-busy={loading}
+      >
         {loading && (
-          <div className="grid h-full place-items-center">
-            <Spin tip="正在读取本地聊天记录…" />
+          <div className="invite-history__state" role="status">
+            <Spin />
+            <p>正在读取本地聊天记录…</p>
           </div>
         )}
 
         {!loading && error && (
-          <div className="grid h-full place-items-center">
-            <div className="w-full max-w-[460px] text-center">
-              <Alert type="error" showIcon message={error} />
+          <div className="invite-history__state">
+            <div className="invite-history__error">
+              <Alert type="error" showIcon title={error} />
               <Button
-                className="!mt-3"
+                className="invite-history__retry"
                 icon={<RefreshCw size={14} />}
                 onClick={() => setReloadKey((value) => value + 1)}
               >
@@ -115,51 +145,51 @@ export default function InviteHistoryWindow({
         )}
 
         {!loading && !error && !messages.length && (
-          <div className="grid h-full place-items-center">
+          <div className="invite-history__state">
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
-                <span className="grid gap-1 text-center">
-                  <strong className="font-medium text-[#647284]">
-                    当前群聊暂无可附带的普通消息
-                  </strong>
-                  <small className="text-[11px] text-[#9aa5b1]">
-                    入群、退群、撤回等系统通知不会作为聊天附录
-                  </small>
+                <span className="invite-history__empty">
+                  <strong>当前群聊暂无可附带的普通消息</strong>
+                  <small>入群、退群、撤回等系统通知不会作为聊天附录</small>
                 </span>
               }
             />
           </div>
         )}
 
-        {!loading &&
-          !error &&
-          messages.map((message, index) => {
-            const checked = selected.has(message.id);
-            return (
-              <div
-                key={message.clientId}
-                className="group rounded-xl px-1 py-2 transition-colors hover:bg-[var(--app-surface-soft)]"
-              >
-                <time className="mb-2 block text-center text-[10px] text-[var(--app-text-tertiary)]">
-                  {messageTime(
-                    message.createdAt,
-                    messages[index - 1]?.createdAt,
-                  )}
-                </time>
-                <label className="flex cursor-pointer items-start gap-3">
+        {!loading && !error && (
+          <div className="invite-history__list">
+            {messages.map((message, index) => {
+              const checked = selected.has(message.id);
+              return (
+                <article
+                  key={message.clientId}
+                  className={`invite-history__item${checked ? " invite-history__item--selected" : ""}`}
+                >
                   <Checkbox
-                    className="mt-[22px]"
+                    id={`invite-history-message-${message.id}`}
+                    className="invite-history__checkbox"
+                    aria-label={`选择${message.senderName}的第 ${index + 1} 条消息`}
                     checked={checked}
                     onChange={(event) =>
                       toggleMessage(message.id, event.target.checked)
                     }
                   />
-                  <span className="grid min-w-0 flex-1 gap-1">
-                    <span className="text-[11px] text-[var(--app-text-secondary)]">
-                      {message.senderName}
-                    </span>
-                    <span className="w-fit max-w-[460px] min-w-0 text-xs leading-5 text-[var(--app-text)]">
+                  <div className="invite-history__content">
+                    <label
+                      className="invite-history__metadata"
+                      htmlFor={`invite-history-message-${message.id}`}
+                    >
+                      <strong>{message.senderName}</strong>
+                      <time dateTime={message.createdAt}>
+                        {messageTime(
+                          message.createdAt,
+                          messages[index - 1]?.createdAt,
+                        )}
+                      </time>
+                    </label>
+                    <div className="invite-history__message">
                       <MessageView
                         message={message}
                         contextMenuEnabled={false}
@@ -173,51 +203,41 @@ export default function InviteHistoryWindow({
                           });
                         }}
                       />
-                    </span>
-                  </span>
-                </label>
-              </div>
-            );
-          })}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      <footer className="flex items-center justify-between gap-4 border-t border-[var(--app-line)] bg-[var(--app-surface-soft)] px-5">
-        <span className="flex min-w-0 items-center gap-4 text-xs">
+      <footer className="invite-history__footer">
+        <div className="invite-history__summary">
+          <span role="status" aria-live="polite" aria-atomic="true">
+            已选择 <strong>{selectedIds.length}</strong> 条
+          </span>
           <Button
             type="link"
-            size="small"
-            className="!h-8 !rounded-lg !px-2 !text-[var(--app-primary)] hover:!bg-[var(--app-primary-soft)] disabled:!text-[#a9b5c1]"
-            disabled={!selectedIds.length}
+            className="invite-history__clear"
+            disabled={loading || Boolean(error) || !selectedIds.length}
             onClick={() => setSelectedIds([])}
           >
             取消选中
           </Button>
-          <span className="text-[var(--app-text-secondary)]">
-            已选择 {selectedIds.length} 条聊天记录
-          </span>
-        </span>
-        <span className="flex shrink-0 gap-2">
+        </div>
+        <div className="invite-history__actions">
+          <Button onClick={() => void bridge?.task.cancel(task.taskId)}>
+            取消
+          </Button>
           <Button
             type="primary"
-            className="!min-w-[112px]"
-            disabled={!selectedIds.length}
-            onClick={() =>
-              void bridge?.task.complete(task.taskId, {
-                confirmed: true,
-                selectedMessageIds: selectedIds,
-                selectedCount: selectedIds.length,
-              })
-            }
+            disabled={loading || Boolean(error) || !selectedIds.length}
+            onClick={confirmSelection}
           >
             确定
           </Button>
-          <Button
-            className="!min-w-[96px]"
-            onClick={() => void bridge?.task.cancel(task.taskId)}
-          >
-            取消
-          </Button>
-        </span>
+        </div>
       </footer>
     </main>
   );
