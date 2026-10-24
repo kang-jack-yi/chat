@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Button, Modal, message } from "antd";
+import { Button, Drawer, Modal, message } from "antd";
 import { ChevronLeft } from "lucide-react";
 import {
   useLocation,
@@ -32,6 +32,7 @@ import type { MessagePage } from "../../types/api";
 import { get } from "../../services/request";
 import { searchTargetId } from "../Search/helpers";
 import "./style.less";
+import "./chat-members.less";
 
 /** 显示会话、聊天内容和成员信息，窄屏按需切换详情。 */
 export default function ChatPage() {
@@ -83,7 +84,14 @@ export default function ChatPage() {
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
-  const showMembers = selectedConversation?.type === "group" && wideChat;
+  const [wideMembersOpen, setWideMembersOpen] = useState(true);
+  const [drawerConversationId, setDrawerConversationId] = useState<number>();
+  const isGroup = selectedConversation?.type === "group";
+  const membersOpen = Boolean(
+    isGroup &&
+    (wideChat ? wideMembersOpen : drawerConversationId === selectedId),
+  );
+  const showMembers = wideChat && membersOpen;
   const [focusedMessageId, setFocusedMessageId] = useState<number>();
   const [pendingSearchTarget, setPendingSearchTarget] = useState<{
     conversationId: number;
@@ -95,10 +103,25 @@ export default function ChatPage() {
   const drafts = useChatDraftStore((state) => state.drafts);
 
   useEffect(() => {
-    if (!selectedId && conversations.data?.length) {
+    // 窄屏根入口保留列表，桌面延续自动选中首个会话的行为。
+    if (
+      !selectedId &&
+      conversations.data?.length &&
+      !window.matchMedia("(max-width: 767px)").matches
+    ) {
       navigate(ROUTES.chatDetail(conversations.data[0].id), { replace: true });
     }
   }, [conversations.data, navigate, selectedId]);
+
+  useEffect(() => {
+    // 深链接和历史导航均由路由决定详情展开，不依赖点击来源。
+    setMobileDetailOpen(Boolean(selectedId));
+  }, [selectedId, setMobileDetailOpen]);
+
+  useEffect(() => {
+    // 切换会话或跨越断点时关闭浮层，不影响本次宽屏的收起偏好。
+    setDrawerConversationId(undefined);
+  }, [selectedId, wideChat]);
 
   useEffect(() => {
     if (
@@ -107,10 +130,7 @@ export default function ChatPage() {
       !selectedConversation &&
       !searchMessageId
     ) {
-      const fallback = conversations.data[0];
-      navigate(fallback ? ROUTES.chatDetail(fallback.id) : ROUTES.chat, {
-        replace: true,
-      });
+      navigate(ROUTES.chat, { replace: true });
     }
   }, [
     conversations.data,
@@ -262,9 +282,39 @@ export default function ChatPage() {
     [conversations.data],
   );
 
+  /** 切换成员栏；窄屏浮层绑定当前会话，避免导航后沿用旧展开状态。 */
+  function toggleMembers() {
+    if (!isGroup) return;
+    if (wideChat) setWideMembersOpen((open) => !open);
+    else setDrawerConversationId(membersOpen ? undefined : selectedId);
+  }
+
+  /** 收起当前成员区域，不写入跨页面共享状态。 */
+  function closeMembers() {
+    if (wideChat) setWideMembersOpen(false);
+    else setDrawerConversationId(undefined);
+  }
+
+  /** 打开邀请对话框前收起窄屏浮层，保持焦点和层级明确。 */
+  function openInviteMembers() {
+    setDrawerConversationId(undefined);
+    setInviteOpen(true);
+  }
+
+  /** 复用现有设置及权限校验，不让窄屏成员浮层覆盖设置对话框。 */
+  function openSettings() {
+    setDrawerConversationId(undefined);
+    setSettingsOpen(true);
+  }
+
+  /** 打开原生聊天记录窗口，浏览器环境明确提示客户端限制。 */
   function openChatHistory() {
     if (!selectedConversation) return;
-    void window.desktop?.windows
+    if (!window.desktop) {
+      message.info("聊天记录请在桌面客户端中查看");
+      return;
+    }
+    void window.desktop.windows
       .openChatHistory({
         conversationId: selectedConversation.id,
       })
@@ -274,6 +324,21 @@ export default function ChatPage() {
         );
       });
   }
+
+  const membersPanel = selectedConversation && isGroup && (
+    <ChatSidePanel
+      key={selectedConversation.id}
+      conversation={selectedConversation}
+      currentUser={session.user}
+      companyName={session.company.name}
+      users={users.data ?? []}
+      onInvite={openInviteMembers}
+      onClose={closeMembers}
+      onOpenSettings={openSettings}
+      onStartDirectChat={startDirectChat}
+      onViewMember={(userId) => navigate(ROUTES.contactDetail(userId))}
+    />
+  );
 
   async function deleteConversationHistory(conversation: Conversation) {
     const cachedMessages = queryClient.getQueryData<
@@ -351,18 +416,13 @@ export default function ChatPage() {
         />
       </section>
       <main
-        className={`relative grid h-full min-h-0 min-w-0 max-w-full grid-rows-[minmax(0,1fr)] overflow-hidden bg-[var(--chat-canvas)] max-md:absolute max-md:inset-0 max-md:z-10 ${mobileDetailOpen ? "max-md:translate-x-0" : "max-md:translate-x-full"}`}
-        style={{
-          gridTemplateColumns: showMembers
-            ? "minmax(0, 1fr) 160px"
-            : "minmax(0, 1fr)",
-        }}
+        className={`chat-main ${showMembers ? "chat-main-with-members" : ""} relative grid h-full min-h-0 min-w-0 max-w-full grid-rows-[minmax(0,1fr)] overflow-hidden bg-[var(--chat-canvas)] max-md:absolute max-md:inset-0 max-md:z-10 ${mobileDetailOpen ? "max-md:translate-x-0" : "max-md:translate-x-full"}`}
       >
         <Button
           type="text"
           icon={<ChevronLeft size={20} />}
           aria-label="返回会话列表"
-          onClick={() => setMobileDetailOpen(false)}
+          onClick={() => navigate(ROUTES.chat)}
           className="!absolute !top-4 !left-2 !z-10 !hidden max-md:!inline-flex"
         />
         <ChatPanel
@@ -371,29 +431,34 @@ export default function ChatPage() {
           companyName={session.company.name}
           users={users.data ?? []}
           conversations={conversations.data ?? []}
-          showHeaderAction={!showMembers}
+          membersOpen={membersOpen}
+          onToggleMembers={toggleMembers}
           focusedMessageId={focusedMessageId}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSettings={openSettings}
           onOpenHistory={openChatHistory}
           onClearFocusedMessage={() => setFocusedMessageId(undefined)}
           onFocusMessage={setFocusedMessageId}
           onStartDirectChat={startDirectChat}
           onViewMember={(userId) => navigate(ROUTES.contactDetail(userId))}
         />
-        {selectedConversation && showMembers && (
-          <ChatSidePanel
-            conversation={selectedConversation}
-            currentUser={session.user}
-            companyName={session.company.name}
-            users={users.data ?? []}
-            onOpenHistory={openChatHistory}
-            onInvite={() => setInviteOpen(true)}
-            onOpenSettings={() => setSettingsOpen(true)}
-            onStartDirectChat={startDirectChat}
-            onViewMember={(userId) => navigate(ROUTES.contactDetail(userId))}
-          />
-        )}
+        {showMembers && membersPanel}
       </main>
+      {!wideChat && isGroup && (
+        <Drawer
+          rootClassName="chat-members-drawer"
+          aria-label="群成员"
+          placement="right"
+          size="min(360px, calc(100vw - 24px))"
+          open={membersOpen}
+          onClose={closeMembers}
+          closable={false}
+          keyboard
+          destroyOnHidden
+          styles={{ body: { padding: 0, overflow: "hidden" } }}
+        >
+          {membersPanel}
+        </Drawer>
+      )}
       <GroupDialog
         open={groupDialogOpen}
         users={(users.data ?? []).filter(

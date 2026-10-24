@@ -1,0 +1,160 @@
+.conversation-list-heading {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 18px 16px 12px;
+
+  h1 {
+    margin: 0;
+    color: var(--chat-text);
+    font-size: 18px;
+    font-weight: 600;
+  }
+}
+
+.conversation-list-summary {
+  color: var(--chat-text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.conversation-list-filters {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding: 0 16px 6px;
+
+  button {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--chat-text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+
+    &:hover {
+      background: var(--app-surface-muted);
+    }
+
+    &[aria-pressed="true"] {
+      background: var(--chat-primary-soft);
+      color: var(--chat-primary);
+      font-weight: 600;
+    }
+  }
+}
+
+.conversation-list-row {
+  min-height: 76px;
+  margin-block: 3px;
+  padding-right: 4px;
+}
+
+.conversation-list-select {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  align-self: stretch;
+  gap: 10px;
+  padding: 12px 6px 12px 10px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.conversation-list-more {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--chat-text-secondary);
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: var(--app-surface-muted);
+    color: var(--chat-primary);
+  }
+}
+
+.conversation-list-select:focus-visible,
+.conversation-list-more:focus-visible,
+.conversation-list-filters button:focus-visible {
+  outline: 2px solid var(--chat-primary);
+  outline-offset: -2px;
+}
+
+.conversation-list-unread {
+  min-width: 18px;
+  flex: 0 0 auto;
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  color: var(--chat-primary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
+  text-align: center;
+
+  &.is-muted {
+    color: var(--chat-text-secondary);
+  }
+}
+
+.conversation-list-notice {
+  margin: 4px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--app-surface-soft);
+  color: var(--chat-text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.conversation-list-feedback {
+  display: flex;
+  min-height: 96px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  color: var(--chat-text-secondary);
+  font-size: 12px;
+}
+
+.conversation-list-empty {
+  text-align: center;
+
+  > div {
+    padding-block: 40px 12px;
+  }
+}
+
+@media (pointer: coarse) {
+  .conversation-list-more {
+    width: 44px;
+    height: 44px;
+  }
+
+  .conversation-list-filters button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

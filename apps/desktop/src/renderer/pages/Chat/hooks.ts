@@ -1,11 +1,4 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ChangeEvent,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   useInfiniteQuery,
   useQuery,
@@ -43,6 +36,7 @@ import {
   type DraftAttachmentItem,
 } from "../../stores/chat-draft-store";
 import { clearConversationUnread } from "./conversation-read";
+import { useMessageViewport } from "./use-message-viewport";
 
 export type { DraftAttachmentItem } from "../../stores/chat-draft-store";
 
@@ -154,15 +148,6 @@ export function useChat(
   const typingTimer = useRef<number | null>(null);
   const lastReportedRead = useRef(0);
   const appliedReadReceipts = useRef(new Set<string>());
-  const initialScrollPendingConversation = useRef<number | undefined>(
-    undefined,
-  );
-  const initialScrollStartedConversation = useRef<number | undefined>(
-    undefined,
-  );
-  const initialScrollFrame = useRef<number | undefined>(undefined);
-  const initialScrollObserver = useRef<ResizeObserver | undefined>(undefined);
-  const initialScrollTimeout = useRef<number | undefined>(undefined);
   const sendScrollFrame = useRef<number | undefined>(undefined);
   const messageContentRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -207,6 +192,14 @@ export function useChat(
   const messageItems = focusedMessageId
     ? (messageContext.data?.items ?? [])
     : latestMessageItems;
+  const messageViewport = useMessageViewport({
+    conversationId,
+    focusedMessageId,
+    currentUserId: currentUser.id,
+    items: messageItems,
+    viewport: messageListRef,
+    content: messageContentRef,
+  });
 
   function setConversationDraft(
     updater: (draft: ConversationDraft) => ConversationDraft,
@@ -249,20 +242,6 @@ export function useChat(
     });
   }
 
-  function cancelInitialScroll() {
-    if (initialScrollFrame.current !== undefined) {
-      window.cancelAnimationFrame(initialScrollFrame.current);
-      initialScrollFrame.current = undefined;
-    }
-    initialScrollObserver.current?.disconnect();
-    initialScrollObserver.current = undefined;
-    if (initialScrollTimeout.current !== undefined) {
-      window.clearTimeout(initialScrollTimeout.current);
-      initialScrollTimeout.current = undefined;
-    }
-    initialScrollPendingConversation.current = undefined;
-  }
-
   function patchMessage(clientId: string, patch: Partial<LocalMessage>) {
     updateMessages((items) =>
       items.map((item) =>
@@ -296,50 +275,6 @@ export function useChat(
     lastReportedRead.current = 0;
     appliedReadReceipts.current.clear();
   }, [conversationId]);
-
-  useLayoutEffect(() => {
-    cancelInitialScroll();
-    if (!conversationId || focusedMessageId) return;
-    initialScrollPendingConversation.current = conversationId;
-    initialScrollStartedConversation.current = undefined;
-  }, [conversationId, focusedMessageId]);
-
-  useLayoutEffect(() => {
-    if (
-      !conversationId ||
-      focusedMessageId ||
-      !messageItems.length ||
-      initialScrollPendingConversation.current !== conversationId ||
-      initialScrollStartedConversation.current === conversationId
-    )
-      return;
-    // Wait for the selected conversation's first message batch to render. Keep
-    // the viewport pinned while its initial images finish decoding, but only
-    // until the user starts browsing the history.
-    initialScrollStartedConversation.current = conversationId;
-    const pinToLatest = () => {
-      const container = messageListRef.current;
-      if (container) container.scrollTop = container.scrollHeight;
-    };
-    initialScrollFrame.current = window.requestAnimationFrame(() => {
-      pinToLatest();
-      initialScrollFrame.current = window.requestAnimationFrame(() => {
-        pinToLatest();
-        initialScrollFrame.current = undefined;
-      });
-    });
-    const content = messageContentRef.current;
-    if (content) {
-      initialScrollObserver.current = new ResizeObserver(pinToLatest);
-      initialScrollObserver.current.observe(content);
-    }
-    initialScrollTimeout.current = window.setTimeout(() => {
-      initialScrollObserver.current?.disconnect();
-      initialScrollObserver.current = undefined;
-      initialScrollTimeout.current = undefined;
-      initialScrollPendingConversation.current = undefined;
-    }, 4000);
-  }, [conversationId, focusedMessageId, messageItems.length]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -389,8 +324,16 @@ export function useChat(
       if (historyPending)
         void queryClient.invalidateQueries({ queryKey, exact: true });
       void queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
+      // 已读提交前的列表快照可能仍含未读；确认后重取并取消旧快照的覆盖。
       if (message.senderId !== currentUser.id)
-        void chatService.read(conversationId, message.id);
+        void chatService
+          .read(conversationId, message.id)
+          .then(() =>
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.conversations,
+            }),
+          )
+          .catch(() => undefined);
     };
     const onSyncAvailable = async () => {
       if (!localDatabase.available()) return;
@@ -492,11 +435,23 @@ export function useChat(
       lastMessage.id > lastReportedRead.current
     ) {
       lastReportedRead.current = lastMessage.id;
-      void chatService.read(conversationId, lastMessage.id).catch(() => {
-        lastReportedRead.current = 0;
-      });
+      // 初次加载或重取消息也会推进已读，成功后同步列表与桌面本地缓存。
+      void chatService
+        .read(conversationId, lastMessage.id)
+        .then(() =>
+          queryClient.invalidateQueries({ queryKey: queryKeys.conversations }),
+        )
+        .catch(() => {
+          lastReportedRead.current = 0;
+        });
     }
-  }, [conversationId, currentUser.id, focusedMessageId, messageItems]);
+  }, [
+    conversationId,
+    currentUser.id,
+    focusedMessageId,
+    messageItems,
+    queryClient,
+  ]);
 
   function localMessage(
     clientId: string,
@@ -1092,16 +1047,12 @@ export function useChat(
     }
   }
 
+  /** 加载旧消息后保持当前可见消息的坐标，迟到结果不移动其他会话。 */
   async function loadEarlier() {
     const container = messageListRef.current;
-    const previousHeight = container?.scrollHeight ?? 0;
+    if (!container || messages.isFetchingNextPage) return;
+    messageViewport.preserveHistoryPosition();
     await messages.fetchNextPage();
-    window.requestAnimationFrame(() => {
-      if (container) {
-        const addedHeight = container.scrollHeight - previousHeight;
-        container.scrollTop += addedHeight;
-      }
-    });
   }
 
   return {
@@ -1112,7 +1063,7 @@ export function useChat(
       draftState.attachments.length,
     ),
     cancel,
-    cancelInitialScroll,
+    messageViewport,
     changeDraft,
     draft: draftState.text,
     fileRef,

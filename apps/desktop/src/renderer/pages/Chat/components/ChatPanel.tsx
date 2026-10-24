@@ -9,11 +9,12 @@ import {
 import { Button, Checkbox, Modal, message as toast } from "antd";
 import {
   Copy,
+  ArrowDown,
   Download,
   Forward,
   History,
   MessageCircleMore,
-  Monitor,
+  UsersRound,
   Settings,
   Trash2,
   X,
@@ -31,6 +32,7 @@ import { useChat } from "../hooks";
 import ComposerQuote from "./ComposerQuote";
 import ForwardTargetModal from "./ForwardTargetModal";
 import MemberProfilePopover from "./MemberProfilePopover";
+import { continuesMessageGroup } from "./message-grouping";
 import {
   getSelectableRange,
   isSelectableMessage,
@@ -56,7 +58,8 @@ export interface ChatPanelProps {
   companyName: string;
   users: User[];
   conversations: Conversation[];
-  showHeaderAction: boolean;
+  membersOpen?: boolean;
+  onToggleMembers?: () => void;
   focusedMessageId?: number;
   onOpenSettings: () => void;
   onOpenHistory: () => void;
@@ -119,7 +122,8 @@ export default function ChatPanel({
   companyName,
   users,
   conversations,
-  showHeaderAction,
+  membersOpen = false,
+  onToggleMembers,
   focusedMessageId,
   onOpenSettings,
   onOpenHistory,
@@ -419,23 +423,33 @@ export default function ChatPanel({
     } as User;
   }
 
+  /** 定位引用消息，减少动态效果偏好下直接跳转并保留主题化提示。 */
   function locateMessage(messageId: number) {
     const element = document.getElementById(`message-${messageId}`);
     if (!element) {
       onFocusMessage(messageId);
       return;
     }
-    element.scrollIntoView({ behavior: "smooth", block: "center" });
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    element.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "center",
+    });
+    if (reducedMotion) return;
     element.animate(
       [
-        { backgroundColor: "rgba(22,119,255,.14)" },
+        { backgroundColor: "var(--app-primary-soft)" },
         { backgroundColor: "transparent" },
       ],
       { duration: 1200, easing: "ease-out" },
     );
   }
 
+  /** 同步阅读位置，到达顶部时才加载前一页历史。 */
   function loadEarlierOnReachTop(event: UIEvent<HTMLElement>) {
+    chat.messageViewport.onViewportScroll();
     const viewport = event.currentTarget;
     if (
       focusedMessageId ||
@@ -474,69 +488,79 @@ export default function ChatPanel({
       data-chat-root
       className="relative flex h-full w-full min-h-0 min-w-0 max-w-full flex-col overflow-hidden"
     >
-      <header className="chat-detail-heading flex w-full min-w-0 max-w-full shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-[var(--chat-line)] bg-[var(--chat-header)] px-5 max-md:pl-12">
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-          {conversation.type === "direct" ? (
-            <MemberProfilePopover
-              user={memberProfile(
-                conversation.members?.find(
-                  (member) => member.id !== currentUser.id,
-                )?.id ?? 0,
-              )}
-              currentUser={currentUser}
-              companyName={companyName}
-              placement="bottomLeft"
-              onSendMessage={onStartDirectChat}
-              onViewProfile={onViewMember}
-            >
-              <h2 className="m-0 min-w-0 truncate text-sm leading-4 font-semibold text-[var(--chat-text)] hover:text-[var(--chat-primary)]">
-                {conversation.name}
-              </h2>
-            </MemberProfilePopover>
-          ) : (
-            <h2 className="m-0 min-w-0 truncate text-sm leading-4 font-semibold text-[var(--chat-text)]">
-              {conversation.name}
-            </h2>
-          )}
-          {conversation.type === "direct" && (
-            <Monitor
-              size={14}
-              className={`-translate-y-px shrink-0 ${
-                conversation.online
-                  ? "text-[var(--chat-primary)]"
-                  : "text-[var(--chat-text-tertiary)]"
-              }`}
+      <header className="chat-detail-heading">
+        <div className="chat-heading-identity">
+          <span className="chat-heading-avatar" aria-hidden="true">
+            <Avatar
+              text={conversation.avatar || conversation.name.slice(0, 1)}
+              group={conversation.type === "group"}
             />
-          )}
-          {conversation.type === "direct" && chat.typingName && (
-            <>
-              <span className="h-3 w-px shrink-0 bg-[var(--chat-line)]" />
-              <span className="truncate text-xs text-[var(--chat-text-secondary)]">
-                {chat.typingName} 正在输入...
-              </span>
-            </>
-          )}
-        </div>
-        {showHeaderAction && (
-          <div className="flex shrink-0 items-center gap-0.5">
-            <Button
-              type="text"
-              icon={<History size={17} />}
-              title="聊天记录"
-              aria-label="打开聊天记录"
-              onClick={onOpenHistory}
-              className="!rounded-md !text-[var(--chat-text-secondary)] hover:!bg-[var(--app-surface-muted)] hover:!text-[var(--chat-primary)]"
-            />
-            <Button
-              type="text"
-              icon={<Settings size={17} />}
-              title="聊天设置"
-              aria-label="打开聊天设置"
-              onClick={onOpenSettings}
-              className="!rounded-md !text-[var(--chat-text-secondary)] hover:!bg-[var(--app-surface-muted)] hover:!text-[var(--chat-primary)]"
-            />
+          </span>
+          <div className="chat-heading-copy">
+            {conversation.type === "direct" ? (
+              <MemberProfilePopover
+                user={memberProfile(
+                  conversation.members?.find(
+                    (member) => member.id !== currentUser.id,
+                  )?.id ?? 0,
+                )}
+                currentUser={currentUser}
+                companyName={companyName}
+                placement="bottomLeft"
+                onSendMessage={onStartDirectChat}
+                onViewProfile={onViewMember}
+              >
+                <button
+                  type="button"
+                  className="chat-heading-profile"
+                  aria-label={`查看${conversation.name}的资料`}
+                >
+                  {conversation.name}
+                </button>
+              </MemberProfilePopover>
+            ) : (
+              <h2 title={conversation.name}>{conversation.name}</h2>
+            )}
+            <p className="chat-heading-meta" aria-live="polite">
+              {conversation.type === "group"
+                ? `${conversation.members?.length ?? 0} 位成员 · 团队群聊`
+                : chat.typingName
+                  ? `${chat.typingName} 正在输入…`
+                  : conversation.online
+                    ? "在线"
+                    : "离线"}
+            </p>
           </div>
-        )}
+        </div>
+        <div className="chat-heading-actions">
+          {conversation.type === "group" && onToggleMembers && (
+            <Button
+              type="text"
+              icon={<UsersRound size={18} />}
+              aria-label="群成员"
+              title={membersOpen ? "收起群成员" : "查看群成员"}
+              aria-expanded={membersOpen}
+              onClick={onToggleMembers}
+              className={membersOpen ? "is-active" : ""}
+            />
+          )}
+          <Button
+            type="text"
+            icon={<History size={17} />}
+            title="聊天记录"
+            aria-label="打开聊天记录"
+            onClick={onOpenHistory}
+            className="!rounded-md !text-[var(--chat-text-secondary)] hover:!bg-[var(--app-surface-muted)] hover:!text-[var(--chat-primary)]"
+          />
+          <Button
+            type="text"
+            icon={<Settings size={17} />}
+            title="聊天设置"
+            aria-label="打开聊天设置"
+            onClick={onOpenSettings}
+            className="!rounded-md !text-[var(--chat-text-secondary)] hover:!bg-[var(--app-surface-muted)] hover:!text-[var(--chat-primary)]"
+          />
+        </div>
       </header>
 
       {selectionMode && (
@@ -553,48 +577,118 @@ export default function ChatPanel({
         </div>
       )}
 
-      <section
-        ref={chat.messageListRef}
-        onScroll={loadEarlierOnReachTop}
-        onWheel={chat.cancelInitialScroll}
-        onPointerDown={chat.cancelInitialScroll}
-        onTouchStart={chat.cancelInitialScroll}
-        className="min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto bg-[var(--chat-canvas)] px-5 py-5 max-md:px-3.5 max-md:py-4"
-        style={selectionMode ? { paddingTop: 48 } : undefined}
-      >
-        {focusedMessageId && (
-          <div className="sticky top-0 z-10 mb-3 text-center">
-            <Button size="small" onClick={onClearFocusedMessage}>
-              返回最新消息
-            </Button>
-          </div>
-        )}
-        {chat.messageQuery.isLoading && (
-          <div className="my-4 text-center text-xs text-[var(--chat-text-tertiary)]">
-            正在加载消息...
-          </div>
-        )}
-        <div ref={chat.messageContentRef}>
-          {chat.messageItems.map((message, index, items) => {
-            const own = message.senderId === currentUser.id;
-            const quotePart = message.parts.find(
-              (part) => part.type === "quote",
-            );
-            const quotedMessage =
-              quotePart?.type === "quote"
-                ? items.find((item) => item.id === quotePart.messageId)
-                : undefined;
-            const showTime =
-              index === 0 ||
-              new Date(message.createdAt).getTime() -
-                new Date(items[index - 1].createdAt).getTime() >
-                300000;
-            if (message.kind === "system") {
+      <div className="chat-timeline">
+        <section
+          ref={chat.messageListRef}
+          aria-label="聊天消息"
+          onScroll={loadEarlierOnReachTop}
+          className="chat-message-viewport min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto bg-[var(--chat-canvas)] px-5 py-5 max-md:px-3.5 max-md:py-4"
+          style={selectionMode ? { paddingTop: 48 } : undefined}
+        >
+          {focusedMessageId && (
+            <div className="sticky top-0 z-10 mb-3 text-center">
+              <Button size="small" onClick={onClearFocusedMessage}>
+                返回最新消息
+              </Button>
+            </div>
+          )}
+          {chat.messageQuery.isLoading && (
+            <div role="status" className="chat-history-status">
+              正在加载消息...
+            </div>
+          )}
+          {chat.messageQuery.isError && (
+            <div role="alert" className="chat-history-status">
+              消息加载失败
+              <Button
+                type="link"
+                size="small"
+                onClick={() => void chat.messageQuery.refetch()}
+              >
+                重新加载
+              </Button>
+            </div>
+          )}
+          {!focusedMessageId &&
+            chat.messages.hasNextPage &&
+            !chat.messages.isError && (
+              <div className="chat-history-status">
+                <Button
+                  type="text"
+                  size="small"
+                  loading={chat.messages.isFetchingNextPage}
+                  onClick={() => void chat.loadEarlier()}
+                >
+                  加载更早消息
+                </Button>
+              </div>
+            )}
+          {!chat.messageQuery.isLoading &&
+            !chat.messageQuery.isError &&
+            !chat.messageItems.length && (
+              <div className="chat-timeline-empty">
+                <MessageCircleMore size={28} aria-hidden="true" />
+                <strong>从一句问候开始</strong>
+                <span>在下方输入消息，开启这次对话</span>
+              </div>
+            )}
+          <div ref={chat.messageContentRef}>
+            {chat.messageItems.map((message, index, items) => {
+              const own = message.senderId === currentUser.id;
+              const previous = items[index - 1];
+              const continuesPrevious = continuesMessageGroup(
+                previous,
+                message,
+              );
+              const quotePart = message.parts.find(
+                (part) => part.type === "quote",
+              );
+              const quotedMessage =
+                quotePart?.type === "quote"
+                  ? items.find((item) => item.id === quotePart.messageId)
+                  : undefined;
+              const showTime =
+                index === 0 ||
+                new Date(message.createdAt).getTime() -
+                  new Date(items[index - 1].createdAt).getTime() >
+                  300000;
+              if (message.kind === "system") {
+                return (
+                  <div
+                    key={message.clientId}
+                    id={`message-${message.id}`}
+                    data-message-entry
+                    className="rounded-xl"
+                  >
+                    {showTime && (
+                      <div className="my-4 text-center text-xs text-[var(--chat-text-tertiary)]">
+                        {new Date(message.createdAt).toLocaleString("zh-CN", {
+                          month: "numeric",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })}
+                      </div>
+                    )}
+                    <div
+                      data-message-row
+                      className="chat-message-row text-center"
+                    >
+                      <MessageView
+                        message={message}
+                        currentUserId={currentUser.id}
+                      />
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div
                   key={message.clientId}
                   id={`message-${message.id}`}
-                  className="rounded-xl"
+                  data-message-entry
+                  className="min-w-0 max-w-full rounded-xl"
                 >
                   {showTime && (
                     <div className="my-4 text-center text-xs text-[var(--chat-text-tertiary)]">
@@ -609,117 +703,109 @@ export default function ChatPanel({
                   )}
                   <div
                     data-message-row
-                    className="chat-message-row text-center"
+                    className={`chat-message-row flex min-w-0 max-w-full items-start gap-2 overflow-hidden${continuesPrevious ? " chat-message-continuation" : ""}`}
                   >
-                    <MessageView
-                      message={message}
-                      currentUserId={currentUser.id}
-                    />
+                    {selectionMode && (
+                      <Checkbox
+                        className="!mt-3 shrink-0"
+                        checked={selectedIds.has(message.id)}
+                        disabled={!isSelectableMessage(message)}
+                        onChange={(event) =>
+                          toggleMessage(message, event.target.checked)
+                        }
+                      />
+                    )}
+                    <article
+                      className={`flex min-w-0 max-w-full flex-1 items-start gap-2 overflow-hidden ${own ? "flex-row-reverse" : ""}`}
+                    >
+                      {continuesPrevious ? (
+                        <span
+                          className="chat-message-avatar-space"
+                          aria-hidden="true"
+                        />
+                      ) : conversation.type === "group" &&
+                        message.senderType !== "bot" ? (
+                        <MemberProfilePopover
+                          user={memberProfile(message.senderId)}
+                          currentUser={currentUser}
+                          companyName={companyName}
+                          placement={own ? "leftTop" : "rightTop"}
+                          onSendMessage={onStartDirectChat}
+                          onViewProfile={onViewMember}
+                        >
+                          <Avatar text={message.senderAvatar} />
+                        </MemberProfilePopover>
+                      ) : (
+                        <Avatar text={message.senderAvatar} />
+                      )}
+                      <div
+                        className={`min-w-0 max-w-full overflow-hidden ${own ? "flex flex-col items-end text-right" : ""}`}
+                      >
+                        {!own &&
+                          !continuesPrevious &&
+                          (conversation.type === "group" ||
+                            message.senderType === "bot") && (
+                            <span className="mb-1 flex items-center gap-1 text-xs text-[var(--chat-text-secondary)]">
+                              {message.senderName}
+                              {message.senderType === "bot" && (
+                                <em className="rounded bg-[var(--chat-primary-soft)] px-1 not-italic text-xs text-[var(--chat-primary)]">
+                                  机器人
+                                </em>
+                              )}
+                            </span>
+                          )}
+                        <MessageView
+                          message={message}
+                          own={own}
+                          onRetry={chat.retry}
+                          onCancel={chat.cancel}
+                          onRemoveFailed={chat.removeFailed}
+                          onQuote={chat.quoteMessage}
+                          onRecall={chat.recall}
+                          onForward={openForward}
+                          onCreateTask={setTaskMessage}
+                          onSelect={startSelecting}
+                          onOpenForwardRecord={(target) => {
+                            void window.desktop?.windows.openForwardRecord({
+                              conversationId: target.conversationId,
+                              messageId: target.id,
+                            });
+                          }}
+                          contextMenuEnabled={!selectionMode}
+                          quotedMessage={quotedMessage}
+                          onLocateMessage={locateMessage}
+                        />
+                        {own &&
+                          message.id > 0 &&
+                          Boolean(message.recipientCount) && (
+                            <MessageReadReceiptPopover
+                              message={message}
+                              conversationType={conversation.type}
+                            />
+                          )}
+                      </div>
+                    </article>
                   </div>
                 </div>
               );
-            }
-            return (
-              <div
-                key={message.clientId}
-                id={`message-${message.id}`}
-                className="min-w-0 max-w-full rounded-xl"
-              >
-                {showTime && (
-                  <div className="my-4 text-center text-xs text-[var(--chat-text-tertiary)]">
-                    {new Date(message.createdAt).toLocaleString("zh-CN", {
-                      month: "numeric",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    })}
-                  </div>
-                )}
-                <div
-                  data-message-row
-                  className="chat-message-row flex min-w-0 max-w-full items-start gap-2 overflow-hidden"
-                >
-                  {selectionMode && (
-                    <Checkbox
-                      className="!mt-3 shrink-0"
-                      checked={selectedIds.has(message.id)}
-                      disabled={!isSelectableMessage(message)}
-                      onChange={(event) =>
-                        toggleMessage(message, event.target.checked)
-                      }
-                    />
-                  )}
-                  <article
-                    className={`flex min-w-0 max-w-full flex-1 items-start gap-2 overflow-hidden ${own ? "flex-row-reverse" : ""}`}
-                  >
-                    {conversation.type === "group" &&
-                    message.senderType !== "bot" ? (
-                      <MemberProfilePopover
-                        user={memberProfile(message.senderId)}
-                        currentUser={currentUser}
-                        companyName={companyName}
-                        placement={own ? "leftTop" : "rightTop"}
-                        onSendMessage={onStartDirectChat}
-                        onViewProfile={onViewMember}
-                      >
-                        <Avatar text={message.senderAvatar} />
-                      </MemberProfilePopover>
-                    ) : (
-                      <Avatar text={message.senderAvatar} />
-                    )}
-                    <div
-                      className={`min-w-0 max-w-full overflow-hidden ${own ? "flex flex-col items-end text-right" : ""}`}
-                    >
-                      {!own &&
-                        (conversation.type === "group" ||
-                          message.senderType === "bot") && (
-                          <span className="mb-1 flex items-center gap-1 text-xs text-[var(--chat-text-secondary)]">
-                            {message.senderName}
-                            {message.senderType === "bot" && (
-                              <em className="rounded bg-[var(--chat-primary-soft)] px-1 not-italic text-xs text-[var(--chat-primary)]">
-                                机器人
-                              </em>
-                            )}
-                          </span>
-                        )}
-                      <MessageView
-                        message={message}
-                        own={own}
-                        onRetry={chat.retry}
-                        onCancel={chat.cancel}
-                        onRemoveFailed={chat.removeFailed}
-                        onQuote={chat.quoteMessage}
-                        onRecall={chat.recall}
-                        onForward={openForward}
-                        onCreateTask={setTaskMessage}
-                        onSelect={startSelecting}
-                        onOpenForwardRecord={(target) => {
-                          void window.desktop?.windows.openForwardRecord({
-                            conversationId: target.conversationId,
-                            messageId: target.id,
-                          });
-                        }}
-                        contextMenuEnabled={!selectionMode}
-                        quotedMessage={quotedMessage}
-                        onLocateMessage={locateMessage}
-                      />
-                      {own &&
-                        message.id > 0 &&
-                        Boolean(message.recipientCount) && (
-                          <MessageReadReceiptPopover
-                            message={message}
-                            conversationType={conversation.type}
-                          />
-                        )}
-                    </div>
-                  </article>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+            })}
+          </div>
+        </section>
+        {!focusedMessageId && chat.messageViewport.awayFromLatest && (
+          <Button
+            className="chat-jump-latest"
+            icon={<ArrowDown size={16} />}
+            aria-label="回到最新消息"
+            onClick={chat.messageViewport.scrollToLatest}
+          >
+            <span aria-live="polite">
+              {chat.messageViewport.newMessageCount
+                ? `${chat.messageViewport.newMessageCount} 条新消息`
+                : "回到最新"}
+            </span>
+          </Button>
+        )}
+      </div>
 
       {selectionMode ? (
         <footer className={styles.selectionToolbar}>
@@ -818,6 +904,18 @@ export default function ChatPanel({
             aria-valuemin={COMPOSER_MIN_HEIGHT}
             aria-valuemax={COMPOSER_MAX_HEIGHT}
             aria-valuenow={composerHeight}
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+              event.preventDefault();
+              setComposerHeight((height) =>
+                resizedComposerHeight(
+                  height,
+                  0,
+                  event.key === "ArrowUp" ? -16 : 16,
+                ),
+              );
+            }}
             className="group absolute inset-x-0 -top-1 z-10 h-2 cursor-row-resize touch-none"
             onPointerDown={startComposerResize}
             onPointerMove={moveComposerResize}
@@ -860,18 +958,24 @@ export default function ChatPanel({
               ) : undefined
             }
             disabled={chat.submitting}
-            editorClassName="min-h-24 h-[calc(var(--composer-height,176px)-74px)]"
+            editorClassName="min-h-12 h-[calc(var(--composer-height,176px)-106px)]"
             mentionsEnabled={conversation.type === "group"}
             sendKey={chatPreferences?.sendKey}
+            placeholder="输入消息…"
             mentionUsers={(conversation.members ?? []).filter(
               (user) => user.id !== currentUser.id && user.status === "active",
             )}
           />
+          <span className="chat-composer-hint">
+            {chatPreferences?.sendKey === "ctrlEnter"
+              ? "Ctrl + Enter 发送 · Enter 换行"
+              : "Enter 发送 · Shift + Enter 换行"}
+          </span>
           <Button
             type="primary"
             className="!absolute !right-4 !bottom-3.5 !min-w-18 !px-4 !font-medium"
             onClick={() => void chat.submit()}
-            disabled={!chat.canSend}
+            disabled={!chat.canSend || chat.submitting}
           >
             {chat.submitting ? "发送中..." : "发送"}
           </Button>

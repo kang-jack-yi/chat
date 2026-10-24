@@ -702,6 +702,7 @@ export default function RichTextEditor({
               size="small"
               disabled={disabled}
               icon={<Smile size={19} />}
+              aria-label="表情"
             />
           </Tooltip>
         </Popover>
@@ -711,6 +712,7 @@ export default function RichTextEditor({
             size="small"
             disabled={disabled}
             icon={<ImageIcon size={19} />}
+            aria-label="选择图片"
             onClick={() => {
               saveSelection();
               onPickImage();
@@ -725,6 +727,7 @@ export default function RichTextEditor({
                 size="small"
                 disabled={disabled}
                 icon={<Paperclip size={19} />}
+                aria-label="选择文件"
                 onClick={() => {
                   saveSelection();
                   onPickFile?.();
@@ -738,6 +741,7 @@ export default function RichTextEditor({
                   size="small"
                   disabled={disabled || screenshotBusy}
                   icon={<Scissors size={18} />}
+                  aria-label="截图"
                   onClick={() => void captureScreenshot()}
                 />
               </Tooltip>

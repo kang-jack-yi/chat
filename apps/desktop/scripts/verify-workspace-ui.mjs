@@ -878,7 +878,9 @@ async function verifyNeutralMessages(page, account, group) {
       const peer = document.querySelector(
         `#message-${peerId} [data-message-content]`,
       );
-      const canvas = document.querySelector("[data-chat-root] > section");
+      const canvas = document.querySelector(
+        "[data-chat-root] .chat-message-viewport",
+      );
       if (!own || !peer || !canvas)
         throw new Error("中性消息 fixture 或消息画布未渲染");
       return {

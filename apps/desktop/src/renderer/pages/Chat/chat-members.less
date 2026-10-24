@@ -1,0 +1,228 @@
+.chat-main {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.chat-main-with-members {
+  grid-template-columns: minmax(0, 1fr) clamp(224px, 20vw, 240px);
+}
+
+.chat-members-panel {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+  border-left: 1px solid var(--chat-line);
+  background: var(--chat-list);
+  color: var(--chat-text);
+}
+
+.chat-members-heading {
+  display: flex;
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 8px 8px 8px 16px;
+  border-bottom: 1px solid var(--chat-line);
+  background: var(--chat-header);
+
+  h2 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  h2 span {
+    color: var(--chat-text-secondary);
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  .chat-members-close {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    color: var(--chat-text-secondary);
+  }
+}
+
+.chat-members-tools {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+
+  > .ant-btn,
+  .ant-input-affix-wrapper {
+    min-height: 44px;
+  }
+
+  label {
+    margin-top: 4px;
+    color: var(--chat-text-secondary);
+    font-size: 12px;
+  }
+
+  small {
+    color: var(--chat-text-secondary);
+    font-size: 12px;
+  }
+}
+
+.chat-members-list {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden auto;
+  padding: 0 8px 12px;
+
+  > span {
+    display: flex;
+    width: 100%;
+  }
+}
+
+.chat-members-announcement {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--chat-line);
+  border-radius: 10px;
+  background: var(--app-surface-muted);
+  color: var(--chat-text-secondary);
+  text-align: left;
+  cursor: pointer;
+
+  > svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  > span {
+    min-width: 0;
+  }
+  strong {
+    display: block;
+    color: var(--chat-text);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  small {
+    display: -webkit-box;
+    margin-top: 4px;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+    line-height: 18px;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--chat-primary);
+    outline-offset: 2px;
+  }
+}
+
+.chat-members-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--chat-rail-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--chat-primary);
+    outline-offset: -2px;
+  }
+
+  .ant-avatar {
+    flex-shrink: 0;
+    background: var(--chat-primary-soft);
+    color: var(--chat-primary);
+    font-size: 12px;
+  }
+}
+
+.chat-members-identity {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+
+  strong,
+  small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  small {
+    color: var(--chat-text-secondary);
+    font-size: 12px;
+  }
+}
+
+.chat-members-owner {
+  flex-shrink: 0;
+  color: var(--chat-primary);
+  font-size: 12px;
+}
+
+.chat-members-presence {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: var(--chat-text-tertiary);
+}
+
+.chat-members-online {
+  background: var(--app-success);
+}
+
+.chat-members-empty {
+  padding: 24px 8px;
+  color: var(--chat-text-secondary);
+  text-align: center;
+  overflow-wrap: anywhere;
+
+  .ant-btn {
+    min-height: 44px;
+  }
+}
+
+.chat-members-drawer .chat-members-panel {
+  border-left: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-members-drawer .ant-drawer-mask,
+  .chat-members-drawer .ant-drawer-content-wrapper {
+    animation: none !important;
+    transition: none !important;
+  }
+}
